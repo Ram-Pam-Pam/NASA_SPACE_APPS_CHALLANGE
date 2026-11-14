@@ -28,6 +28,18 @@ class LocationCreate(LocationBase):
     id: str = Field(pattern=LOCATION_ID_PATTERN, examples=["portuguese_bend_california"])
 
 
+class LocationUpdate(BaseModel):
+    """Fields that can be changed after creation. All optional - send only what changes."""
+
+    name: str | None = Field(default=None, min_length=1, max_length=100)
+    region: str | None = Field(default=None, max_length=100)
+    hazard: str | None = Field(default=None, max_length=100)
+    summary: str | None = Field(default=None, max_length=2000)
+    order: int | None = None
+    note: str | None = Field(default=None, max_length=500)
+    view: MapView | None = None
+
+
 class Location(LocationBase):
     """Full location metadata, as stored and returned by the API."""
 

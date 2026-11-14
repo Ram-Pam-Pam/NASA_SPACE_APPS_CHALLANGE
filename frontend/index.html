@@ -1,0 +1,663 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Corridor Watch</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+:root {
+  color-scheme: light;
+  --page: #f9f9f7; --surface: #fcfcfb; --text: #0b0b0b; --text-2: #52514e; --muted: #898781;
+  --grid: #e1e0d9; --axis: #c3c2b7; --border: rgba(11,11,11,0.10); --wash: rgba(11,11,11,0.045);
+  --accent: #184f95; --accent-ink: #ffffff;
+  --s1: #2a78d6; --s2: #eb6834; --alert: #d03b3b; --alert-wash: rgba(208,59,59,0.10);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --text: #f0efec; --text-2: #c3c2b7; --muted: #898781;
+    --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10); --wash: rgba(255,255,255,0.06);
+    --accent: #86b6ef; --accent-ink: #0b0b0b;
+    --s1: #3987e5; --s2: #d95926; --alert: #e66767; --alert-wash: rgba(230,103,103,0.14);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d; --surface: #1a1a19; --text: #f0efec; --text-2: #c3c2b7; --muted: #898781;
+  --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10); --wash: rgba(255,255,255,0.06);
+  --accent: #86b6ef; --accent-ink: #0b0b0b;
+  --s1: #3987e5; --s2: #d95926; --alert: #e66767; --alert-wash: rgba(230,103,103,0.14);
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--page); color: var(--text); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+button, select, input { font: inherit; }
+button { background: var(--surface); color: var(--text); border: 1px solid var(--axis); border-radius: 8px; padding: 7px 12px; cursor: pointer; }
+button:hover { background: var(--wash); }
+button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+select { background: var(--surface); color: var(--text); border: 1px solid var(--axis); border-radius: 8px; padding: 7px 10px; max-width: 100%; }
+:focus-visible { outline: 2px solid var(--s1); outline-offset: 2px; }
+.small { font-size: 13px; color: var(--text-2); }
+h1 { font-size: clamp(24px, 3.2vw, 32px); line-height: 1.15; font-weight: 650; margin: 0; letter-spacing: -.01em; }
+h2 { font-size: 17px; font-weight: 650; margin: 0; }
+p { margin: 0 0 10px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
+
+.topbar { position: sticky; top: 0; z-index: 1200; background: var(--surface); border-bottom: 1px solid var(--border); }
+.topbar .in { max-width: 1320px; margin: 0 auto; padding: 10px 16px; display: flex; gap: 12px 20px; align-items: center; flex-wrap: wrap; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; }
+.brand svg { width: 30px; height: 30px; flex: none; }
+.top-actions { margin-left: auto; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.loc { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-2); }
+.wrap { max-width: 1320px; margin: 0 auto; padding: 0 16px 40px; }
+
+.head { display: flex; gap: 12px 24px; align-items: center; flex-wrap: wrap; padding: 20px 0 14px; }
+.head .sp { flex: 1; }
+.seg { display: inline-flex; border: 1px solid var(--axis); border-radius: 8px; overflow: hidden; background: var(--surface); }
+.seg button { border: 0; border-radius: 0; padding: 7px 12px; border-right: 1px solid var(--axis); }
+.seg button:last-child { border-right: 0; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+
+.tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 14px; }
+.tile { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; display: flex; align-items: baseline; gap: 10px; }
+.tile b { font-size: 26px; font-weight: 650; line-height: 1.2; white-space: nowrap; }
+.tile span { font-size: 14px; color: var(--text-2); }
+.tile.warn b { color: var(--alert); }
+
+.work { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 14px; align-items: stretch; }
+.mapcol { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+#map { height: 580px; border-radius: 12px; border: 1px solid var(--border); background: #2b2b2b; z-index: 0; }
+.leaflet-image-layer.pix { image-rendering: pixelated; }
+.am { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: #d03b3b; color: #fff; font: 700 13px system-ui; border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.5); }
+.am.sel { outline: 3px solid #fff; transform: scale(1.15); }
+.leaflet-popup-content { font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; margin: 12px 14px; }
+.leaflet-popup-content b.need { color: #b32b2b; }
+
+.under { display: flex; gap: 10px 22px; align-items: center; flex-wrap: wrap; padding: 10px 12px; font-size: 13px; }
+.scale { flex: 0 1 320px; min-width: 260px; }
+.legend-bar { width: 100%; height: 12px; border-radius: 3px; display: block; }
+.legend-ticks { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-2); margin-top: 2px; font-variant-numeric: tabular-nums; }
+.keys { display: grid; gap: 3px; }
+.ln { display: inline-block; width: 18px; border-top: 4px solid; margin-right: 6px; vertical-align: 4px; border-radius: 2px; }
+.dot { display: inline-grid; place-items: center; width: 16px; height: 16px; border-radius: 50%; margin-right: 6px; vertical-align: -3px; background: #d03b3b; color: #fff; font: 700 10px system-ui; }
+#readout { font-variant-numeric: tabular-nums; color: var(--text-2); flex: 1 1 150px; }
+#readout b { color: var(--text); font-weight: 650; font-size: 15px; }
+details.adv { position: relative; margin-left: auto; }
+details.adv summary { cursor: pointer; list-style: none; border: 1px solid var(--axis); border-radius: 8px; padding: 6px 12px; font-size: 14px; }
+details.adv summary::-webkit-details-marker { display: none; }
+details.adv .pop { position: absolute; right: 0; bottom: calc(100% + 6px); z-index: 1100; width: 280px; padding: 12px; display: grid; gap: 10px; box-shadow: 0 8px 24px rgba(0,0,0,.25); }
+details.adv .pop label { display: grid; gap: 3px; font-size: 13px; color: var(--text-2); }
+details.adv .pop label.row { display: flex; gap: 6px; color: var(--text); }
+
+#anomPanel { display: flex; flex-direction: column; min-height: 0; max-height: 660px; }
+#anomPanel header { padding: 12px 14px 10px; border-bottom: 1px solid var(--border); }
+#anomPanel header div { font-size: 13px; color: var(--text-2); }
+.list { overflow: auto; flex: 1; padding: 6px; display: grid; gap: 4px; align-content: start; }
+.item { display: grid; grid-template-columns: 30px 1fr auto; gap: 0 10px; align-items: center; width: 100%; text-align: left; border: 1px solid transparent; border-radius: 10px; padding: 9px 8px; background: none; }
+.item:hover { background: var(--wash); }
+.item.sel { border-color: var(--alert); background: var(--alert-wash); }
+.item .n { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: #d03b3b; color: #fff; font-weight: 700; font-size: 13px; }
+.item .t { font-weight: 600; }
+.item .v { font-weight: 650; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.item .note { grid-column: 1 / 4; margin-top: 8px; font-size: 14px; line-height: 1.45; color: var(--text); }
+.need { font-weight: 650; color: var(--alert); }
+.empty { padding: 18px 12px; color: var(--text-2); }
+
+.mapwrap { position: relative; }
+#timeline { position: absolute; top: 10px; left: 58px; right: 58px; max-width: 720px; margin: 0 auto; z-index: 1000; padding: 7px 12px 2px;
+  background: color-mix(in srgb, var(--surface) 90%, transparent); backdrop-filter: blur(6px); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,.3); }
+.tl-head { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; }
+.tl-head button { padding: 3px 9px; font-size: 13px; }
+.tl-date { font-size: 16px; font-weight: 650; font-variant-numeric: tabular-nums; margin: 0 2px; }
+#tl { cursor: ew-resize; touch-action: none; user-select: none; }
+svg.ch { display: block; width: 100%; height: auto; overflow: visible; }
+svg.ch text { font: 11px system-ui, -apple-system, "Segoe UI", sans-serif; fill: var(--muted); font-variant-numeric: tabular-nums; }
+
+.how { margin-top: 14px; padding: 16px 18px; }
+.how ol { list-style: none; margin: 12px 0 0; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; counter-reset: step; }
+.how li { counter-increment: step; background: var(--wash); border-radius: 10px; padding: 12px 14px 12px 50px; position: relative; font-size: 14px; color: var(--text-2); }
+.how li::before { content: counter(step); position: absolute; left: 12px; top: 12px; width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; font-weight: 700; }
+.how li b { display: block; color: var(--text); margin-bottom: 2px; }
+.how .mind { margin-top: 12px; font-size: 14px; color: var(--text-2); }
+.how .mind b { color: var(--text); }
+@media (max-width: 1000px) { .how ol { grid-template-columns: 1fr; } }
+#detail { margin-top: 14px; padding: 14px 16px; }
+#detail .sub { font-size: 13px; color: var(--text-2); margin: 2px 0 6px; }
+.chart-legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--text-2); }
+
+.about { margin-top: 22px; display: grid; gap: 10px; }
+.about summary { cursor: pointer; padding: 12px 16px; font-weight: 650; }
+.about .body { padding: 0 16px 14px; }
+.about ul { margin: 0; padding-left: 20px; max-width: 80ch; }
+.about li { margin-bottom: 5px; }
+.scroll-x { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+th { font-weight: 600; color: var(--text-2); font-size: 12px; }
+.methods td:first-child { font-weight: 600; width: 19%; }
+.methods tr.grp td { background: var(--wash); font-weight: 650; color: var(--accent); }
+footer { margin-top: 22px; padding-top: 12px; border-top: 1px solid var(--grid); font-size: 13px; color: var(--text-2); }
+code { font-size: 13px; }
+
+#tip { position: fixed; z-index: 3000; pointer-events: none; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 14px rgba(0,0,0,.2); padding: 6px 9px; font-size: 12px; line-height: 1.4; display: none; max-width: 260px; font-variant-numeric: tabular-nums; }
+#tip b { font-weight: 650; }
+#status { padding: 40px 16px; text-align: center; color: var(--text-2); }
+
+#tour { position: fixed; inset: 0; z-index: 4000; display: none; }
+#tour.on { display: block; }
+#tourHole { position: fixed; border-radius: 12px; box-shadow: 0 0 0 9999px rgba(0,0,0,.6); outline: 3px solid var(--s1); transition: all .2s ease; }
+#tourCard { position: fixed; left: 50%; transform: translateX(-50%); width: min(420px, calc(100vw - 32px)); background: var(--surface); color: var(--text); border-radius: 14px; padding: 16px 18px; box-shadow: 0 12px 40px rgba(0,0,0,.4); }
+#tourCard .step { font-size: 12px; color: var(--text-2); font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+#tourCard h2 { margin: 2px 0 6px; font-size: 18px; }
+#tourCard p { color: var(--text-2); margin-bottom: 12px; }
+#tourCard .row { display: flex; gap: 8px; align-items: center; }
+#tourCard .row .sp { flex: 1; }
+
+@media (max-width: 1000px) {
+  .tiles { grid-template-columns: 1fr; }
+  .work { grid-template-columns: 1fr; }
+  #anomPanel { max-height: 420px; }
+  #map { height: 420px; }
+  details.adv { margin-left: 0; }
+  details.adv .pop { right: auto; left: 0; }
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="in">
+    <div class="brand">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#184f95"/><path d="M4 12c4-5 8 3 12-1s8 3 12-1" fill="none" stroke="#9ec5f4" stroke-width="2.2" stroke-linecap="round"/><path d="M4 21h9l3-3 3 3h9" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Corridor Watch</span>
+    </div>
+    <div class="top-actions">
+      <label class="loc" id="locWrap">Lokalizacja
+        <select id="loc" aria-label="Lokalizacja"></select>
+      </label>
+      <button id="tourBtn">Samouczek</button>
+    </div>
+  </div>
+</header>
+
+<div id="status">Wczytywanie danych…</div>
+
+<div class="wrap" id="app" hidden>
+  <section class="head">
+    <h1 id="title"></h1>
+    <span class="sp"></span>
+    <div id="periodWrap"><div class="seg" id="period" role="group" aria-label="Okres obserwacji"></div></div>
+  </section>
+
+  <section class="tiles" id="tiles"></section>
+
+  <main class="work">
+    <div class="mapcol">
+      <div class="mapwrap">
+        <div id="map" aria-label="Mapa zmian terenu"></div>
+        <div id="timeline">
+          <div class="tl-head">
+            <button id="prev" aria-label="Poprzedni pomiar">◀</button>
+            <span class="tl-date" id="tlDate"></span>
+            <button id="next" aria-label="Następny pomiar">▶</button>
+            <button id="play" class="primary">▶ Odtwórz</button>
+            <span class="small" id="tlNote"></span>
+          </div>
+          <svg class="ch" id="tl" viewBox="0 0 760 62" role="slider" tabindex="0" aria-label="Oś czasu pomiarów: przeciągnij, żeby zmienić datę"></svg>
+        </div>
+      </div>
+      <div class="card under">
+        <div class="scale" id="legend"></div>
+        <div class="keys" id="keys"></div>
+        <div id="readout">Najedź na mapę.</div>
+        <details class="adv" id="adv">
+          <summary>Więcej opcji</summary>
+          <div class="pop card">
+            <label>Co pokazuje mapa
+              <select id="mode"><option value="cum">Zmiana terenu [mm]</option><option value="vwin">Tempo ruchu [mm/rok]</option><option value="coh">Pewność pomiaru</option></select>
+            </label>
+            <label>Licz zmianę od daty<select id="ref"></select></label>
+            <label>Zakres skali kolorów
+              <select id="range"><option value="25">±25</option><option value="50" selected>±50</option><option value="100">±100</option><option value="200">±200</option><option value="400">±400</option><option value="800">±800</option></select>
+            </label>
+            <label>Krycie warstwy<input id="opacity" type="range" min="0.2" max="1" step="0.05" value="0.9"></label>
+            <label>Ukryj piksele o koherencji poniżej <span id="cohVal">0,00</span><input id="coh" type="range" min="0" max="0.8" step="0.05" value="0"></label>
+            <label class="row"><input type="checkbox" id="showZones" checked> Anomalie</label>
+            <label class="row"><input type="checkbox" id="showPipes" checked> Rurociągi</label>
+            <label class="row"><input type="checkbox" id="showContours"> Izolinie co 50 mm</label>
+          </div>
+        </details>
+      </div>
+    </div>
+
+    <aside class="card" id="anomPanel">
+      <header><h2 id="anomTitle">Anomalie</h2><div id="anomSub"></div></header>
+      <div class="list" id="anomList"></div>
+    </aside>
+  </main>
+
+  <section class="card how">
+    <h2>Jak to zostało obliczone</h2>
+    <ol id="howSteps"></ol>
+    <div class="mind" id="howMind"></div>
+  </section>
+
+  <footer id="footer"></footer>
+</div>
+
+<div id="tip"></div>
+<div id="tour" role="dialog" aria-modal="true" aria-label="Samouczek">
+  <div id="tourHole"></div>
+  <div id="tourCard">
+    <div class="step" id="tourStep"></div>
+    <h2 id="tourTitle"></h2>
+    <p id="tourText"></p>
+    <div class="row">
+      <button id="tourSkip">Zamknij</button><span class="sp"></span>
+      <button id="tourBack">Wstecz</button><button id="tourNext" class="primary">Dalej</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+(async function () {
+  const $ = (id) => document.getElementById(id);
+  const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const fmt = (v, d = 0) => v == null || !isFinite(v) ? 'brak' : v.toLocaleString('pl-PL', { minimumFractionDigits: d, maximumFractionDigits: d }).replace('-', '−');
+  const sgn = (v, d = 0) => (v > 0 ? '+' : '') + fmt(v, d);
+  const dISO = (d) => `${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6, 8)}`;
+  const dPL = (d) => `${d.slice(6, 8)}.${d.slice(4, 6)}.${d.slice(0, 4)}`;
+  const dTime = (d) => Date.UTC(+d.slice(0, 4), +d.slice(4, 6) - 1, +d.slice(6, 8));
+  const fail = (msg) => { $('status').textContent = msg; };
+  const NEAR_M = 500;  // a pipeline needs inspection when an anomaly lies closer than this
+
+  // ------------------------------------------- locations (from the backend API)
+  const API = window.CW_API || '/api/v1';  // override with window.CW_API when the API runs elsewhere
+  const getJSON = async (url) => {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+  };
+  let LOCS;
+  try { LOCS = await getJSON(`${API}/locations`); }
+  catch (err) { return fail(`Nie udało się połączyć z serwerem (${err.message}). Czy backend jest uruchomiony?`); }
+  const ready = LOCS.filter((l) => l.ready);
+  $('loc').innerHTML = LOCS.map((l) => `<option value="${l.id}" ${l.ready ? '' : 'disabled'}>${l.name}${l.region ? ', ' + l.region : ''}${l.ready ? '' : ' (wkrótce)'}</option>`).join('');
+  if (!ready.length) return fail('Brak przygotowanych lokalizacji. Wgraj pakiet danych przez API (/docs) albo skryptem import_corridor_watch.py.');
+  const LOC = ready.find((l) => l.id === decodeURIComponent(location.hash.slice(1))) || ready[0];
+  $('loc').value = LOC.id;
+  $('loc').addEventListener('change', (e) => { location.hash = e.target.value; location.reload(); });
+  let DATA;
+  try { DATA = await getJSON(`${API}/locations/${encodeURIComponent(LOC.id)}/data`); }
+  catch (err) { return fail(`Nie udało się wczytać danych lokalizacji ${LOC.name}: ${err.message}`); }
+  // Metadata edited in the backend (PATCH /locations/{id}) wins over values baked into the package
+  for (const key of ['name', 'region', 'hazard', 'summary', 'view']) if (LOC[key] != null) DATA.config[key] = LOC[key];
+  const G = DATA.grid;
+  const N = G.width * G.height, ND16 = -32768, ND8 = 255;
+  async function unpack(b64, Type) {
+    const bin = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+    return new Type(await new Response(new Blob([bin]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer());
+  }
+  let R;
+  try {
+    R = { cum: await unpack(DATA.payload.cum, Int16Array), coh: await unpack(DATA.payload.coh, Uint8Array),
+          vwin: DATA.payload.vwin ? await unpack(DATA.payload.vwin, Int16Array) : null };
+  } catch (err) { return fail('Nie udało się rozpakować danych: ' + err.message); }
+  $('status').hidden = true; $('app').hidden = false;
+
+  const dates = G.dates, times = dates.map(dTime), SER = G.series, last = SER.length - 1;
+  const winEnd = G.windows.map((w) => w.split('-')[1]);
+  const state = { s: last, t: SER[last].end, ref: SER[last].start, mode: 'cum', range: 50, cohMin: 0, sel: null, timer: null };
+  const S = () => SER[state.s];
+  const DAY = 864e5;
+  const zoneById = Object.fromEntries(DATA.zones.map((z) => [z.id, z]));
+  const seenBy = (z) => S().start + z.first_index <= state.t;  // already an anomaly on the selected date?
+  const anomalies = () => DATA.zones.filter((z) => z.series === state.s && seenBy(z));
+  const at = (z) => { const j = state.t - S().start; return { peak: z.peak_series[j], median: z.median_series[j], days: Math.round((times[state.t] - times[S().start]) / DAY) }; };
+  const shortId = (id) => id.replace(/^OGIM_/, '');
+  const pipeAnoms = (p) => p.series[state.s].zones.filter((n) => n.dist_m <= NEAR_M && seenBy(zoneById[n.zone])).sort((a, b) => a.dist_m - b.dist_m);
+  const nearPipes = (z) => z.nearby.filter((n) => n.dist_m <= NEAR_M);
+  const WHAT = { down: 'Osunięcie lub osiadanie', up: 'Wypiętrzenie gruntu' };
+  const TREND = { przyspiesza: ' Ruch przyspiesza.', zwalnia: ' Ruch zwalnia.', stale: '' };
+  function noteFor(z) {
+    const now = at(z), pipe = nearPipes(z)[0];
+    return `Grunt ${z.kind === 'down' ? 'osunął się lub osiadł' : 'wypiętrzył się'} tu nawet o ${fmt(Math.abs(now.peak))} mm (typowo ${fmt(Math.abs(now.median))} mm) w ${now.days} dni.`
+      + ` Widać to w danych od ${dPL(dates[S().start + z.first_index])}.`
+      + (state.t === S().end ? TREND[z.trend] : '')
+      + (pipe ? ` Gazociąg ${shortId(pipe.pipe)} jest ${fmt(pipe.dist_m)} m stąd.` : '')
+      + ` <span class="need">Potrzebna kontrola tego obszaru.</span>`;
+  }
+
+  // --------------------------------------------------------------- header
+  $('title').textContent = `${DATA.config.name}, ${DATA.config.region}`;
+  $('period').innerHTML = SER.map((s, i) => `<button data-s="${i}" aria-pressed="${i === state.s}">${dPL(dates[s.start])} – ${dPL(dates[s.end])}</button>`).join('');
+  if (SER.length < 2) $('periodWrap').hidden = true;
+  $('footer').innerHTML = `Dane: NISAR L2 GUNW (NASA/ISRO, ASF DAAC); rurociągi: ${DATA.config.pipelines_label || ''}. Podkład mapy: Esri. Prototyp badawczy, nie do decyzji operacyjnych.`;
+  const plural = (n, one, few, many) => (n === 1 ? one : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? few : many);
+  function renderTiles() {
+    const a = anomalies().length, p = DATA.pipes.filter((x) => pipeAnoms(x).length).length;
+    $('tiles').innerHTML = `
+      <div class="tile${a ? ' warn' : ''}"><b>${a}</b><span>${plural(a, 'anomalia', 'anomalie', 'anomalii')} do kontroli</span></div>
+      <div class="tile${p ? ' warn' : ''}"><b>${p} z ${DATA.pipes.length}</b><span>${plural(p, 'gazociąg', 'gazociągi', 'gazociągów')} przy anomalii (do ${NEAR_M} m)</span></div>
+      <div class="tile"><b>${dPL(dates[state.t])}</b><span>${state.t === S().end ? 'ostatni pomiar w tym okresie' : 'wybrana data pomiaru'}</span></div>`;
+  }
+  function renderHow() {
+    const s = S(), px = G.pixel_m, P = DATA.params;
+    $('howSteps').innerHTML = [
+      ['Satelita mierzy odległość do ziemi', `Radar NISAR przelatuje nad tym samym miejscem co 12 dni i za każdym razem mierzy, jak daleko jest grunt.${s.step_days ? ` Bierzemy pomiary w równych odstępach co ${s.step_days} dni, żeby na osi czasu nie było przerw.` : ''}`],
+      ['Porównujemy przeloty', 'Jeśli odległość się zmieniła, grunt się ruszył. Zmiany z kolejnych przelotów dodajemy. Czerwony: grunt się oddalił (osunął lub osiadł). Niebieski: zbliżył się (wypiętrzył).'],
+      ['Odrzucamy błąd pomiaru', `W tym okresie pomiar myli się o ok. ${fmt(s.noise_mm)} mm. Za prawdziwy ruch uznajemy dopiero zmianę trzy razy większą: ${fmt(s.threshold_mm)} mm.`],
+      ['Szukamy anomalii', `Anomalia to miejsce, gdzie taki ruch obejmuje co najmniej ${P.min_zone_px} sąsiednich pól mapy (pole to ${fmt(px)} × ${fmt(px)} m) albo co najmniej ${P.strong_px} pola z ruchem ponad ${fmt(s.threshold_mm * P.strong_k)} mm. Pojedyncze pola pomijamy, bo mogą być błędem.`],
+      ['Sprawdzamy, od kiedy ją widać', 'To samo liczymy dla każdej daty. Na osi czasu anomalia pojawia się w dniu, w którym pierwszy raz spełniła ten warunek.'],
+      ['Mierzymy odległość do gazociągów', `Jeśli anomalia leży bliżej niż ${NEAR_M} m od trasy, gazociąg jest oznaczony „do kontroli”.`],
+    ].map(([t, d]) => `<li><b>${t}</b>${d}</li>`).join('');
+    $('howMind').innerHTML = `<b>Pamiętaj:</b> brak anomalii nie znaczy, że teren jest bezpieczny, bo nie każde zapadnięcie daje wcześniej widoczny ruch. Satelita widzi ruch tylko w swoim kierunku patrzenia, więc prawdziwe przemieszczenie może być większe. Zmian mniejszych niż ok. ${fmt(px * 2)} m nie widać. Dane kończą się na ostatnim przelocie.`;
+  }
+
+  // ------------------------------------------------------------------ map
+  const map = L.map('map', { zoomSnap: 0.25 });
+  map.createPane('labels').style.zIndex = 410; map.getPane('labels').style.pointerEvents = 'none';
+  const esri = (name, opts) => L.tileLayer(`https://server.arcgisonline.com/ArcGIS/rest/services/${name}/MapServer/tile/{z}/{y}/{x}`, Object.assign({ maxZoom: 16, attribution: 'Esri, HERE, Garmin, © OpenStreetMap' }, opts));
+  const dark = L.layerGroup([esri('Canvas/World_Dark_Gray_Base'), esri('Canvas/World_Dark_Gray_Reference', { pane: 'labels' })]).addTo(map);
+  const light = L.layerGroup([esri('Canvas/World_Light_Gray_Base'), esri('Canvas/World_Light_Gray_Reference', { pane: 'labels' })]);
+  const imagery = esri('World_Imagery', { maxZoom: 18, attribution: 'Esri World Imagery' });
+  L.control.layers({ 'Mapa ciemna': dark, 'Mapa jasna': light, 'Zdjęcia satelitarne': imagery }, null, { position: 'topright' }).addTo(map);
+  L.control.scale({ imperial: false }).addTo(map);
+  map.fitBounds(DATA.config.view || G.bounds);
+  map.createPane('zones').style.zIndex = 430;
+  map.createPane('pipes').style.zIndex = 450;
+  map.createPane('marks').style.zIndex = 620;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = G.width; canvas.height = G.height;
+  const ctx = canvas.getContext('2d'), img = ctx.createImageData(G.width, G.height);
+  const overlay = L.imageOverlay(canvas.toDataURL(), G.bounds, { className: 'pix', opacity: 0.9 }).addTo(map);
+  const DIV = [[-1, 178, 24, 43], [-0.667, 239, 138, 98], [-0.333, 253, 219, 199], [0, 240, 239, 236], [0.333, 209, 229, 240], [0.667, 103, 169, 207], [1, 33, 102, 172]];
+  const SEQ = [[0, 205, 226, 251], [0.5, 57, 135, 229], [1, 13, 54, 107]];
+  function ramp(stops, x) {
+    x = Math.max(stops[0][0], Math.min(stops[stops.length - 1][0], x));
+    for (let i = 1; i < stops.length; i++) if (x <= stops[i][0]) {
+      const a = stops[i - 1], b = stops[i], f = (x - a[0]) / (b[0] - a[0]);
+      return [a[1] + f * (b[1] - a[1]), a[2] + f * (b[2] - a[2]), a[3] + f * (b[3] - a[3])];
+    }
+    return stops[stops.length - 1].slice(1);
+  }
+  const windowIndex = (t) => winEnd.indexOf(dates[t]);
+  function valueAt(i, mode = state.mode) {
+    const c = R.coh[i];
+    if (c === ND8 || c / 250 < state.cohMin) return null;
+    if (mode === 'coh') return c / 250;
+    if (mode === 'cum') {
+      const a = R.cum[state.t * N + i], b = R.cum[state.ref * N + i];
+      return a === ND16 || b === ND16 ? null : (a - b) / 10;
+    }
+    const w = windowIndex(state.t);
+    if (w < 0 || !R.vwin) return null;
+    const v = R.vwin[w * N + i];
+    return v === ND16 ? null : v / 10;
+  }
+  const noise = () => (state.mode === 'cum' ? S().threshold_mm : 50);
+  function renderRaster() {
+    const px = img.data, mode = state.mode, range = state.range, fade = noise();
+    for (let i = 0; i < N; i++) {
+      const v = valueAt(i), o = i * 4;
+      if (v === null) { px[o + 3] = 0; continue; }
+      let c, a = 235;
+      if (mode === 'coh') c = ramp(SEQ, v);
+      else { c = ramp(DIV, v / range); a = 255 * (0.72 + 0.28 * Math.min(1, Math.abs(v) / fade)); }
+      px[o] = c[0]; px[o + 1] = c[1]; px[o + 2] = c[2]; px[o + 3] = a;
+    }
+    ctx.putImageData(img, 0, 0);
+    overlay.setUrl(canvas.toDataURL());
+  }
+  const MR = 6378137;
+  function pixelOf(latlng) {
+    const x = MR * latlng.lng * Math.PI / 180, y = MR * Math.log(Math.tan(Math.PI / 4 + latlng.lat * Math.PI / 360));
+    const col = Math.floor((x - G.mercator.west) / G.mercator.pixel), row = Math.floor((G.mercator.north - y) / G.mercator.pixel);
+    return col < 0 || row < 0 || col >= G.width || row >= G.height ? -1 : row * G.width + col;
+  }
+  function renderLegend() {
+    const grad = (stops) => `linear-gradient(90deg, ${stops.map((s) => `rgb(${s[1]},${s[2]},${s[3]}) ${((s[0] - stops[0][0]) / (stops[stops.length - 1][0] - stops[0][0])) * 100}%`).join(',')})`;
+    const r = state.range, unit = state.mode === 'cum' ? 'mm' : 'mm/rok';
+    $('legend').innerHTML = state.mode === 'coh'
+      ? `<span class="legend-bar" style="background:${grad(SEQ)}"></span><div class="legend-ticks"><span>niepewny pomiar</span><span>pewny</span></div>`
+      : `<span class="legend-bar" style="background:${grad(DIV)}"></span><div class="legend-ticks"><span>−${r} ${unit} · osuwanie</span><span>wypiętrzanie · +${r} ${unit}</span></div>`;
+    $('keys').innerHTML = `<span><span class="dot">!</span>anomalia</span>
+      <span><span class="ln" style="border-color:#d03b3b;outline:1px solid #fff"></span>gazociąg do kontroli</span>
+      <span><span class="ln" style="border-color:#3d3c39;outline:1px solid #fff"></span>gazociąg bez anomalii</span>`;
+  }
+
+  // -------------------------------------------------------------- vectors
+  const tip = $('tip');
+  function showTip(html, ev) {
+    tip.innerHTML = html; tip.style.display = 'block';
+    tip.style.left = Math.min(window.innerWidth - tip.offsetWidth - 8, ev.clientX + 14) + 'px';
+    tip.style.top = Math.max(8, ev.clientY - tip.offsetHeight - 12) + 'px';
+  }
+  const hideTip = () => { tip.style.display = 'none'; };
+  const zoneLayer = L.layerGroup().addTo(map), pipeLayer = L.layerGroup().addTo(map), contourLayer = L.layerGroup();
+  const pointMarker = L.circleMarker([0, 0], { pane: 'marks', radius: 7, color: '#0b0b0b', weight: 2, fillColor: '#fff', fillOpacity: 1, interactive: false });
+  const profileMarker = L.circleMarker([0, 0], { pane: 'marks', radius: 6, color: '#fff', weight: 2, fillColor: '#0b0b0b', fillOpacity: 1, interactive: false });
+  let zoneShapes = {}, pipeShapes = {};
+  const isSel = (type, id) => state.sel && state.sel.type === type && state.sel.id === id;
+
+  function renderZones() {
+    zoneLayer.clearLayers(); zoneShapes = {};
+    anomalies().forEach((z) => {
+      const sel = isSel('anomaly', z.id);
+      L.geoJSON(z.geometry, { pane: 'zones', interactive: false, style: { color: '#fff', weight: sel ? 6 : 4, fill: false } }).addTo(zoneLayer);
+      const shape = L.geoJSON(z.geometry, { pane: 'zones', style: { color: '#d03b3b', weight: sel ? 3 : 2, fillOpacity: 0 } }).addTo(zoneLayer);
+      const marker = L.marker(z.peak_latlon, { pane: 'marks', icon: L.divIcon({ className: '', iconSize: [28, 28], html: `<span class="am${sel ? ' sel' : ''}">${z.rank}</span>` }) }).addTo(zoneLayer);
+      [shape, marker].forEach((l) => {
+        l.on('click', (e) => { L.DomEvent.stopPropagation(e); selectAnomaly(z.id, false); });
+        l.on('mousemove', (e) => showTip(`<b>Anomalia ${z.rank}</b><br>${WHAT[z.kind]}: ${fmt(Math.abs(at(z).peak))} mm`, e.originalEvent)); l.on('mouseout', hideTip);
+      });
+      zoneShapes[z.id] = shape;
+    });
+  }
+  function pipeNote(p) {
+    const near = pipeAnoms(p)[0];
+    if (!near) return `<b>Gazociąg ${shortId(p.id)}</b><br>Brak anomalii w promieniu ${NEAR_M} m.`;
+    return `<b>Gazociąg ${shortId(p.id)}</b><br>Anomalia ${zoneById[near.zone].rank} jest ${fmt(near.dist_m)} m od trasy.<br><b class="need">Potrzebna kontrola tego odcinka.</b>`;
+  }
+  function renderPipes() {
+    pipeLayer.clearLayers(); pipeShapes = {};
+    DATA.pipes.forEach((p) => {
+      const flagged = pipeAnoms(p).length > 0, sel = isSel('pipe', p.id);
+      L.polyline(p.line, { pane: 'pipes', color: '#fff', weight: sel ? 9 : flagged ? 7 : 5, opacity: 0.95, interactive: false }).addTo(pipeLayer);
+      pipeShapes[p.id] = L.polyline(p.line, { pane: 'pipes', color: flagged ? '#d03b3b' : '#3d3c39', weight: sel ? 5.5 : flagged ? 4 : 2.5 }).addTo(pipeLayer);
+      const hit = L.polyline(p.line, { pane: 'pipes', color: '#000', weight: 16, opacity: 0 }).addTo(pipeLayer);
+      hit.on('click', (e) => { L.DomEvent.stopPropagation(e); selectPipe(p.id, e.latlng); });
+      hit.on('mousemove', (e) => showTip(`<b>Gazociąg ${shortId(p.id)}</b><br>${flagged ? 'Do kontroli: anomalia w pobliżu' : 'Bez anomalii w pobliżu'}`, e.originalEvent));
+      hit.on('mouseout', hideTip);
+    });
+  }
+  function renderContours() {
+    contourLayer.clearLayers();
+    L.geoJSON(DATA.contours.filter((f) => f.properties.data === dISO(dates[state.t])), { pane: 'zones', interactive: false, style: (f) => ({ color: '#f0efec', weight: f.properties.poziom_mm % 100 === 0 ? 1.4 : 0.7 }) }).addTo(contourLayer);
+  }
+
+  // ------------------------------------------------------ anomaly list
+  function renderAnomList() {
+    const zs = anomalies();
+    $('anomTitle').textContent = `Anomalie (${zs.length})`;
+    $('anomSub').textContent = `Stan na ${dPL(dates[state.t])}. Kliknij, żeby zobaczyć notatkę.`;
+    $('anomList').innerHTML = zs.length ? zs.map((z) => {
+      const sel = isSel('anomaly', z.id);
+      return `<button class="item${sel ? ' sel' : ''}" data-id="${z.id}" aria-expanded="${sel}">
+        <span class="n">${z.rank}</span><span class="t">${WHAT[z.kind]}</span><span class="v">${fmt(Math.abs(at(z).peak))} mm</span>
+        ${sel ? `<span class="note">${noteFor(z)}</span>` : ''}
+      </button>`;
+    }).join('') : '<div class="empty">Tego dnia nie było jeszcze widać żadnej anomalii.</div>';
+    $('anomList').querySelectorAll('.item').forEach((b) => b.addEventListener('click', () => selectAnomaly(b.dataset.id, true)));
+  }
+
+  // ---------------------------------------------------------- svg helpers
+  const NS = 'http://www.w3.org/2000/svg';
+  function el(parent, tag, attrs, text) {
+    const node = document.createElementNS(NS, tag);
+    for (const k in attrs) node.setAttribute(k, attrs[k]);
+    if (text != null) node.textContent = text;
+    parent.appendChild(node); return node;
+  }
+  function niceTicks(lo, hi, n = 5) {
+    const step0 = (hi - lo || 1) / n, mag = 10 ** Math.floor(Math.log10(step0));
+    const step = [1, 2, 2.5, 5, 10].map((m) => m * mag).find((s) => s >= step0);
+    const out = [];
+    for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) out.push(+v.toFixed(6));
+    return out;
+  }
+  const pathOf = (pts) => { let d = '', pen = false; for (const p of pts) { if (!p) { pen = false; continue; } d += (pen ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1); pen = true; } return d; };
+  const svgX = (svg, ev) => { const r = svg.getBoundingClientRect(); return (ev.clientX - r.left) / r.width * svg.viewBox.baseVal.width; };
+  const MONTHS = ['sty', 'lut', 'mar', 'kwi', 'maj', 'cze', 'lip', 'sie', 'wrz', 'paź', 'lis', 'gru'];
+  function monthTicks(svg, x, y0, t0, t1) {
+    const d = new Date(t0); d.setUTCDate(1); d.setUTCMonth(d.getUTCMonth() + 1);
+    for (; d.getTime() <= t1; d.setUTCMonth(d.getUTCMonth() + 1)) {
+      const px = x(d.getTime());
+      el(svg, 'line', { x1: px, x2: px, y1: y0, y2: y0 + 4, stroke: css('--axis') });
+      el(svg, 'text', { x: px, y: y0 + 16, 'text-anchor': 'middle' }, MONTHS[d.getUTCMonth()] + (d.getUTCMonth() === 0 ? ' ' + d.getUTCFullYear() : ''));
+    }
+  }
+  const seriesIdx = () => { const out = []; for (let i = S().start; i <= S().end; i++) out.push(i); return out; };
+  const nearestIdx = (svg, ev, x, idx) => { const px = svgX(svg, ev); return idx.reduce((best, i) => (Math.abs(x(times[i]) - px) < Math.abs(x(times[best]) - px) ? i : best), idx[0]); };
+
+  // ------------------------------------------------------------- timeline
+  const TL = { W: 760, H: 62, l: 16, r: 16, base: 34 };
+  const tlX = (t) => { const idx = seriesIdx(), t0 = times[idx[0]], t1 = times[idx[idx.length - 1]]; return TL.l + (t - t0) / (t1 - t0) * (TL.W - TL.l - TL.r); };
+  function renderTimeline() {
+    const svg = $('tl'); svg.innerHTML = '';
+    const idx = seriesIdx(), areas = S().moving_km2_by_date, maxA = Math.max(0.1, ...areas);
+    idx.forEach((i, j) => {
+      const h = areas[j] / maxA * (TL.base - 6);
+      if (h > 0.5) el(svg, 'rect', { x: tlX(times[i]) - 6, y: TL.base - h, width: 12, height: h, rx: 2, fill: css('--s1'), opacity: i <= state.t ? 1 : 0.3 });
+    });
+    el(svg, 'line', { x1: TL.l, x2: TL.W - TL.r, y1: TL.base, y2: TL.base, stroke: css('--axis'), 'stroke-width': 2, 'stroke-linecap': 'round' });
+    el(svg, 'line', { x1: TL.l, x2: tlX(times[state.t]), y1: TL.base, y2: TL.base, stroke: css('--accent'), 'stroke-width': 2, 'stroke-linecap': 'round' });
+    idx.forEach((i) => { if (i !== state.t) el(svg, 'circle', { cx: tlX(times[i]), cy: TL.base, r: 4, fill: css('--surface'), stroke: i < state.t ? css('--accent') : css('--muted'), 'stroke-width': 1.5 }); });
+    el(svg, 'circle', { cx: tlX(times[state.t]), cy: TL.base, r: 8, fill: css('--accent'), stroke: css('--surface'), 'stroke-width': 2.5 });
+    monthTicks(svg, tlX, TL.base + 8, times[idx[0]], times[idx[idx.length - 1]]);
+    svg.setAttribute('aria-valuetext', dPL(dates[state.t]));
+  }
+  // Drag anywhere on the strip to scrub through the measurements (listeners live on
+  // the <svg> itself, which survives re-rendering).
+  (function () {
+    const svg = $('tl'); let drag = false;
+    const pick = (ev) => nearestIdx(svg, ev, tlX, seriesIdx());
+    const go = (ev) => { const i = pick(ev); if (i !== state.t) { stop(); setDate(i); } };
+    const hint = (ev) => { const i = pick(ev); showTip(`<b>${dPL(dates[i])}</b><br>Teren w ruchu: ${fmt(S().moving_km2_by_date[i - S().start], 2)} km²`, ev); };
+    svg.addEventListener('pointerdown', (ev) => { drag = true; svg.setPointerCapture(ev.pointerId); go(ev); hint(ev); ev.preventDefault(); });
+    svg.addEventListener('pointermove', (ev) => { if (drag) go(ev); hint(ev); });
+    ['pointerup', 'pointercancel'].forEach((n) => svg.addEventListener(n, () => { drag = false; }));
+    svg.addEventListener('pointerleave', () => { if (!drag) hideTip(); });
+    svg.addEventListener('keydown', (ev) => {
+      if (ev.key === 'ArrowLeft') { stop(); setDate(state.t - 1); ev.preventDefault(); }
+      if (ev.key === 'ArrowRight') { stop(); setDate(state.t + 1); ev.preventDefault(); }
+    });
+  })();
+
+  // ------------------------------------------------------------ selection
+  function refreshSelection() { renderTiles(); renderZones(); renderPipes(); renderAnomList(); }
+  function selectAnomaly(id, zoom) {
+    state.sel = { type: 'anomaly', id }; pointMarker.remove(); map.closePopup();
+    refreshSelection();
+    if (zoom && zoneShapes[id]) map.fitBounds(zoneShapes[id].getBounds().pad(1.5), { maxZoom: 14.5 });
+    const row = $('anomList').querySelector('.sel'); if (row) row.scrollIntoView({ block: 'nearest' });
+  }
+  function selectPipe(id, latlng) {
+    state.sel = { type: 'pipe', id }; pointMarker.remove();
+    refreshSelection();
+    L.popup({ maxWidth: 260 }).setLatLng(latlng).setContent(pipeNote(DATA.pipes.find((p) => p.id === id))).openOn(map);
+  }
+  function selectPoint(latlng) {
+    const i = pixelOf(latlng); if (i < 0) return;
+    const v = valueAt(i, 'cum');
+    state.sel = null; pointMarker.setLatLng(latlng).addTo(map);
+    refreshSelection();
+    const what = v === null ? 'Brak pomiaru w tym miejscu.'
+      : `<b>${sgn(v, 0)} mm</b> od ${dPL(dates[state.ref])} do ${dPL(dates[state.t])}<br>${Math.abs(v) < S().threshold_mm ? 'Bez istotnej zmiany (w granicach błędu pomiaru).' : v < 0 ? 'Grunt się osunął lub osiadł.' : 'Grunt się wypiętrzył.'}`;
+    L.popup({ maxWidth: 240 }).setLatLng(latlng).setContent(what).openOn(map).on('remove', () => pointMarker.remove());
+  }
+
+  // ---------------------------------------------------------- date / period
+  function setDate(t) {
+    state.t = Math.max(S().start, Math.min(S().end, t));
+    $('tlDate').textContent = dPL(dates[state.t]);
+    $('tlNote').textContent = state.mode === 'cum' ? (state.t === state.ref ? 'początek okresu: zmiana = 0' : `zmiana od ${dPL(dates[state.ref])}`) : '';
+    renderRaster(); renderContours(); renderTimeline(); refreshSelection();
+  }
+  function setPeriod(s) {
+    stop(); map.closePopup(); pointMarker.remove();
+    state.s = s; state.t = SER[s].end; state.ref = SER[s].start;
+    $('period').querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', +b.dataset.s === s));
+    $('ref').innerHTML = seriesIdx().map((i) => `<option value="${i}">${dPL(dates[i])}${i === S().start ? ' (początek okresu)' : ''}</option>`).join('');
+    const zs = DATA.zones.filter((z) => z.series === s); state.sel = zs.length ? { type: 'anomaly', id: zs[0].id } : null;
+    renderLegend(); renderHow(); setDate(state.t);
+  }
+  function stop() { clearInterval(state.timer); state.timer = null; $('play').textContent = '▶ Odtwórz'; }
+
+  // --------------------------------------------------------------- wiring
+  $('period').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) setPeriod(+b.dataset.s); });
+  $('play').addEventListener('click', () => {
+    if (state.timer) return stop();
+    if (state.t >= S().end) setDate(S().start);
+    $('play').textContent = '❚❚ Zatrzymaj';
+    state.timer = setInterval(() => { if (state.t >= S().end) return stop(); setDate(state.t + 1); }, 750);
+  });
+  $('prev').addEventListener('click', () => { stop(); setDate(state.t - 1); });
+  $('next').addEventListener('click', () => { stop(); setDate(state.t + 1); });
+  if (!R.vwin) $('mode').querySelector('[value="vwin"]').remove();
+  $('mode').addEventListener('change', (e) => { state.mode = e.target.value; renderLegend(); setDate(state.t); });
+  $('ref').addEventListener('change', (e) => { state.ref = +e.target.value; setDate(state.t); });
+  $('range').addEventListener('change', (e) => { state.range = +e.target.value; renderLegend(); renderRaster(); });
+  $('opacity').addEventListener('input', (e) => overlay.setOpacity(+e.target.value));
+  $('coh').addEventListener('input', (e) => { state.cohMin = +e.target.value; $('cohVal').textContent = fmt(state.cohMin, 2); renderRaster(); });
+  const toggle = (id, layer) => $(id).addEventListener('change', (e) => (e.target.checked ? layer.addTo(map) : layer.remove()));
+  toggle('showZones', zoneLayer); toggle('showPipes', pipeLayer); toggle('showContours', contourLayer);
+  document.addEventListener('click', (e) => { if (!$('adv').contains(e.target)) $('adv').open = false; });
+  map.on('click', (e) => selectPoint(e.latlng));
+  map.on('mousemove', (e) => {
+    const i = pixelOf(e.latlng), v = i < 0 ? null : valueAt(i, 'cum');
+    $('readout').innerHTML = v === null ? 'Brak pomiaru w tym miejscu.'
+      : `<b>${sgn(v, 0)} mm</b> ${Math.abs(v) < S().threshold_mm ? 'bez istotnej zmiany' : v < 0 ? 'osuwanie lub osiadanie' : 'wypiętrzanie'}`;
+  });
+  map.on('mouseout', () => { $('readout').textContent = 'Najedź na mapę.'; });
+
+  // ------------------------------------------------------------- tutorial
+  const TOUR = [
+    ['locWrap', 'Lokalizacja', 'Tu zmienisz obszar. Na razie dostępne jest Portuguese Bend.'],
+    ['map', 'Mapa', 'Czerwony: grunt się osuwa. Niebieski: wypiętrza się. Kółko z numerem to anomalia. Kliknij gazociąg albo dowolny punkt, żeby zobaczyć szczegóły.'],
+    ['anomPanel', 'Anomalie', 'Lista obszarów do kontroli, od największego ruchu. Kliknij, żeby przeczytać krótką notatkę.'],
+    ['timeline', 'Oś czasu', 'Przeciągnij suwak nad mapą albo naciśnij „Odtwórz”, żeby zobaczyć, jak ruch narastał. Słupki pokazują, ile terenu było w ruchu.'],
+  ];
+  let tourAt = 0;
+  function tourShow(i) {
+    tourAt = i;
+    const [id, title, text] = TOUR[i], target = $(id);
+    target.scrollIntoView({ block: 'center', behavior: 'instant' });
+    const r = target.getBoundingClientRect(), pad = 6;
+    Object.assign($('tourHole').style, { left: r.left - pad + 'px', top: Math.max(4, r.top - pad) + 'px', width: r.width + 2 * pad + 'px', height: Math.min(window.innerHeight - 8, r.height + 2 * pad) + 'px' });
+    $('tourStep').textContent = `Krok ${i + 1} z ${TOUR.length}`; $('tourTitle').textContent = title; $('tourText').textContent = text;
+    $('tourBack').style.visibility = i ? 'visible' : 'hidden'; $('tourNext').textContent = i === TOUR.length - 1 ? 'Zaczynam' : 'Dalej';
+    const below = r.top + r.height / 2 < window.innerHeight / 2;
+    $('tourCard').style.top = below ? '' : '16px'; $('tourCard').style.bottom = below ? '16px' : '';
+    $('tourNext').focus();
+  }
+  function tourEnd() { $('tour').classList.remove('on'); try { localStorage.setItem('cw_tour_done', '2'); } catch (e) {} window.scrollTo({ top: 0 }); }
+  function tourStart() { $('tour').classList.add('on'); tourShow(0); }
+  $('tourBtn').addEventListener('click', tourStart);
+  $('tourSkip').addEventListener('click', tourEnd);
+  $('tourBack').addEventListener('click', () => tourShow(Math.max(0, tourAt - 1)));
+  $('tourNext').addEventListener('click', () => (tourAt === TOUR.length - 1 ? tourEnd() : tourShow(tourAt + 1)));
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && $('tour').classList.contains('on')) tourEnd(); });
+  window.addEventListener('resize', () => { hideTip(); if ($('tour').classList.contains('on')) tourShow(tourAt); });
+
+  // ---------------------------------------------------------------- start
+  setPeriod(state.s);
+  let seen = false; try { seen = localStorage.getItem('cw_tour_done') === '2'; } catch (e) {}
+  if (!seen && !/[?&]notour/.test(location.search)) tourStart();
+})();
+</script>
+</body>
+</html>

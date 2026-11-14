@@ -4,6 +4,7 @@ import threading
 from datetime import datetime, timezone
 from functools import lru_cache
 from pathlib import Path
+from typing import Any
 
 from app.config import get_settings
 from app.schemas.location import Location
@@ -25,6 +26,7 @@ class LocationRegistry:
         self.index_path = root_dir / "locations.json"
         self._lock = threading.Lock()
         self._locations: dict[str, Location] = {}
+        self._loaded_mtime: int | None = None
         self._load()
 
     def _load(self) -> None:
@@ -32,11 +34,19 @@ class LocationRegistry:
             return
         raw = json.loads(self.index_path.read_text(encoding="utf-8"))
         self._locations = {item["id"]: Location.model_validate(item) for item in raw}
+        self._loaded_mtime = self.index_path.stat().st_mtime_ns
+
+    def _refresh_if_changed(self) -> None:
+        """Reload the index if another process (e.g. the import script) changed it."""
+        if self.index_path.exists() and self.index_path.stat().st_mtime_ns != self._loaded_mtime:
+            with self._lock:
+                self._load()
 
     def _save(self) -> None:
         self.root_dir.mkdir(parents=True, exist_ok=True)
         data = [loc.model_dump(mode="json") for loc in self._locations.values()]
         _write_atomic(self.index_path, json.dumps(data, indent=2, ensure_ascii=False).encode("utf-8"))
+        self._loaded_mtime = self.index_path.stat().st_mtime_ns
 
     def data_path(self, location_id: str) -> Path:
         """Where the data package of a location is stored."""
@@ -44,9 +54,11 @@ class LocationRegistry:
 
     def list_locations(self) -> list[Location]:
         """Ready locations first, then by 'order', then by name (same as build_location.py)."""
+        self._refresh_if_changed()
         return sorted(self._locations.values(), key=lambda loc: (not loc.ready, loc.order, loc.name))
 
     def get_location(self, location_id: str) -> Location | None:
+        self._refresh_if_changed()
         return self._locations.get(location_id)
 
     def create_location(self, location: Location) -> Location:
@@ -56,6 +68,15 @@ class LocationRegistry:
             self._locations[location.id] = location
             self._save()
         return location
+
+    def update_location(self, location_id: str, changes: dict[str, Any]) -> Location:
+        """Apply changes to metadata. The result is validated as a whole Location."""
+        with self._lock:
+            current = self._locations[location_id]
+            updated = Location.model_validate({**current.model_dump(), **changes})
+            self._locations[location_id] = updated
+            self._save()
+        return updated
 
     def save_data(self, location_id: str, content: bytes) -> Location:
         """Store (or replace) the data package and mark the location as ready."""
