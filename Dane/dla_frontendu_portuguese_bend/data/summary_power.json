@@ -1,0 +1,365 @@
+{
+  "opis": "Linie energetyczne w AOI: odcinki 100 m, klasa ryzyka z ruchu terenu NISAR (linia widzenia, mm/rok).",
+  "km": 289.26,
+  "km_wg_klasy": {
+    "wysokie": 0.0,
+    "średnie": 1.65,
+    "niskie": 233.46,
+    "brak danych": 54.15
+  },
+  "pokrycie_danymi": {
+    "km_z_danymi": 235.11,
+    "udzial": 0.81,
+    "km_pewnosc_pelna": 196.28,
+    "km_pewnosc_czesciowa": 38.82
+  },
+  "wg_napiecia_kv": {
+    "138": {
+      "wysokie": 0.0,
+      "średnie": 0.39,
+      "niskie": 20.77,
+      "brak danych": 10.98,
+      "razem": 32.14
+    },
+    "220": {
+      "wysokie": 0.0,
+      "średnie": 0.0,
+      "niskie": 43.49,
+      "brak danych": 5.98,
+      "razem": 49.47
+    },
+    "66": {
+      "wysokie": 0.0,
+      "średnie": 1.16,
+      "niskie": 135.0,
+      "brak danych": 29.23,
+      "razem": 165.4
+    },
+    "nieokreślone": {
+      "wysokie": 0.0,
+      "średnie": 0.1,
+      "niskie": 34.19,
+      "brak danych": 7.96,
+      "razem": 42.25
+    }
+  },
+  "wg_operatora": {
+    "Los Angeles Department of Water and Power": {
+      "wysokie": 0.0,
+      "średnie": 0.39,
+      "niskie": 13.7,
+      "brak danych": 11.99,
+      "razem": 26.08
+    },
+    "Southern California Edison": {
+      "wysokie": 0.0,
+      "średnie": 1.16,
+      "niskie": 97.23,
+      "brak danych": 28.76,
+      "razem": 127.14
+    },
+    "Southern California Edison Company": {
+      "wysokie": 0.0,
+      "średnie": 0.0,
+      "niskie": 2.24,
+      "brak danych": 0.0,
+      "razem": 2.24
+    },
+    "nieokreślone": {
+      "wysokie": 0.0,
+      "średnie": 0.1,
+      "niskie": 120.29,
+      "brak danych": 13.4,
+      "razem": 133.79
+    }
+  },
+  "wg_rodzaju": {
+    "cable": {
+      "wysokie": 0.0,
+      "średnie": 0.0,
+      "niskie": 8.75,
+      "brak danych": 5.62,
+      "razem": 14.37
+    },
+    "line": {
+      "wysokie": 0.0,
+      "średnie": 1.65,
+      "niskie": 209.03,
+      "brak danych": 47.46,
+      "razem": 258.14
+    },
+    "line (bay)": {
+      "wysokie": 0.0,
+      "średnie": 0.0,
+      "niskie": 1.23,
+      "brak danych": 0.0,
+      "razem": 1.23
+    },
+    "line (busbar)": {
+      "wysokie": 0.0,
+      "średnie": 0.0,
+      "niskie": 0.64,
+      "brak danych": 0.0,
+      "razem": 0.64
+    },
+    "minor_line": {
+      "wysokie": 0.0,
+      "średnie": 0.0,
+      "niskie": 13.81,
+      "brak danych": 1.07,
+      "razem": 14.88
+    }
+  },
+  "obiekty": [
+    {
+      "nazwa": "138kV",
+      "obiekt_id": "way/74839021",
+      "operator": "",
+      "napiecie_kv": "138",
+      "km": 12.13,
+      "km_wysokie": 0.0,
+      "km_srednie": 0.39,
+      "pokrycie_danymi": 0.8,
+      "v_p95_max_mm_rok": 66.7,
+      "powod": "|v|=47 mm/rok (próg 47); gradient 29 mm/100m/rok (próg 20)"
+    },
+    {
+      "nazwa": "line 66 kV, Southern California Edison",
+      "obiekt_id": "osm_1296516965",
+      "operator": "Southern California Edison",
+      "napiecie_kv": "66",
+      "km": 0.67,
+      "km_wysokie": 0.0,
+      "km_srednie": 0.38,
+      "pokrycie_danymi": 0.85,
+      "v_p95_max_mm_rok": 57.0,
+      "powod": "|v|=51 mm/rok (próg 47)"
+    },
+    {
+      "nazwa": "line 66 kV, Southern California Edison",
+      "obiekt_id": "osm_843310764",
+      "operator": "Southern California Edison",
+      "napiecie_kv": "66",
+      "km": 1.66,
+      "km_wysokie": 0.0,
+      "km_srednie": 0.29,
+      "pokrycie_danymi": 0.64,
+      "v_p95_max_mm_rok": 54.5,
+      "powod": "|v|=50 mm/rok (próg 47)"
+    },
+    {
+      "nazwa": "line 66 kV, Southern California Edison",
+      "obiekt_id": "osm_843310762",
+      "operator": "Southern California Edison",
+      "napiecie_kv": "66",
+      "km": 0.2,
+      "km_wysokie": 0.0,
+      "km_srednie": 0.2,
+      "pokrycie_danymi": 1.0,
+      "v_p95_max_mm_rok": 55.2,
+      "powod": "|v|=55 mm/rok (próg 47)"
+    },
+    {
+      "nazwa": "line 66 kV, Southern California Edison",
+      "obiekt_id": "osm_843310763",
+      "operator": "Southern California Edison",
+      "napiecie_kv": "66",
+      "km": 0.55,
+      "km_wysokie": 0.0,
+      "km_srednie": 0.18,
+      "pokrycie_danymi": 1.0,
+      "v_p95_max_mm_rok": 55.9,
+      "powod": "|v|=50 mm/rok (próg 47)"
+    },
+    {
+      "nazwa": "line",
+      "obiekt_id": "osm_817285034",
+      "operator": "",
+      "napiecie_kv": "",
+      "km": 1.0,
+      "km_wysokie": 0.0,
+      "km_srednie": 0.1,
+      "pokrycie_danymi": 1.0,
+      "v_p95_max_mm_rok": 51.0,
+      "powod": "|v|=51 mm/rok (próg 47); gradient 25 mm/100m/rok (próg 20)"
+    },
+    {
+      "nazwa": "line 66 kV, Southern California Edison",
+      "obiekt_id": "osm_1296517001",
+      "operator": "Southern California Edison",
+      "napiecie_kv": "66",
+      "km": 0.29,
+      "km_wysokie": 0.0,
+      "km_srednie": 0.1,
+      "pokrycie_danymi": 1.0,
+      "v_p95_max_mm_rok": 61.0,
+      "powod": "|v|=61 mm/rok (próg 47); gradient 44 mm/100m/rok (próg 20)"
+    },
+    {
+      "nazwa": "line 138 kV, Los Angeles Department of Water and Power",
+      "obiekt_id": "way/74839050",
+      "operator": "Los Angeles Department of Water and Power",
+      "napiecie_kv": "138",
+      "km": 8.93,
+      "km_wysokie": 0.0,
+      "km_srednie": 0.0,
+      "pokrycie_danymi": 0.81,
+      "v_p95_max_mm_rok": 38.5,
+      "powod": "w granicach szumu"
+    },
+    {
+      "nazwa": "line 66 kV",
+      "obiekt_id": "osm_80361718",
+      "operator": "",
+      "napiecie_kv": "66",
+      "km": 7.33,
+      "km_wysokie": 0.0,
+      "km_srednie": 0.0,
+      "pokrycie_danymi": 0.97,
+      "v_p95_max_mm_rok": 37.0,
+      "powod": "w granicach szumu"
+    },
+    {
+      "nazwa": "line 220 kV, Southern California Edison",
+      "obiekt_id": "way/46097017",
+      "operator": "Southern California Edison",
+      "napiecie_kv": "220",
+      "km": 7.16,
+      "km_wysokie": 0.0,
+      "km_srednie": 0.0,
+      "pokrycie_danymi": 0.99,
+      "v_p95_max_mm_rok": 31.3,
+      "powod": "w granicach szumu"
+    },
+    {
+      "nazwa": "line 66 kV, Southern California Edison",
+      "obiekt_id": "osm_391540187",
+      "operator": "Southern California Edison",
+      "napiecie_kv": "66",
+      "km": 6.96,
+      "km_wysokie": 0.0,
+      "km_srednie": 0.0,
+      "pokrycie_danymi": 1.0,
+      "v_p95_max_mm_rok": 20.8,
+      "powod": "w granicach szumu"
+    },
+    {
+      "nazwa": "line 220 kV",
+      "obiekt_id": "way/91735956",
+      "operator": "",
+      "napiecie_kv": "220",
+      "km": 6.94,
+      "km_wysokie": 0.0,
+      "km_srednie": 0.0,
+      "pokrycie_danymi": 0.99,
+      "v_p95_max_mm_rok": 31.3,
+      "powod": "w granicach szumu"
+    },
+    {
+      "nazwa": "line 220 kV, Southern California Edison",
+      "obiekt_id": "way/74839024",
+      "operator": "Southern California Edison",
+      "napiecie_kv": "220",
+      "km": 6.04,
+      "km_wysokie": 0.0,
+      "km_srednie": 0.0,
+      "pokrycie_danymi": 0.98,
+      "v_p95_max_mm_rok": 22.2,
+      "powod": "w granicach szumu"
+    },
+    {
+      "nazwa": "line 220 kV, Southern California Edison",
+      "obiekt_id": "way/78797555",
+      "operator": "Southern California Edison",
+      "napiecie_kv": "220",
+      "km": 5.98,
+      "km_wysokie": 0.0,
+      "km_srednie": 0.0,
+      "pokrycie_danymi": 0.98,
+      "v_p95_max_mm_rok": 29.2,
+      "powod": "w granicach szumu"
+    },
+    {
+      "nazwa": "line 66 kV, Southern California Edison",
+      "obiekt_id": "osm_65486158",
+      "operator": "Southern California Edison",
+      "napiecie_kv": "66",
+      "km": 4.81,
+      "km_wysokie": 0.0,
+      "km_srednie": 0.0,
+      "pokrycie_danymi": 0.31,
+      "v_p95_max_mm_rok": 46.2,
+      "powod": "w granicach szumu"
+    },
+    {
+      "nazwa": "line 66 kV",
+      "obiekt_id": "osm_1296516675",
+      "operator": "",
+      "napiecie_kv": "66",
+      "km": 4.17,
+      "km_wysokie": 0.0,
+      "km_srednie": 0.0,
+      "pokrycie_danymi": 0.88,
+      "v_p95_max_mm_rok": 50.5,
+      "powod": "w granicach szumu"
+    },
+    {
+      "nazwa": "line 66 kV, Southern California Edison",
+      "obiekt_id": "osm_65486184",
+      "operator": "Southern California Edison",
+      "napiecie_kv": "66",
+      "km": 4.17,
+      "km_wysokie": 0.0,
+      "km_srednie": 0.0,
+      "pokrycie_danymi": 0.31,
+      "v_p95_max_mm_rok": 46.2,
+      "powod": "w granicach szumu"
+    },
+    {
+      "nazwa": "line 220 kV, Southern California Edison",
+      "obiekt_id": "way/65413278",
+      "operator": "Southern California Edison",
+      "napiecie_kv": "220",
+      "km": 3.86,
+      "km_wysokie": 0.0,
+      "km_srednie": 0.0,
+      "pokrycie_danymi": 0.41,
+      "v_p95_max_mm_rok": 42.1,
+      "powod": "w granicach szumu"
+    },
+    {
+      "nazwa": "line 66 kV, Southern California Edison",
+      "obiekt_id": "osm_1296516937",
+      "operator": "Southern California Edison",
+      "napiecie_kv": "66",
+      "km": 3.82,
+      "km_wysokie": 0.0,
+      "km_srednie": 0.0,
+      "pokrycie_danymi": 0.0,
+      "v_p95_max_mm_rok": null,
+      "powod": "za mało wiarygodnych pikseli (woda, utrata spójności)"
+    },
+    {
+      "nazwa": "line 66 kV",
+      "obiekt_id": "osm_389396017",
+      "operator": "",
+      "napiecie_kv": "66",
+      "km": 3.73,
+      "km_wysokie": 0.0,
+      "km_srednie": 0.0,
+      "pokrycie_danymi": 1.0,
+      "v_p95_max_mm_rok": 41.0,
+      "powod": "w granicach szumu"
+    }
+  ],
+  "obiekty_inzynierskie": {
+    "pod ziemią": {
+      "wysokie": 0,
+      "średnie": 0,
+      "niskie": 38,
+      "brak danych": 57
+    }
+  },
+  "przeciecia_granicy_strefy": 0,
+  "min_odleglosc_od_strefy_aktywnej_m": 765
+}

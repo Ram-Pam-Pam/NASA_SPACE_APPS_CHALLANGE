@@ -4,154 +4,244 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Corridor Watch</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23184f95'/%3E%3Cpath d='M4 21h9l3-3 3 3h9' fill='none' stroke='%23fff' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23C8F169'/%3E%3Cpath d='M4 21h9l3-3 3 3h9' fill='none' stroke='%230B0C0E' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <style>
+/* ------------------------------------------------------------------ tokens
+   One dark theme: background #0B0C0E, panels #15171A, borders/separators #2B2E33,
+   secondary text #A2A6AC, primary text #F2F3F0, interface accent lime #C8F169
+   (active date, focus, selection, brand only — never used for data).
+   Data colours (InSAR ramp, anomaly types, alert levels) are not defined here on purpose:
+   they live with the data logic and keep their meaning. */
 :root {
-  color-scheme: light;
-  --page: #f9f9f7; --surface: #fcfcfb; --text: #0b0b0b; --text-2: #52514e; --muted: #898781;
-  --grid: #e1e0d9; --axis: #c3c2b7; --border: rgba(11,11,11,0.10); --wash: rgba(11,11,11,0.045);
-  --accent: #184f95; --accent-ink: #ffffff;
-  --s1: #2a78d6; --s2: #eb6834; --alert: #d03b3b; --alert-wash: rgba(208,59,59,0.10);
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    color-scheme: dark;
-    --page: #0d0d0d; --surface: #1a1a19; --text: #f0efec; --text-2: #c3c2b7; --muted: #898781;
-    --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10); --wash: rgba(255,255,255,0.06);
-    --accent: #86b6ef; --accent-ink: #0b0b0b;
-    --s1: #3987e5; --s2: #d95926; --alert: #e66767; --alert-wash: rgba(230,103,103,0.14);
-  }
-}
-:root[data-theme="dark"] {
   color-scheme: dark;
-  --page: #0d0d0d; --surface: #1a1a19; --text: #f0efec; --text-2: #c3c2b7; --muted: #898781;
-  --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10); --wash: rgba(255,255,255,0.06);
-  --accent: #86b6ef; --accent-ink: #0b0b0b;
-  --s1: #3987e5; --s2: #d95926; --alert: #e66767; --alert-wash: rgba(230,103,103,0.14);
+  --page: #0B0C0E; --surface: #15171A; --text: #F2F3F0; --text-2: #A2A6AC; --muted: #A2A6AC;
+  --grid: #2B2E33; --axis: #2B2E33; --border: #2B2E33; --wash: rgba(242,243,240,0.06);
+  --accent: #C8F169; --accent-ink: #0B0C0E;
+  --s1: #C8F169; --s2: #eb6834; --alert: #d03b3b; --alert-wash: rgba(208,59,59,0.14);
+  --nav: #15171A; --nav-2: #0B0C0E; --nav-line: #2B2E33; --nav-text: #F2F3F0; --nav-muted: #A2A6AC; --nav-accent: #C8F169;
+  --font: "Inter", "Manrope", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --shadow: 0 1px 2px rgba(0,0,0,.5), 0 4px 14px rgba(0,0,0,.4);
+  --label: 600 11.5px/1.3 var(--font);   /* small uppercase section labels */
 }
+
+/* -------------------------------------------------------------------- base */
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
-/* Full-screen app layout: fixed top panel + map filling the rest of the window (no page scroll) */
+/* App layout: compact header + time bar, below them the map (dominant) with a narrow side panel. No page scroll on wide screens. */
 html, body { height: 100%; }
-body { margin: 0; background: var(--page); color: var(--text); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+body { margin: 0; background: var(--page); color: var(--text); font: 14px/1.5 var(--font); -webkit-font-smoothing: antialiased;
   display: flex; flex-direction: column; overflow: hidden; }
 [hidden] { display: none !important; }
 button, select, input { font: inherit; }
-button { background: var(--surface); color: var(--text); border: 1px solid var(--axis); border-radius: 8px; padding: 7px 12px; cursor: pointer; }
+button { background: var(--surface); color: var(--text); border: 1px solid var(--axis); border-radius: 8px; padding: 6px 12px; cursor: pointer; transition: background .15s, border-color .15s, color .15s; }
 button:hover { background: var(--wash); }
 button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
-select { background: var(--surface); color: var(--text); border: 1px solid var(--axis); border-radius: 8px; padding: 7px 10px; max-width: 100%; }
-:focus-visible { outline: 2px solid var(--s1); outline-offset: 2px; }
-.small { font-size: 13px; color: var(--text-2); }
-.card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
+select { background: var(--page); color: var(--text); border: 1px solid var(--axis); border-radius: 8px; padding: 7px 10px; max-width: 100%; cursor: pointer; transition: border-color .15s; }
+select:hover { border-color: #4a4e55; }
+input[type="range"], input[type="checkbox"] { accent-color: var(--accent); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.small { font-size: 12.5px; color: var(--text-2); }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
 
-.topbar { flex: none; position: relative; z-index: 1200; background: var(--surface); box-shadow: 0 1px 4px rgba(0,0,0,.12); }
-.bar { display: flex; gap: 8px 18px; align-items: center; flex-wrap: wrap; padding: 10px 20px; }
-.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; white-space: nowrap; }
-.brand svg { width: 30px; height: 30px; flex: none; }
-.bar h1 { font-size: 20px; font-weight: 500; line-height: 1.2; margin: 0; padding-left: 18px; border-left: 1px solid var(--grid); }
+/* ------------------------------------------------------------------ header
+   Product name, the case study (AOI) being shown, and the AOI switcher — one compact row. */
+.topbar { flex: none; position: relative; z-index: 1200; background: var(--surface); }
+.bar { display: flex; gap: 8px 18px; align-items: center; flex-wrap: wrap; min-height: 52px; padding: 8px 20px; background: var(--nav); color: var(--nav-text); box-shadow: inset 0 -1px 0 var(--nav-line); }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 15.5px; letter-spacing: -.01em; white-space: nowrap; }
+.brand svg { width: 26px; height: 26px; flex: none; }
+.bar h1 { display: flex; align-items: baseline; gap: 10px; margin: 0; padding-left: 18px; border-left: 1px solid var(--nav-line); font-size: 15px; font-weight: 600; line-height: 1.3; letter-spacing: -.005em; }
+.bar h1::before { content: "Obszar analizy"; font: var(--label); letter-spacing: .07em; text-transform: uppercase; color: var(--nav-muted); white-space: nowrap; }
+.bar h1:empty { display: none; }
 .bar .sp { flex: 1; }
-.loc { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-2); min-width: 0; }
-.loc select { min-width: 0; }
-.seg { display: inline-flex; border: 1px solid var(--axis); border-radius: 8px; overflow: hidden; background: var(--surface); }
-.seg button { border: 0; border-radius: 0; padding: 7px 12px; border-right: 1px solid var(--axis); }
+.loc { display: flex; align-items: center; gap: 10px; min-width: 0; font: var(--label); letter-spacing: .07em; text-transform: uppercase; color: var(--nav-muted); }
+.loc select { min-width: 0; padding: 6px 10px; background: var(--nav-2); color: var(--nav-text); border-color: var(--nav-line); font: 500 13.5px/1.4 var(--font); letter-spacing: 0; text-transform: none; }
+.loc select:hover { border-color: var(--nav-accent); }
+.seg { display: inline-flex; border: 1px solid var(--nav-line); border-radius: 8px; overflow: hidden; background: var(--nav-2); }
+.seg button { border: 0; border-radius: 0; padding: 6px 12px; border-right: 1px solid var(--nav-line); background: transparent; color: var(--nav-text); font-size: 13.5px; }
+.seg button:hover { background: var(--wash); }
 .seg button:last-child { border-right: 0; }
-.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.seg button[aria-pressed="true"] { background: var(--nav-accent); color: var(--accent-ink); font-weight: 600; }
 
+/* ---------------------------------------------------------------- time bar
+   Label, previous / selected date / next, latest, play, then a quiet track of measurement dates. */
+#timeline { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; padding: 8px 20px; background: var(--surface); border-bottom: 1px solid var(--grid); }
+.tl-title { font: var(--label); letter-spacing: .07em; text-transform: uppercase; color: var(--text-2); white-space: nowrap; margin-right: 2px; }
+.tl-step { display: inline-flex; align-items: center; gap: 2px; padding: 2px; background: var(--page); border: 1px solid var(--grid); border-radius: 10px; }
+.tl-date { min-width: 122px; padding: 0 6px; font-size: 16.5px; font-weight: 700; letter-spacing: -.01em; color: var(--text); text-align: center; white-space: nowrap; font-variant-numeric: tabular-nums; }
+#timeline button { display: grid; place-items: center; padding: 0; }
+#timeline button svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.tl-nav { width: 32px; height: 32px; border: 0; border-radius: 8px; background: transparent; color: var(--text); }
+.tl-nav:hover:not(:disabled) { background: var(--surface); color: var(--accent); }
+.tl-nav:disabled { color: #4a4e55; cursor: default; background: transparent; }
+.tl-round { width: 38px; height: 38px; border-radius: 10px; border: 1px solid var(--grid); background: var(--page); color: var(--text); }
+.tl-round:hover { border-color: #4a4e55; color: var(--accent); background: var(--page); }
+#timeline #play { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+#timeline #play:hover { background: color-mix(in srgb, var(--accent) 86%, #000); color: var(--accent-ink); }
+#timeline #play svg { fill: currentColor; stroke: none; }
+#tl { position: relative; flex: 1 1 380px; height: 40px; margin: 0 24px 0 30px; cursor: pointer; touch-action: none; user-select: none; }
+.tl-band { position: absolute; left: -14px; right: -14px; top: 10px; height: 4px; border-radius: 2px; background: var(--grid); }
+.tl-stop { position: absolute; top: 12px; width: 6px; height: 6px; border-radius: 50%; background: #6b7078; transform: translate(-50%, -50%); }
+/* The selected date: an accent dot that glides between measurements instead of jumping */
+.tl-thumb { position: absolute; top: 12px; width: 16px; height: 16px; border-radius: 50%; background: var(--accent); border: 3px solid var(--surface); transform: translate(-50%, -50%);
+  box-shadow: 0 0 0 1.5px var(--accent); transition: left .35s cubic-bezier(.4, 0, .2, 1); pointer-events: none; }
+.tl-lab { position: absolute; top: 21px; transform: translateX(-50%); font-size: 12px; font-weight: 500; color: var(--text-2); white-space: nowrap; font-variant-numeric: tabular-nums; transition: color .2s; }
+.tl-lab.on { color: var(--accent); font-weight: 600; }
+.tl-lab.first { transform: translateX(-10px); }
+.tl-lab.last { transform: translateX(calc(-100% + 10px)); }
+@media (prefers-reduced-motion: reduce) { .tl-thumb { transition: none; } }
 
-#app { flex: 1; position: relative; min-height: 0; }
-#map { position: absolute; inset: 0; background: #2b2b2b; z-index: 0; }
+/* --------------------------------------------------------------- workspace
+   The map takes almost all of the screen; a narrow panel on the right holds the read-out, options and limitations. */
+#app { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 288px; grid-template-rows: minmax(0, 1fr); }
+.mapwrap { position: relative; min-width: 0; min-height: 0; }
+#map { position: absolute; inset: 0; background: var(--page); z-index: 0; }
+.leaflet-container { font-family: var(--font); }
 .leaflet-image-layer.pix { image-rendering: pixelated; }
-/* Anomaly pins: one colour + icon per anomaly type (landslide, subsidence, uplift, ...) */
-.pin { display: block; width: 36px; height: 44px; transform-origin: 50% 100%; filter: drop-shadow(0 2px 3px rgba(0,0,0,.45)); cursor: pointer;
-  animation: pin-in .45s cubic-bezier(.2, 1.5, .4, 1) both; transition: transform .15s ease; }
-.pin:hover { transform: scale(1.12); }
-.pin svg { display: block; width: 100%; height: 100%; }
-@keyframes pin-in { from { transform: translateY(-14px) scale(.3); opacity: 0; } to { transform: none; opacity: 1; } }
-.badge { display: inline-block; width: 20px; height: 20px; vertical-align: -5px; flex: none; }
+
+/* Leaflet controls, restyled to match the rest of the UI */
+.leaflet-container .leaflet-bar { border: 1px solid var(--grid); border-radius: 8px; box-shadow: var(--shadow); overflow: hidden; }
+.leaflet-container .leaflet-bar a { width: 32px; height: 32px; line-height: 32px; background: var(--surface); color: var(--text); border-bottom-color: var(--grid); }
+.leaflet-container .leaflet-bar a:hover { background: var(--page); color: var(--accent); }
+.leaflet-container .leaflet-bar a.leaflet-disabled { background: var(--surface); color: #4a4e55; }
+.leaflet-container .leaflet-control-layers { border: 1px solid var(--grid); border-radius: 8px; box-shadow: var(--shadow); background: var(--surface); color: var(--text); }
+.leaflet-container .leaflet-control-layers-toggle { width: 34px; height: 34px; background-size: 20px 20px; filter: invert(.92); }
+.leaflet-container .leaflet-control-layers-expanded { padding: 8px 12px; font-size: 13.5px; line-height: 1.7; }
+.leaflet-container .leaflet-control-layers label { cursor: pointer; }
+.leaflet-container .leaflet-control-scale-line { border-color: var(--text-2); border-radius: 0 0 3px 3px; padding: 1px 6px; font-size: 11px; color: var(--text); background: rgba(21,23,26,.85); }
+.leaflet-container .leaflet-control-attribution { background: rgba(21,23,26,.85); color: var(--text-2); }
+.leaflet-container .leaflet-control-attribution a { color: var(--text); }
+
+/* Anomaly markers: small, flat dots in the anomaly type's existing colour with a thin white ring.
+   The marker SVG is generated by the map script as a teardrop pin with an icon; here it is shown as
+   just the round head (clip-path), scaled down and moved so the dot sits exactly on the point of
+   strongest movement (the pin's tip). Only the visible dot is clickable/hoverable. */
+.leaflet-marks-pane .leaflet-marker-icon.leaflet-interactive { pointer-events: none; }
+.pin { display: block; width: 36px; height: 44px; transform-origin: 18px 43px; cursor: pointer;
+  filter: drop-shadow(0 0 1.5px rgba(0,0,0,.7)); animation: pin-in .35s ease-out both; transition: transform .15s ease; }
+.pin svg { display: block; width: 100%; height: 100%; pointer-events: auto; overflow: hidden;
+  clip-path: circle(15px at 18px 18px); transform: translateY(25px) scale(.46); transform-origin: 18px 18px; }
+.pin svg g { display: none; }
+.pin:hover { transform: scale(1.35); }
+@keyframes pin-in { from { transform: scale(.2); opacity: 0; } to { transform: none; opacity: 1; } }
+/* Type badges (legend, tooltip, popup): the same plain dot as on the map */
+.badge { display: inline-block; flex: none; width: 11px; height: 11px; border-radius: 50%; vertical-align: 0; box-shadow: 0 0 0 1.5px rgba(242,243,240,.9); }
 .badge svg { display: block; width: 100%; height: 100%; }
+.badge svg g { display: none; }
 @media (prefers-reduced-motion: reduce) { .pin { animation: none; } }
-.leaflet-popup-content { font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; margin: 12px 14px; }
 
 /* Point popup (click on the map): plain-language summary of ground movement at one spot */
+.leaflet-popup-content-wrapper { border-radius: 12px; box-shadow: 0 0 0 1px var(--border), 0 8px 26px rgba(0,0,0,.5); }
+.leaflet-popup-content { font: 14px/1.45 var(--font); margin: 12px 14px; }
+.leaflet-container a.leaflet-popup-close-button { top: 6px; right: 6px; width: 26px; height: 26px; font-size: 20px; line-height: 24px; color: var(--text-2); border-radius: 6px; }
+.leaflet-container a.leaflet-popup-close-button:hover { color: var(--text); background: var(--wash); }
 .cw-pop .leaflet-popup-content-wrapper, .cw-pop .leaflet-popup-tip { background: var(--surface); color: var(--text); }
-.cw-pop .leaflet-popup-content { margin: 14px 16px 12px; }
-.pp-chip { display: inline-block; font-size: 12px; font-weight: 650; padding: 2px 9px; border-radius: 999px; color: #fff; }
-.pp-chip.calm { background: #6b6a65; } .pp-chip.small { background: var(--s2); } .pp-chip.big { background: var(--alert); } .pp-chip.none { background: var(--muted); }
-.pp-head { font-size: 19px; font-weight: 650; line-height: 1.25; margin: 6px 0 2px; }
-.pp-sub { color: var(--text-2); font-size: 13px; line-height: 1.4; }
-.pp-sec { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--grid); font-size: 13px; line-height: 1.4; }
-.pp-sec h4 { margin: 0; font-size: 13px; font-weight: 650; }
+.cw-pop .leaflet-popup-content { margin: 16px 18px 14px; }
+.pp-chip { display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: .01em; padding: 3px 10px; border-radius: 999px; color: #fff; }
+.pp-chip.calm { background: #5b6b7d; } .pp-chip.small { background: var(--s2); } .pp-chip.big { background: var(--alert); } .pp-chip.none { background: #5b6b7d; }
+.pp-head { font-size: 18.5px; font-weight: 700; line-height: 1.25; letter-spacing: -.01em; margin: 8px 0 3px; }
+.pp-sub { color: var(--text-2); font-size: 13.5px; line-height: 1.45; }
+.pp-sec { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--grid); font-size: 13.5px; line-height: 1.45; }
+.pp-sec h4 { margin: 0; font: var(--label); letter-spacing: .07em; text-transform: uppercase; color: var(--text-2); }
 .pp-row { display: flex; justify-content: space-between; gap: 12px; }
-.pp-row + .pp-row { margin-top: 3px; }
+.pp-row + .pp-row { margin-top: 4px; }
 .pp-row span:first-child { color: var(--text-2); }
 .pp-row b { font-weight: 600; text-align: right; }
-.pp-hint { color: var(--text-2); font-size: 12px; margin-top: 3px; }
-.pp-zone { background: var(--alert-wash); border-top: 0; border-radius: 8px; padding: 7px 10px; }
-.pp-spark { display: block; width: 100%; height: auto; margin-top: 2px; overflow: visible; }
-.pp-spark text { font-size: 10px; fill: var(--muted); font-variant-numeric: tabular-nums; }
-.pp-foot { margin-top: 8px; font-size: 11.5px; line-height: 1.35; color: var(--muted); }
+.pp-hint { color: var(--text-2); font-size: 12.5px; margin-top: 3px; }
+.pp-zone { background: var(--alert-wash); border-top: 0; border-radius: 8px; padding: 9px 11px; }
+.pp-zone .badge, .pp-sec .badge { margin: 0 2px; }
+/* The chart's "selected date" dot stays blue: the popup text calls it "niebieska kropka" */
+.pp-spark { display: block; width: 100%; height: auto; margin-top: 4px; overflow: visible; --accent: #2563eb; }
+.pp-spark text { font-size: 10.5px; fill: var(--text-2); font-variant-numeric: tabular-nums; }
+.pp-foot { margin-top: 10px; font-size: 12px; line-height: 1.4; color: var(--text-2); }
 
-/* Legend floats over the bottom-left corner of the map */
-.under { position: absolute; left: 12px; bottom: 12px; z-index: 1000; max-width: calc(100% - 24px); display: flex; gap: 8px 20px; align-items: center; flex-wrap: nowrap;
-  padding: 10px 14px; font-size: 13px; background: color-mix(in srgb, var(--surface) 94%, transparent); backdrop-filter: blur(6px); box-shadow: 0 2px 10px rgba(0,0,0,.3); }
-.scale { flex: none; width: 300px; }
-.legend-bar { width: 100%; height: 12px; border-radius: 3px; display: block; }
-.legend-ticks { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-2); margin-top: 2px; font-variant-numeric: tabular-nums; }
-.keys { display: flex; flex-wrap: wrap; gap: 4px 14px; white-space: nowrap; }
-.keys > span { display: inline-flex; align-items: center; gap: 6px; cursor: help; }
-.under .small { white-space: nowrap; }
-#readout { font-variant-numeric: tabular-nums; color: var(--text-2); min-width: 170px; }
-#readout b { color: var(--text); font-weight: 650; font-size: 15px; }
-details.adv { position: relative; }
-details.adv summary { cursor: pointer; list-style: none; border: 1px solid var(--axis); border-radius: 8px; padding: 6px 12px; font-size: 14px; }
+/* -------------------------------------------------------------- map legend
+   Small collapsible card pinned to the bottom-right corner of the map (above scale and attribution),
+   away from the zoom and layer controls. */
+.legend-box { position: absolute; right: 10px; bottom: 46px; z-index: 1000; width: 300px; max-width: calc(100% - 20px);
+  background: rgba(21,23,26,.94); border: 1px solid var(--grid); border-radius: 10px; box-shadow: var(--shadow); backdrop-filter: blur(6px); }
+.legend-box > summary { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 12px; cursor: pointer; list-style: none; border-radius: 10px;
+  font: var(--label); letter-spacing: .07em; text-transform: uppercase; color: var(--text); }
+.legend-box > summary::-webkit-details-marker { display: none; }
+.legend-box > summary::after { content: ""; width: 7px; height: 7px; border-right: 1.75px solid var(--text-2); border-bottom: 1.75px solid var(--text-2); transform: translateY(2px) rotate(-135deg); transition: transform .2s; }
+.legend-box:not([open]) > summary::after { transform: translateY(-2px) rotate(45deg); }
+.legend-box > summary:hover { color: var(--accent); }
+.legend-box:not([open]) { width: auto; }
+.legend-body { padding: 2px 12px 12px; display: grid; gap: 12px; }
+.lg-h { margin: 0 0 6px; font: var(--label); letter-spacing: .07em; text-transform: uppercase; color: var(--text-2); }
+.scale { width: 100%; }
+.legend-bar { display: block; width: 100%; height: 10px; border-radius: 5px; box-shadow: inset 0 0 0 1px rgba(242,243,240,.10); }
+.legend-ticks { display: flex; justify-content: space-between; gap: 8px; margin-top: 5px; font-size: 12px; font-weight: 500; color: var(--text); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.legend-body .small { display: block; margin-top: 4px; }
+.legend-body .small:empty { display: none; }
+/* Anomaly types: a dot and the name; the one-line explanation is in the hover title */
+.keys { display: flex; flex-wrap: wrap; gap: 6px 16px; }
+.keys > span { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; color: var(--text); cursor: help; }
+.lg-note { margin: 0; padding-top: 10px; border-top: 1px solid var(--grid); font-size: 12.5px; line-height: 1.45; color: var(--text-2); }
+
+/* -------------------------------------------------------------- side panel
+   Value under the cursor, map options, limitations. */
+.under { display: flex; flex-direction: column; min-height: 0; overflow-y: auto; padding: 0 18px 18px; background: var(--surface); border-left: 1px solid var(--grid); font-size: 13.5px; }
+.sec { padding: 16px 0; border-bottom: 1px solid var(--grid); }
+.sec h2 { margin: 0 0 10px; font: var(--label); letter-spacing: .07em; text-transform: uppercase; color: var(--text-2); }
+#readout { min-height: 44px; padding: 10px 12px; background: var(--page); border: 1px solid var(--grid); border-radius: 8px; color: var(--text-2); font-variant-numeric: tabular-nums; }
+#readout b { margin-right: 4px; color: var(--text); font-size: 17px; font-weight: 700; letter-spacing: -.01em; }
+.hint { margin: 10px 0 0; font-size: 12.5px; color: var(--text-2); }
+/* Map options: an accordion that opens in place (it never overlaps the map) */
+details.adv { border-bottom: 1px solid var(--grid); }
+details.adv summary { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 0; font-size: 13.5px; font-weight: 600; cursor: pointer; list-style: none; border-radius: 6px; }
 details.adv summary::-webkit-details-marker { display: none; }
-details.adv .pop { position: absolute; left: 0; bottom: calc(100% + 6px); z-index: 1100; width: 280px; padding: 12px; display: grid; gap: 10px; box-shadow: 0 8px 24px rgba(0,0,0,.25); }
-details.adv .pop label { display: grid; gap: 3px; font-size: 13px; color: var(--text-2); }
-details.adv .pop label.row { display: flex; gap: 6px; color: var(--text); }
+details.adv summary::after { content: ""; width: 8px; height: 8px; margin-right: 4px; border-right: 2px solid var(--text-2); border-bottom: 2px solid var(--text-2); transform: translateY(-2px) rotate(45deg); transition: transform .2s; }
+details.adv[open] summary::after { transform: translateY(2px) rotate(-135deg); }
+details.adv summary:hover { color: var(--accent); }
+details.adv .pop { display: grid; gap: 13px; padding: 0 0 18px; }
+details.adv .pop label { display: grid; gap: 5px; font-size: 12.5px; font-weight: 500; color: var(--text-2); }
+details.adv .pop label select, details.adv .pop label input[type="range"] { width: 100%; }
+details.adv .pop label select { color: var(--text); font-size: 13.5px; }
+details.adv .pop label.row { display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: var(--text); cursor: pointer; }
+details.adv .pop label.row input { width: 16px; height: 16px; margin: 0; }
+/* Measurement limits: visible, calm, not fine print */
+.note { margin: 16px 0 0; padding: 12px 13px; font-size: 12.5px; line-height: 1.5; color: var(--text-2); background: var(--page); border: 1px solid var(--grid); border-radius: 8px; }
+.note b { display: block; margin-bottom: 3px; font-size: 13px; font-weight: 600; color: var(--text); }
 
-/* Timeline bar above the map: title, prev / date / next, jump to latest, play, then the track of measurement dates */
-#timeline { --tl-tint: color-mix(in srgb, var(--s1) 20%, var(--surface)); display: flex; flex-wrap: wrap; align-items: center; gap: 8px 6px; padding: 8px 20px; border-top: 1px solid var(--grid); }
-.tl-title { font-size: 16px; font-weight: 500; margin-right: 8px; white-space: nowrap; }
-.tl-date { font-size: 16px; font-weight: 500; color: var(--accent); min-width: 98px; text-align: center; white-space: nowrap; font-variant-numeric: tabular-nums; }
-#timeline button { display: grid; place-items: center; padding: 0; border-radius: 50%; }
-#timeline button svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
-.tl-nav { width: 30px; height: 30px; border: 0; background: none; }
-.tl-nav:disabled { color: var(--muted); opacity: .5; cursor: default; background: none; }
-.tl-round { width: 42px; height: 42px; border: 0; background: var(--tl-tint); color: var(--accent); margin-left: 6px; }
-.tl-round:hover { background: color-mix(in srgb, var(--s1) 32%, var(--surface)); }
-#timeline #play svg { fill: currentColor; stroke: none; }
-#tl { position: relative; flex: 1 1 380px; height: 46px; margin: 0 26px 0 48px; cursor: pointer; touch-action: none; user-select: none; }
-.tl-band { position: absolute; left: -18px; right: -18px; top: 4px; height: 20px; border-radius: 10px; background: linear-gradient(90deg, transparent, var(--tl-tint) 28px); }
-.tl-stop { position: absolute; top: 14px; width: 5px; height: 5px; border-radius: 50%; background: var(--text); transform: translate(-50%, -50%); }
-/* The big dot glides between dates instead of jumping */
-.tl-thumb { position: absolute; top: 14px; width: 20px; height: 20px; border-radius: 50%; background: var(--accent); transform: translate(-50%, -50%);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent); transition: left .35s cubic-bezier(.4, 0, .2, 1); pointer-events: none; }
-.tl-lab { transition: color .2s; }
-@media (prefers-reduced-motion: reduce) { .tl-thumb { transition: none; } }
-.tl-lab { position: absolute; top: 27px; transform: translateX(-50%); font-size: 13px; color: var(--text-2); white-space: nowrap; font-variant-numeric: tabular-nums; }
-.tl-lab.on { color: var(--text); }
-.tl-lab.first { transform: translateX(-12px); }
-.tl-lab.last { transform: translateX(calc(-100% + 12px)); }
+/* Hover tooltip (anomalies, timeline) */
+#tip { position: fixed; z-index: 3000; pointer-events: none; display: none; max-width: 270px; padding: 8px 11px; background: var(--nav); color: var(--nav-text); border-radius: 8px;
+  box-shadow: 0 0 0 1px var(--nav-line), 0 6px 20px rgba(0,0,0,.5); font-size: 12.5px; line-height: 1.45; font-variant-numeric: tabular-nums; }
+#tip b { font-weight: 700; color: var(--text); }
+#tip .badge { margin: 0 2px; }
+#status { flex: 1; display: grid; place-items: center; padding: 40px 20px; text-align: center; color: var(--text-2); font-size: 15px; font-weight: 500; }
 
-#tip { position: fixed; z-index: 3000; pointer-events: none; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 14px rgba(0,0,0,.2); padding: 6px 9px; font-size: 12px; line-height: 1.4; display: none; max-width: 260px; font-variant-numeric: tabular-nums; }
-#tip b { font-weight: 650; }
-#status { flex: 1; display: grid; place-items: center; padding: 40px 16px; text-align: center; color: var(--text-2); }
-
-@media (max-width: 1000px) {
-  .under { flex-wrap: wrap; }
-  .scale { width: 260px; }
+/* -------------------------------------------------------------- responsive */
+@media (max-width: 1180px) {
+  #app { grid-template-columns: minmax(0, 1fr) 264px; }
+  .under { padding: 0 14px 14px; }
 }
-@media (max-width: 700px) {
-  .bar { padding: 8px 16px; }
-  .bar h1 { padding-left: 0; border-left: 0; flex-basis: 100%; order: 1; font-size: 17px; }
-  .loc { flex: 1 1 100%; }
+/* Narrow screens: the page scrolls; map first with a usable height, then the (collapsible) legend and
+   the panel stacked below it — nothing floats over the map. */
+@media (max-width: 900px) {
+  html, body { height: auto; }
+  body { min-height: 100vh; overflow: visible; }
+  #app { display: block; flex: none; }
+  .mapwrap { display: flex; flex-direction: column; }
+  #map { position: relative; inset: auto; height: 62vh; min-height: 340px; }
+  .legend-box { position: static; width: auto; max-width: none; margin: 10px 16px 0; background: var(--surface); box-shadow: none; backdrop-filter: none; }
+  .legend-box:not([open]) { width: auto; }
+  .under { display: grid; grid-template-columns: 1fr 1fr; column-gap: 24px; overflow: visible; border-left: 0; padding: 0 16px 20px; background: transparent; }
+  .under details.adv, .under .note { grid-column: 1 / -1; }
+}
+@media (max-width: 640px) {
+  .bar { padding: 8px 14px; gap: 6px 12px; }
+  .bar h1 { flex-basis: 100%; order: 1; flex-wrap: wrap; row-gap: 0; padding-left: 0; border-left: 0; }
+  .loc { flex: 1 1 100%; order: 2; }
   .loc select { flex: 1; }
-  #timeline { padding: 6px 16px; }
-  #tl { margin: 0 14px; flex-basis: 100%; }
-  .under { right: 12px; }
-  .scale { width: 100%; }
+  #timeline { padding: 8px 14px; }
+  .tl-title { flex-basis: 100%; }
+  #tl { flex-basis: 100%; margin: 0 14px; }
+  .legend-box { margin: 10px 14px 0; }
+  .under { display: flex; padding: 0 14px 18px; }
 }
 </style>
 </head>
@@ -160,7 +250,7 @@ details.adv .pop label.row { display: flex; gap: 6px; color: var(--text); }
 <header class="topbar">
   <div class="bar">
     <div class="brand">
-      <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#184f95"/><path d="M4 12c4-5 8 3 12-1s8 3 12-1" fill="none" stroke="#9ec5f4" stroke-width="2.2" stroke-linecap="round"/><path d="M4 21h9l3-3 3 3h9" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#C8F169"/><path d="M4 12c4-5 8 3 12-1s8 3 12-1" fill="none" stroke="#2B2E33" stroke-width="2.2" stroke-linecap="round"/><path d="M4 21h9l3-3 3 3h9" fill="none" stroke="#0B0C0E" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
       <span>Corridor Watch</span>
     </div>
     <h1 id="title"></h1>
@@ -171,10 +261,12 @@ details.adv .pop label.row { display: flex; gap: 6px; color: var(--text); }
     </label>
   </div>
   <div id="timeline" hidden>
-    <span class="tl-title">Pomiary radarowe</span>
-    <button id="prev" class="tl-nav" aria-label="Poprzedni pomiar" title="Poprzedni pomiar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 6l-6 6 6 6"/></svg></button>
-    <span class="tl-date" id="tlDate"></span>
-    <button id="next" class="tl-nav" aria-label="Następny pomiar" title="Następny pomiar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
+    <span class="tl-title">Data pomiaru</span>
+    <div class="tl-step">
+      <button id="prev" class="tl-nav" aria-label="Poprzedni pomiar" title="Poprzedni pomiar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 6l-6 6 6 6"/></svg></button>
+      <span class="tl-date" id="tlDate"></span>
+      <button id="next" class="tl-nav" aria-label="Następny pomiar" title="Następny pomiar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
+    </div>
     <button id="latest" class="tl-round" aria-label="Najnowszy pomiar" title="Najnowszy pomiar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 6l6 6-6 6M17 6v12"/></svg></button>
     <button id="play" class="tl-round" aria-label="Odtwórz" title="Odtwórz"></button>
     <div id="tl" role="slider" tabindex="0" aria-label="Oś czasu pomiarów: kliknij lub przeciągnij, żeby zmienić datę"></div>
@@ -184,29 +276,48 @@ details.adv .pop label.row { display: flex; gap: 6px; color: var(--text); }
 <div id="status">Wczytywanie danych…</div>
 
 <main id="app" hidden>
-      <div id="map" aria-label="Mapa zmian terenu"></div>
-      <div class="card under">
-        <div class="scale" id="legend"></div>
-        <div class="keys" id="keys"></div>
-        <span class="small" id="tlNote"></span>
-        <div id="readout">Najedź na mapę.</div>
-        <details class="adv" id="adv">
-          <summary>Więcej opcji</summary>
-          <div class="pop card">
-            <label>Co pokazuje mapa
-              <select id="mode"><option value="cum">Zmiana terenu [mm]</option><option value="vwin">Tempo ruchu [mm/rok]</option><option value="coh">Pewność pomiaru</option></select>
-            </label>
-            <label>Licz zmianę od daty<select id="ref"></select></label>
-            <label>Zakres skali kolorów
-              <select id="range"><option value="25">±25</option><option value="50" selected>±50</option><option value="100">±100</option><option value="200">±200</option><option value="400">±400</option><option value="800">±800</option></select>
-            </label>
-            <label>Krycie warstwy<input id="opacity" type="range" min="0.2" max="1" step="0.05" value="0.9"></label>
-            <label>Ukryj piksele o koherencji poniżej <span id="cohVal">0,00</span><input id="coh" type="range" min="0" max="0.8" step="0.05" value="0"></label>
-            <label class="row"><input type="checkbox" id="showZones" checked> Anomalie</label>
-            <label class="row"><input type="checkbox" id="showContours"> Izolinie co 50 mm</label>
-          </div>
-        </details>
+  <div class="mapwrap">
+    <div id="map" aria-label="Mapa zmian terenu"></div>
+    <details class="legend-box" id="legendBox" open>
+      <summary>Legenda</summary>
+      <div class="legend-body">
+        <div>
+          <p class="lg-h">Skala kolorów</p>
+          <div class="scale" id="legend"></div>
+          <span class="small" id="tlNote"></span>
+        </div>
+        <div>
+          <p class="lg-h">Typy anomalii</p>
+          <div class="keys" id="keys"></div>
+        </div>
+        <p class="lg-note">Miejsca bez koloru to brak pomiaru, a nie brak ruchu.</p>
       </div>
+    </details>
+  </div>
+  <aside class="under" aria-label="Odczyt i opcje mapy">
+    <section class="sec">
+      <h2>Wartość pod kursorem</h2>
+      <div id="readout">Najedź na mapę.</div>
+      <p class="hint">Kliknij mapę lub znacznik, żeby zobaczyć szczegóły miejsca.</p>
+    </section>
+    <details class="adv" id="adv">
+      <summary>Warstwy i opcje mapy</summary>
+      <div class="pop">
+        <label>Co pokazuje mapa
+          <select id="mode"><option value="cum">Zmiana terenu [mm]</option><option value="vwin">Tempo ruchu [mm/rok]</option><option value="coh">Pewność pomiaru</option></select>
+        </label>
+        <label>Licz zmianę od daty<select id="ref"></select></label>
+        <label>Zakres skali kolorów
+          <select id="range"><option value="25">±25</option><option value="50" selected>±50</option><option value="100">±100</option><option value="200">±200</option><option value="400">±400</option><option value="800">±800</option></select>
+        </label>
+        <label>Krycie warstwy<input id="opacity" type="range" min="0.2" max="1" step="0.05" value="0.9"></label>
+        <label>Ukryj piksele o koherencji poniżej <span id="cohVal">0,00</span><input id="coh" type="range" min="0" max="0.8" step="0.05" value="0"></label>
+        <label class="row"><input type="checkbox" id="showZones" checked> Anomalie</label>
+        <label class="row"><input type="checkbox" id="showContours"> Izolinie co 50 mm</label>
+      </div>
+    </details>
+    <p class="note" role="note"><b>Ograniczenia pomiaru</b>Satelita patrzy na Ziemię z ukosa, więc prawdziwy ruch może być większy. Prototyp badawczy, nie do decyzji operacyjnych.</p>
+  </aside>
 </main>
 
 <div id="tip"></div>
