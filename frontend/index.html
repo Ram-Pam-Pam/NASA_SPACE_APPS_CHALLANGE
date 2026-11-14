@@ -185,6 +185,7 @@ input[type="range"], input[type="checkbox"] { accent-color: var(--accent); }
 .keys { display: flex; flex-wrap: wrap; gap: 6px 16px; }
 .keys > span { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; color: var(--text); }
 .keys > span[title] { cursor: help; }
+.sym-keys svg { flex: none; display: block; }
 .lg-note { margin: 0; padding-top: 10px; border-top: 1px solid var(--grid); font-size: 12.5px; line-height: 1.45; color: var(--text-2); }
 
 /* -------------------------------------------------------------- side panel
@@ -295,6 +296,10 @@ details.adv .pop label.row input { width: 16px; height: 16px; margin: 0; }
           <p class="lg-h">Typy anomalii</p>
           <div class="keys" id="keys"></div>
         </div>
+        <div id="symWrap" hidden>
+          <p class="lg-h">Obiekty (model uproszczony)</p>
+          <div class="keys sym-keys" id="symKeys"></div>
+        </div>
         <div id="riskWrap" hidden>
           <p class="lg-h">Zagrożenie obiektów</p>
           <div class="keys" id="riskKeys"></div>
@@ -322,6 +327,10 @@ details.adv .pop label.row input { width: 16px; height: 16px; margin: 0; }
         <label class="row"><input type="checkbox" id="showRoads"> Zagrożone drogi</label>
         <label class="row"><input type="checkbox" id="showBuildings"> Zagrożone budynki</label>
         <label class="row"><input type="checkbox" id="showRelief"> Rzeźba terenu</label>
+        <p class="lg-h" style="margin:6px 0 0">Model uproszczony</p>
+        <label class="row"><input type="checkbox" id="showBld3d" checked> Budynki (bryły)</label>
+        <label class="row"><input type="checkbox" id="showRail3d" checked> Tory kolejowe</label>
+        <label class="row"><input type="checkbox" id="showPower3d" checked> Linie energetyczne</label>
       </div>
     </details>
     <p class="note" role="note"><b>Ograniczenia pomiaru</b>Satelita patrzy na Ziemię z ukosa, więc prawdziwy ruch może być większy. Prototyp badawczy, nie do decyzji operacyjnych.</p>
@@ -358,14 +367,27 @@ details.adv .pop label.row input { width: 16px; height: 16px; margin: 0; }
   catch (err) { return fail(`Nie udało się połączyć z serwerem (${err.message}). Czy backend jest uruchomiony?`); }
   let REG = [];
   try { REG = await getJSON(`${API}/locations`); } catch (err) { /* registry is optional */ }
+  // 3D models (kind "scene3d") live in view3d.html and replace this page: a location that has a model
+  // opens there, and with no location in the address the site opens the first model. This page only
+  // shows locations without a model. The old 2D analysis of a replaced location stays reachable with
+  // "?2d" in the address (index.html?2d#<id>).
+  const SCENES = SETS.filter((d) => d.kind === 'scene3d');
+  const wanted = decodeURIComponent(location.hash.slice(1));
+  const keep2d = new URLSearchParams(location.search).has('2d');
+  const scene = keep2d ? null : wanted ? SCENES.find((d) => d.id === wanted) : SCENES[0];
+  if (scene) { location.replace(`view3d.html#${encodeURIComponent(scene.id)}`); return; }
+  SETS = SETS.filter((d) => d.kind !== 'scene3d' && (keep2d || !SCENES.some((sc) => sc.id === d.id)));
   const LOCS = SETS.map((d) => ({ ...(REG.find((r) => r.id === d.id) || {}), id: d.id, name: (REG.find((r) => r.id === d.id) || {}).name || d.name, base: d.base_url, ready: true }))
     .concat(REG.filter((r) => !SETS.some((d) => d.id === r.id)).map((r) => ({ ...r, ready: false })));
   const ready = LOCS.filter((l) => l.ready);
-  $('loc').innerHTML = LOCS.map((l) => `<option value="${esc(l.id)}" ${l.ready ? '' : 'disabled'}>${esc(l.name)}${l.region ? ', ' + esc(l.region) : ''}${l.ready ? '' : ' (wkrótce)'}</option>`).join('');
+  $('loc').innerHTML = SCENES.map((d) => `<option value="3d:${esc(d.id)}">${esc(d.name)} · model 3D</option>`).join('') + LOCS.map((l) => `<option value="${esc(l.id)}" ${l.ready ? '' : 'disabled'}>${esc(l.name)}${l.region ? ', ' + esc(l.region) : ''}${l.ready ? '' : ' (wkrótce)'}</option>`).join('');
   if (!ready.length) return fail('Brak przygotowanych danych. Umieść folder z danymi dla frontendu (…/data/meta.json) w katalogu „Dane”.');
   const LOC = ready.find((l) => l.id === decodeURIComponent(location.hash.slice(1))) || ready[0];
   $('loc').value = LOC.id;
-  $('loc').addEventListener('change', (e) => { location.hash = e.target.value; location.reload(); });
+  $('loc').addEventListener('change', (e) => {
+    if (e.target.value.startsWith('3d:')) { location.href = `view3d.html#${encodeURIComponent(e.target.value.slice(3))}`; return; }
+    location.hash = e.target.value; location.reload();
+  });
   const BASE = LOC.base;
   let META, TSRAW, ACTIVE, ALERTS, MONITORING;
   try {
@@ -435,12 +457,12 @@ details.adv .pop label.row input { width: 16px; height: 16px; margin: 0; }
   $('periodWrap').hidden = true;  // this data set has a single observation period
 
   // ------------------------------------------------------------------ map
-  const map = L.map('map', { zoomSnap: 0.25 });
+  const map = L.map('map', { zoomSnap: 0.25, maxZoom: 19 });
   map.createPane('labels').style.zIndex = 410; map.getPane('labels').style.pointerEvents = 'none';
-  const esri = (name, opts) => L.tileLayer(`https://server.arcgisonline.com/ArcGIS/rest/services/${name}/MapServer/tile/{z}/{y}/{x}`, Object.assign({ maxZoom: 16, attribution: 'Esri, HERE, Garmin, © OpenStreetMap' }, opts));
+  const esri = (name, opts) => L.tileLayer(`https://server.arcgisonline.com/ArcGIS/rest/services/${name}/MapServer/tile/{z}/{y}/{x}`, Object.assign({ maxNativeZoom: 16, maxZoom: 19, attribution: 'Esri, HERE, Garmin, © OpenStreetMap' }, opts));
   const dark = L.layerGroup([esri('Canvas/World_Dark_Gray_Base'), esri('Canvas/World_Dark_Gray_Reference', { pane: 'labels' })]).addTo(map);
   const light = L.layerGroup([esri('Canvas/World_Light_Gray_Base'), esri('Canvas/World_Light_Gray_Reference', { pane: 'labels' })]);
-  const imagery = esri('World_Imagery', { maxZoom: 18, attribution: 'Esri World Imagery' });
+  const imagery = esri('World_Imagery', { maxNativeZoom: 18, attribution: 'Esri World Imagery' });
   L.control.layers({ 'Mapa ciemna': dark, 'Mapa jasna': light, 'Zdjęcia satelitarne': imagery }, null, { position: 'topright' }).addTo(map);
   L.control.scale({ imperial: false, position: 'bottomright' }).addTo(map);
   map.attributionControl.addAttribution((META.sources || ['NISAR (NASA/ISRO, ASF DAAC)']).map(esc).join(' · '));
@@ -455,6 +477,8 @@ details.adv .pop label.row input { width: 16px; height: 16px; margin: 0; }
   map.on('resize', updateMinZoom);
   map.fitBounds(view);
   map.createPane('relief').style.zIndex = 250;
+  map.createPane('bld').style.zIndex = 421; map.getPane('bld').style.pointerEvents = 'none';
+  map.createPane('sym').style.zIndex = 423;
   map.createPane('infra').style.zIndex = 425;
   map.createPane('zones').style.zIndex = 430;
   map.createPane('marks').style.zIndex = 620;
@@ -602,6 +626,158 @@ details.adv .pop label.row input { width: 16px; height: 16px; margin: 0; }
     renderRiskLegend();
   }
   const relief = L.imageOverlay(BASE + 'img/relief.png', META.relief_bounds || META.overlay_bounds, { pane: 'relief', opacity: 0.6, attribution: 'Copernicus DEM' });
+
+  // ------------------------------------------- simplified 3D model of the area
+  // Context objects drawn as simple, recognisable shapes (built by backend/scripts/build_symbols.py):
+  // buildings = extruded oriented rectangles, rail = sleepers + two rails, power = wire + pylons.
+  // Buildings that the analysis marked as at risk get the risk colour on the roof.
+  const BLD_FLAT_ZOOM = 14, BLD_3D_ZOOM = 15.5, PYLON_ZOOM = 14;
+  const shade = (hex, f) => '#' + [1, 3, 5].map((i) => Math.round(parseInt(hex.slice(i, i + 2), 16) * f).toString(16).padStart(2, '0')).join('');
+  const ROOF = ['#e4ddd2', '#cfd7e2', '#dacfe6', '#bcc4cb', '#a9adb2', '#eadcbc'];
+  const RISK_ROOF = [null, null, RISK['średnie'] || '#e3871f', RISK['wysokie'] || '#c62a22'];
+
+  const BuildingLayer = L.Layer.extend({
+    onAdd(m) {
+      this._c = L.DomUtil.create('canvas', '', m.getPane('bld'));
+      this._c.style.pointerEvents = 'none';
+      m.on('moveend zoomend resize', this._draw, this);
+      m.on('zoomstart', this._hide, this);
+      if (!this._data) this._load().then(() => this._map && this._draw()); else this._draw();
+    },
+    onRemove(m) {
+      m.off('moveend zoomend resize', this._draw, this);
+      m.off('zoomstart', this._hide, this);
+      this._c.remove();
+    },
+    async _load() {
+      try {
+        const head = await getJSON(BASE + 'buildings_3d.json');
+        const res = await fetch(BASE + 'buildings_3d.bin');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const buf = await res.arrayBuffer(), n = head.count, [lon0, lat0, lon1, lat1] = head.bbox;
+        const u16 = new Uint16Array(buf, 0, 4 * n), u8 = new Uint8Array(buf, 8 * n, 2 * n);
+        const lon = new Float64Array(n), lat = new Float64Array(n);
+        for (let i = 0; i < n; i++) { lon[i] = lon0 + (u16[i] / 65535) * (lon1 - lon0); lat[i] = lat0 + (u16[n + i] / 65535) * (lat1 - lat0); }
+        this._data = { n, lon, lat, hl: u16.subarray(2 * n, 3 * n), hw: u16.subarray(3 * n, 4 * n), ang: u8.subarray(0, n), meta: u8.subarray(n, 2 * n),
+          height: head.classes.map((c) => c.h) };
+      } catch (err) { this._data = { n: 0 }; /* no building model in this data set */ }
+    },
+    _hide() { this._c.style.display = 'none'; },
+    _draw() {
+      const m = this._map, d = this._data, c = this._c;
+      if (!m || !d) return;
+      const size = m.getSize(), dpr = window.devicePixelRatio || 1, z = m.getZoom();
+      c.width = size.x * dpr; c.height = size.y * dpr; c.style.width = size.x + 'px'; c.style.height = size.y + 'px';
+      L.DomUtil.setPosition(c, m.containerPointToLayerPoint([0, 0]));
+      c.style.display = '';
+      const ctx = c.getContext('2d');
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      if (!d.n || z < BLD_FLAT_ZOOM) return;
+      const b = m.getBounds().pad(0.05), W = b.getWest(), E = b.getEast(), S = b.getSouth(), N = b.getNorth();
+      const pxPerM = (256 * 2 ** z) / (40075016.686 * Math.cos((m.getCenter().lat * Math.PI) / 180));
+      const lift = z >= BLD_3D_ZOOM ? pxPerM * Math.min(1, (z - BLD_3D_ZOOM + 0.5) / 1.5) : 0;  // extrusion grows in smoothly
+      const vis = [];
+      for (let i = 0; i < d.n; i++) if (d.lon[i] >= W && d.lon[i] <= E && d.lat[i] >= S && d.lat[i] <= N) vis.push(i);
+      const pts = vis.map((i) => m.latLngToContainerPoint([d.lat[i], d.lon[i]]));
+      const order = vis.map((_, k) => k).sort((a, b2) => pts[a].y - pts[b2].y);  // north first, so nearer blocks overlap
+      ctx.globalAlpha = 0.92;
+      ctx.lineJoin = 'round';
+      const ox = 0.35, oy = -0.94;  // oblique view: roofs shift up and slightly right
+      for (const k of order) {
+        const i = vis[k], p = pts[k], meta = d.meta[i], cls = meta & 15, risk = meta >> 4;
+        const a = (d.ang[i] / 255) * Math.PI, l = (d.hl[i] / 10) * pxPerM, w = (d.hw[i] / 10) * pxPerM;
+        const ux = Math.cos(a) * l, uy = -Math.sin(a) * l, vx = -Math.sin(a) * w, vy = -Math.cos(a) * w;
+        const cx = [p.x + ux + vx, p.x - ux + vx, p.x - ux - vx, p.x + ux - vx], cy = [p.y + uy + vy, p.y - uy + vy, p.y - uy - vy, p.y + uy - vy];
+        const roof = RISK_ROOF[risk] || ROOF[cls] || ROOF[0];
+        const h = (d.height[cls] || 6) * lift, hx = ox * h, hy = oy * h;
+        if (h > 0.6) {
+          for (let e = 0; e < 4; e++) {  // only walls facing the viewer (outward normal against the lift)
+            const f = (e + 1) % 4, nx = (cx[e] + cx[f]) / 2 - p.x, ny = (cy[e] + cy[f]) / 2 - p.y;
+            if (nx * hx + ny * hy >= 0) continue;
+            ctx.fillStyle = shade(roof, nx > 0 ? 0.72 : 0.56);
+            ctx.beginPath(); ctx.moveTo(cx[e], cy[e]); ctx.lineTo(cx[f], cy[f]); ctx.lineTo(cx[f] + hx, cy[f] + hy); ctx.lineTo(cx[e] + hx, cy[e] + hy); ctx.closePath(); ctx.fill();
+          }
+        }
+        ctx.fillStyle = roof;
+        ctx.beginPath(); ctx.moveTo(cx[0] + hx, cy[0] + hy);
+        for (let e = 1; e < 4; e++) ctx.lineTo(cx[e] + hx, cy[e] + hy);
+        ctx.closePath(); ctx.fill();
+        if (h > 0.6) { ctx.strokeStyle = shade(roof, 0.45); ctx.lineWidth = 0.6; ctx.stroke(); }
+      }
+    },
+  });
+
+  // Rail: from close up two steel rails on sleepers; from far away the classic map symbol.
+  const RAIL_KIND = { main: 'główne', yard: 'bocznica / stacja', light: 'tramwaj / lekka kolej', disused: 'nieczynne' };
+  function railStyle(z, k, part, p) {
+    const minor = k === 'yard' ? 0.75 : k === 'light' ? 0.85 : 1, dim = k === 'disused' || p.tunnel ? 0.45 : 1;
+    if (z < 14.5) {
+      const w = (z < 13 ? 3 : 4) * minor;
+      return { casing: { opacity: p.bridge ? 0.9 * dim : 0, weight: w + 4, color: '#f3f1ec' },
+        sleepers: { opacity: 0 },
+        rails: { opacity: dim, weight: w, color: '#e9e6df', dashArray: null, lineCap: 'butt' },
+        gap: { opacity: dim, weight: w - 2, color: '#2d2a27', dashArray: '6 6', lineCap: 'butt' } }[part];
+    }
+    const s = Math.min(2.4, 1 + (z - 14.5) * 0.55) * minor;
+    return { casing: { opacity: p.bridge ? 0.9 * dim : 0, weight: 13 * s, color: '#f3f1ec', lineCap: 'butt' },
+      sleepers: { opacity: dim, weight: 9 * s, color: '#8a6f52', dashArray: `${1.6 * s} ${3.6 * s}`, lineCap: 'butt' },
+      rails: { opacity: dim, weight: 5 * s, color: k === 'light' ? '#c9d9ee' : '#d8dde2', dashArray: k === 'disused' ? `${6 * s} ${4 * s}` : null, lineCap: 'butt' },
+      gap: { opacity: dim, weight: 2.6 * s, color: '#5b4a3a', dashArray: null, lineCap: 'butt' } }[part];
+  }
+  function railLayer() {
+    const group = L.layerGroup(), parts = {};
+    getJSON(BASE + 'rail_3d.geojson').then((gj) => {
+      ['casing', 'sleepers', 'rails', 'gap'].forEach((part) => {
+        parts[part] = L.geoJSON(gj, { pane: 'sym', interactive: part === 'rails', style: (f) => railStyle(map.getZoom(), f.properties.k, part, f.properties),
+          onEachFeature: part !== 'rails' ? undefined : (f, l) => {
+            const p = f.properties;
+            l.on('mousemove', (e) => showTip(`<b>Tory kolejowe · ${esc(RAIL_KIND[p.k] || p.k)}</b>${p.name ? '<br>' + esc(p.name) : ''}${p.bridge ? '<br>most' : ''}${p.tunnel ? '<br>tunel' : ''}`, e.originalEvent));
+            l.on('mouseout', hideTip);
+          } }).addTo(group);
+      });
+    }).catch(() => { /* no rail model in this data set */ });
+    group.restyle = () => Object.entries(parts).forEach(([part, layer]) => layer.setStyle((f) => railStyle(map.getZoom(), f.properties.k, part, f.properties)));
+    return group;
+  }
+
+  // Power: thin wire + small lattice pylons at the towers (only when zoomed in, they would clutter otherwise).
+  const PYLON_SVG = '<svg viewBox="0 0 14 20" width="14" height="20"><path d="M7 1L3 19M7 1l4 18M2 6h10M3.6 12h6.8M4.5 8l4.8 7M9.5 8l-4.8 7" stroke="#1b1d20" stroke-width="3" stroke-linecap="round" fill="none"/><path d="M7 1L3 19M7 1l4 18M2 6h10M3.6 12h6.8M4.5 8l4.8 7M9.5 8l-4.8 7" stroke="#ffd04a" stroke-width="1.3" stroke-linecap="round" fill="none"/></svg>';
+  const pylonIcon = L.divIcon({ className: '', iconSize: [14, 20], iconAnchor: [7, 6], html: PYLON_SVG });
+  function powerLayer() {
+    const group = L.layerGroup(), pylons = L.layerGroup();
+    getJSON(BASE + 'power_3d.geojson').then((gj) => {
+      const lines = gj.features.filter((f) => f.properties.k !== 'pylon');
+      L.geoJSON(lines, { pane: 'sym', interactive: false, style: { color: '#1b1d20', weight: 4, opacity: 0.55 } }).addTo(group);
+      L.geoJSON(lines, { pane: 'sym',
+        style: (f) => ({ color: '#ffd04a', weight: f.properties.k === 'station' ? 1 : 1.8, opacity: 0.95, dashArray: f.properties.k === 'cable' ? '4 5' : null }),
+        onEachFeature: (f, l) => {
+          const p = f.properties, what = p.k === 'cable' ? 'Kabel podziemny' : p.k === 'station' ? 'Stacja elektroenergetyczna' : 'Linia napowietrzna';
+          l.on('mousemove', (e) => showTip(`<b>${what}${p.kv ? ' · ' + p.kv + ' kV' : ''}</b>${p.name || p.operator ? '<br>' + esc(p.name || p.operator) : ''}`, e.originalEvent));
+          l.on('mouseout', hideTip);
+        } }).addTo(group);
+      gj.features.filter((f) => f.properties.k === 'pylon').forEach((f) => {
+        L.marker([f.geometry.coordinates[1], f.geometry.coordinates[0]], { icon: pylonIcon, pane: 'sym', interactive: false, keyboard: false }).addTo(pylons);
+      });
+      group.restyle();
+    }).catch(() => { /* no power model in this data set */ });
+    group.restyle = () => { if (map.getZoom() >= PYLON_ZOOM) group.addLayer(pylons); else group.removeLayer(pylons); };
+    return group;
+  }
+
+  const SYM = {
+    showBld3d: { make: () => new BuildingLayer(), key: '<svg width="18" height="16" viewBox="0 0 18 16"><path d="M2 7h9v8H2z" fill="#a7a29a"/><path d="M11 7l4-5v8l-4 5z" fill="#7f7a73"/><path d="M2 7l4-5h9l-4 5z" fill="#e4ddd2"/></svg>Budynek (kolor dachu = zagrożenie)' },
+    showRail3d: { make: railLayer, key: '<svg width="26" height="12" viewBox="0 0 26 12"><path d="M0 6h26" stroke="#8a6f52" stroke-width="11" stroke-dasharray="2 3.5"/><path d="M0 6h26" stroke="#d8dde2" stroke-width="6"/><path d="M0 6h26" stroke="#5b4a3a" stroke-width="3"/></svg>Tory' },
+    showPower3d: { make: powerLayer, key: `<span style="display:inline-flex;align-items:center"><svg width="16" height="8" viewBox="0 0 16 8"><path d="M0 4h16" stroke="#ffd04a" stroke-width="1.8"/></svg>${PYLON_SVG}</span>Linia energetyczna i słup` },
+  };
+  const symLayers = {};
+  function toggleSym(id) {
+    if ($(id).checked) (symLayers[id] = symLayers[id] || SYM[id].make()).addTo(map);
+    else if (symLayers[id]) symLayers[id].remove();
+    const on = Object.keys(SYM).filter((k) => $(k).checked);
+    $('symWrap').hidden = !on.length;
+    $('symKeys').innerHTML = on.map((k) => `<span>${SYM[k].key}</span>`).join('');
+  }
+  map.on('zoomend', () => Object.values(symLayers).forEach((l) => l.restyle && map.hasLayer(l) && l.restyle()));
 
   // ------------------------------------------------------------- timeline
   const MONTHS = ['sty', 'lut', 'mar', 'kwi', 'maj', 'cze', 'lip', 'sie', 'wrz', 'paź', 'lis', 'gru'];
@@ -778,6 +954,7 @@ details.adv .pop label.row input { width: 16px; height: 16px; margin: 0; }
   $('showZones').addEventListener('change', (e) => (e.target.checked ? zoneLayer.addTo(map) : zoneLayer.remove()));
   $('showRelief').addEventListener('change', (e) => (e.target.checked ? relief.addTo(map) : relief.remove()));
   Object.keys(INFRA).forEach((id) => { $(id).addEventListener('change', () => toggleInfra(id)); toggleInfra(id); });
+  Object.keys(SYM).forEach((id) => { $(id).addEventListener('change', () => toggleSym(id)); toggleSym(id); });
   document.addEventListener('click', (e) => { if (!$('adv').contains(e.target)) $('adv').open = false; });
   map.on('click', (e) => selectPoint(e.latlng));
   map.on('mousemove', (e) => {

@@ -129,6 +129,41 @@ Projekt/
 - Uruchomienie: z `backend/` → `python scripts/import_corridor_watch.py "C:\Users\DELL\OneDrive\Desktop\NASA_SPACE_APPS\corridor_watch\corridor_watch\locations"`,
   potem `uvicorn app.main:app --reload`, strona: http://127.0.0.1:8000/
 
+## Widok 3D i obiekty uproszczone (zmiana 14.11.2026, noc)
+- **Model 3D obszaru: `frontend/view3d.html`** (three.js 0.160 z jsdelivr, OrbitControls). Czyta folder
+  `Dane/<folder>/data/` z `meta.json` o `"kind": "scene3d"`: `ground.jpg` (ortofoto RGB jako podłoże),
+  `buildings/roads/rail/water/pipelines/areas/places/forest.geojson` (WGS84) i `trees.bin` (drzewa).
+  `GET /api/v1/datasets` zwraca teraz pole `kind` (`insar` | `scene3d`).
+- **Widok 3D jest domyślny i zastępuje stronę 2D:** lokalizacja, która ma model 3D, otwiera się w
+  `view3d.html` (także Portuguese Bend – na prośbę użytkownika model 3D „kompletnie podmienił” starą
+  zakładkę). `index.html` pokazuje tylko lokalizacje bez modelu; stara analiza 2D zastąpionej lokalizacji
+  jest dostępna pod `index.html?2d#<id>`. Lista „Lokalizacja” nie pokazuje już zastąpionych stron 2D.
+- Model buduje `backend/scripts/build_scene3d.py <aoi.geojson> <Dane/model3d_<id>/data>` (GDAL + numpy +
+  polecenie `overturemaps`): OSM przez Overpass, budynki z Overture Maps, ortofoto USGS NAIP (tylko USA),
+  drzewa z ESA WorldCover + koloru zdjęcia, wysokości terenu z lidaru USGS 3DEP (`terrain.bin`, tylko USA).
+  Modele: Bayou Corne (5 × 5 km) i Portuguese Bend (30 × 30 km, `Dane/model3d_portuguese_bend_california`).
+- **Skala miasta (AOI > 10 km):** skrypt zapisuje budynki jako prostokąty w `buildings.bin` (zamiast GeoJSON),
+  pomija drogi dojazdowe, bierze zdjęcie 8192 px i siatkę terenu 1025²; widok rysuje budynki instancjami,
+  a drogi/tory/rurociągi scala w pojedyncze siatki (klasa `Batch` w `view3d.html`). Morze = płaszczyzna na
+  poziomie 0 (`meta.terrain.sea_level_m`).
+- **Dane z pakietu InSAR w modelu 3D** (`--insar-data <Dane/.../data>`): tylko przebieg rurociągów OGIM
+  (nazwa, operator) i obrys aktywnej strefy (`hazards.geojson`). Na prośbę użytkownika (14.11) model 3D
+  **nie pokazuje klas zagrożenia rurociągów ani warstwy ruchu terenu z InSAR** – rurociągi Portuguese Bend
+  mają jeden kolor i brak legendy. Dane klas zostają w pakiecie InSAR, gdyby miały wrócić.
+- **Uwaga na serwisy USGS (NAIP, 3DEP `exportImage`):** zwracają zamówiony wycinek tylko przy kwadratowych
+  pikselach w stopniach; inaczej po cichu poszerzają obszar. Skrypt zamawia kwadratowe piksele i dopasowuje
+  wynik do AOI (`fetch_ground`, `fetch_terrain`). Wcześniejszy błąd dawał zdublowane wybrzeże na łączeniach
+  kafli i teren rozciągnięty o ok. 20% w Portuguese Bend (naprawione 14.11 w nocy).
+- **Morze w 3D:** płaszczyzna na poziomie 0, przezroczysta przy brzegu i kryjąca na otwartej wodzie
+  (zdjęcie lotnicze jest tam zlepkiem pasów nalotu).
+- **Rzeźba terenu w 3D:** Bayou Corne ma realnie 3,2 m różnicy wysokości, więc widok mnoży wysokości
+  (`meta.terrain.default_exaggeration`, przełącznik ×1/×5/×15/×30; obiekty są przebudowywane na nowym terenie).
+  Wody z OSM są w skrypcie obniżane do poziomu lustra wody (lidar jest starszy niż zapadlisko).
+- **Obiekty uproszczone na mapie InSAR** (`index.html`, grupa „Model uproszczony”): bryły budynków
+  (`buildings_3d.bin` + `.json`, dach w kolorze zagrożenia), tory z podkładami (`rail_3d.geojson`), linie
+  energetyczne ze słupami (`power_3d.geojson`). Pliki robi `backend/scripts/build_symbols.py 3d <data>`
+  z warstw w folderze `3d/` (duże pliki źródłowe, nie commitować).
+
 ## Pomysły na dalej
 - **Zakładki case study** zamiast listy rozwijanej + uogólnienie UI na różne typy obiektów (patrz „Koncepcja”).
 - Strona/panel „Dodaj lokalizację” (formularz: metadane + wgranie data.js) – żeby zespół nie używał `/docs`.

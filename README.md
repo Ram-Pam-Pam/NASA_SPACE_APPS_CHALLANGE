@@ -28,6 +28,19 @@ opis w `Dane/dla_frontendu_portuguese_bend/data/README.md`). Backend sam je wysz
 (`GET /api/v1/datasets`) i serwuje pod `/datasets/...`. Nowa lokalizacja to nowy folder w `Dane/`,
 bez importu i bez restartu serwera.
 
+## Widok 3D
+
+Strona otwiera się domyślnie w modelu 3D (`frontend/view3d.html`): zdjęcie lotnicze jako podłoże, rzeźba
+terenu, bryły budynków, drogi, tory, woda, rurociągi i drzewa. Model można obracać, przesuwać i przybliżać.
+Lokalizacja, która ma model 3D, pokazuje się tylko w 3D; jej starsza strona 2D jest pod `index.html?2d#<id>`.
+
+Nowy model dla innego obszaru (potrzebne: GDAL, numpy, `pip install overturemaps`):
+
+```bash
+python3 backend/scripts/build_scene3d.py <aoi.geojson> Dane/model3d_<id>/data \
+    --name "Nazwa" --insar-data Dane/<folder InSAR>/data   # --insar-data jest opcjonalne
+```
+
 ## Rejestr lokalizacji (opcjonalny: metadane i lokalizacje „wkrótce”)
 
 Analizę liczy `build_location.py` (repo Corridor Watch, wymaga GDAL). Wynik, czyli `data.js`,

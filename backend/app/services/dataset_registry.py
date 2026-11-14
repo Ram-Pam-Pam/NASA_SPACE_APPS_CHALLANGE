@@ -11,8 +11,9 @@ DATASETS_URL = "/datasets"
 def list_datasets(root_dir: Path) -> list[Dataset]:
     """Find frontend data folders: <root_dir>/<folder>/data/meta.json, one per location.
 
-    The folders are produced by the analysis team (scripts/export_web.py) and are only
-    read here - nothing is computed or copied.
+    The folders are produced by the analysis team (scripts/export_web.py) or, for 3D models,
+    by backend/scripts/build_scene3d.py (meta.json "kind": "scene3d"). They are only read
+    here - nothing is computed or copied.
     """
     datasets: list[Dataset] = []
     if not root_dir.is_dir():
@@ -28,6 +29,7 @@ def list_datasets(root_dir: Path) -> list[Dataset]:
                 id=str(meta.get("aoi") or folder),
                 name=str(meta.get("name") or folder),
                 base_url=f"{DATASETS_URL}/{quote(folder)}/data/",
+                kind=str(meta.get("kind") or "insar"),
             )
         )
     return datasets
