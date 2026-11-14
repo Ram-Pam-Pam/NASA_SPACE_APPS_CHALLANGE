@@ -22,3 +22,6 @@ data/raw/
 
 # Local app data (uploaded layers, registry)
 backend/data/
+
+# macOS junk from zip archives
+__MACOSX/
