@@ -1,0 +1,21 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Sekrety (hasła do bazy, klucze API) - NIGDY do repo
+.env
+
+# Duże pliki danych SAR - trzymamy poza gitem
+data/raw/
+*.tif
+*.tiff
+*.nc
+*.h5
+*.zip
+
+# Edytory / system
+.vscode/
+.idea/
+.DS_Store
