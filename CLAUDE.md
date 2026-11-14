@@ -47,6 +47,8 @@ Projekt/
     app/schemas/          modele Pydantic: location.py, layer.py
     app/services/         location_registry.py, location_package.py, layer_registry.py, geojson_reader.py
     scripts/import_corridor_watch.py   import location.json + data.js z folderu corridor_watch/locations
+    scripts/import_team_results.py     import wyników QGIS zespołu (GeoTIFF/GPKG/CSV) → nasz pakiet + lokalizacja
+    requirements-tools.txt             numpy, rasterio, pyogrio, shapely, pyproj – tylko dla skryptu importu
     data/                 dane runtime (poza Gitem): locations/locations.json, locations/<id>/data.json, layers/
   frontend/index.html     strona Corridor Watch (Leaflet, vanilla JS), dane z API
 ```
@@ -75,6 +77,23 @@ Projekt/
   `zones` (anomalie: geometria, peak/median, trend, szeregi czasowe, pobliskie rurociągi, level),
   `pipes` (37 gazociągów OGIM: linia, profile wzdłuż trasy, ryzyko per seria), `alerts`, `contours`.
 - Źródła: NISAR L2 GUNW (NASA/ISRO, ASF DAAC), rurociągi z bazy OGIM. Ruch tylko w linii widzenia satelity (LOS).
+- **Opcjonalne rozszerzenia pakietu** (strona używa ich tylko, gdy są): `layers` (dodatkowe rastry:
+  `key, label, group, enc i16|u8, scale, down, ramp div|puor|cat|cyclic, time window|pair, classes, unit, range,
+  ends, note, popup`), `vectors` (GeoJSON-y: `key, label, kind, style risk|water|alert|profile|gnss, on, time`),
+  `grid.fringe_cycle_mm` (włącza tryb „Prążki”), `grid.contour_step_mm`, `config.sources`, `zones[].pin=false`
+  (strefa tylko jako obrys, bez pinezki).
+
+## Tabasco (`tabasco_mexico`) – drugie case study
+- Dane zespołu: `Dane/TABASCO/tabasco_front` (wyniki QGIS; folder `Dane/` jest w `.gitignore`).
+- Import (z `backend/`, ok. 1,5 min, pakiet ~21 MB):
+  `python scripts/import_team_results.py "...\Dane\TABASCO\tabasco_front" --id tabasco_mexico --name Tabasco --region "Meksyk (Cárdenas – Villahermosa)" --hazard "Osiadanie terenu nad złożami" --order 2`
+- Oś czasu = orbita wznosząca (LOS, 10 dat 18.06–16.10.2026, `los_cum_okres_pary.tif`, brakujące pary
+  uzupełnione przez zespół średnim tempem). Strefy = 102 strefy osiadania z obu orbit; `first_index` liczony
+  u nas (5. percentyl LOS strefy < −3σ szumu); 20 najpoważniejszych ma pinezki.
+- Dodatkowo: ruch pionowy / wschód–zachód (2 orbity), LOS obu orbit, liczba orbit, WorldCover, tempo i klasy
+  z monitoringu (okna 36 dni), surowe interferogramy par 12-dniowych, rurociągi z klasą ryzyka, obiekty sieci,
+  anomalie wody, alerty (zsynchronizowane z osią), 3 przekroje (wykres w czasie), GNSS VIL2.
+- Teksty strony zależą od `hazard` (osuwisko/zbocze vs osiadanie).
 
 ## Frontend
 - `frontend/index.html` = oryginalna strona od znajomej z zespołu; zmienione tylko wczytywanie danych:

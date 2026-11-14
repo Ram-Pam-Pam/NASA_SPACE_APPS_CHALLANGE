@@ -23,5 +23,8 @@ data/raw/
 # Local app data (uploaded layers, registry)
 backend/data/
 
+# Analysis data from the team (all case studies: GeoTIFF, GeoPackage, figures) - too big for Git
+Dane/
+
 # macOS junk from zip archives
 __MACOSX/
