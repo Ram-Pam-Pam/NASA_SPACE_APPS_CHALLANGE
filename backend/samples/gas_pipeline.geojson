@@ -1,0 +1,13 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "name": "Sample gas pipeline DN500", "asset_type": "gas_pipeline", "diameter_mm": 500 },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [[21.160, 49.655], [21.130, 49.645], [21.105, 49.637], [21.090, 49.632], [21.060, 49.625], [21.030, 49.618]]
+      }
+    }
+  ]
+}

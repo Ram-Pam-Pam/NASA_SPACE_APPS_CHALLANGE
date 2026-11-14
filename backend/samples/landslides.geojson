@@ -1,0 +1,21 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "name": "Sample landslide A", "status": "active" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[21.088, 49.629], [21.100, 49.630], [21.103, 49.636], [21.095, 49.639], [21.086, 49.635], [21.088, 49.629]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "Sample landslide B", "status": "dormant" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[21.125, 49.642], [21.138, 49.643], [21.137, 49.650], [21.127, 49.651], [21.125, 49.642]]]
+      }
+    }
+  ]
+}

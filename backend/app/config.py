@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     debug: bool = False
     api_prefix: str = "/api/v1"
     data_dir: Path = Path("data")  # uploaded layers and the layer registry live here
+    max_upload_mb: int = 50  # reject uploaded files bigger than this
 
 
 @lru_cache
