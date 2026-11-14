@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Corridor Watch</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23184f95'/%3E%3Cpath d='M4 21h9l3-3 3 3h9' fill='none' stroke='%23fff' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <style>
 :root {
@@ -31,7 +32,11 @@
 }
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
-body { margin: 0; background: var(--page); color: var(--text); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+/* Full-screen app layout: fixed top panel + map filling the rest of the window (no page scroll) */
+html, body { height: 100%; }
+body { margin: 0; background: var(--page); color: var(--text); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+  display: flex; flex-direction: column; overflow: hidden; }
+[hidden] { display: none !important; }
 button, select, input { font: inherit; }
 button { background: var(--surface); color: var(--text); border: 1px solid var(--axis); border-radius: 8px; padding: 7px 12px; cursor: pointer; }
 button:hover { background: var(--wash); }
@@ -39,50 +44,75 @@ button.primary { background: var(--accent); color: var(--accent-ink); border-col
 select { background: var(--surface); color: var(--text); border: 1px solid var(--axis); border-radius: 8px; padding: 7px 10px; max-width: 100%; }
 :focus-visible { outline: 2px solid var(--s1); outline-offset: 2px; }
 .small { font-size: 13px; color: var(--text-2); }
-h1 { font-size: clamp(24px, 3.2vw, 32px); line-height: 1.15; font-weight: 650; margin: 0; letter-spacing: -.01em; }
-h2 { font-size: 17px; font-weight: 650; margin: 0; }
-p { margin: 0 0 10px; }
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
 
-.topbar { position: sticky; top: 0; z-index: 1200; background: var(--surface); border-bottom: 1px solid var(--border); }
-.topbar .in { max-width: 1320px; margin: 0 auto; padding: 10px 16px; display: flex; gap: 12px 20px; align-items: center; flex-wrap: wrap; }
-.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; }
+.topbar { flex: none; position: relative; z-index: 1200; background: var(--surface); box-shadow: 0 1px 4px rgba(0,0,0,.12); }
+.bar { display: flex; gap: 8px 18px; align-items: center; flex-wrap: wrap; padding: 10px 20px; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; white-space: nowrap; }
 .brand svg { width: 30px; height: 30px; flex: none; }
-.top-actions { margin-left: auto; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-.loc { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-2); }
-.wrap { max-width: 1320px; margin: 0 auto; padding: 0 16px 40px; }
-
-.head { display: flex; gap: 12px 24px; align-items: center; flex-wrap: wrap; padding: 20px 0 14px; }
-.head .sp { flex: 1; }
+.bar h1 { font-size: 20px; font-weight: 500; line-height: 1.2; margin: 0; padding-left: 18px; border-left: 1px solid var(--grid); }
+.bar .sp { flex: 1; }
+.loc { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-2); min-width: 0; }
+.loc select { min-width: 0; }
 .seg { display: inline-flex; border: 1px solid var(--axis); border-radius: 8px; overflow: hidden; background: var(--surface); }
 .seg button { border: 0; border-radius: 0; padding: 7px 12px; border-right: 1px solid var(--axis); }
 .seg button:last-child { border-right: 0; }
 .seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
 
 
-.mapcol { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
-#map { height: 580px; border-radius: 12px; border: 1px solid var(--border); background: #2b2b2b; z-index: 0; }
+#app { flex: 1; position: relative; min-height: 0; }
+#map { position: absolute; inset: 0; background: #2b2b2b; z-index: 0; }
 .leaflet-image-layer.pix { image-rendering: pixelated; }
-.am { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: #d03b3b; color: #fff; font: 700 13px system-ui; border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.5); }
+/* Anomaly pins: one colour + icon per anomaly type (landslide, subsidence, uplift, ...) */
+.pin { display: block; width: 36px; height: 44px; transform-origin: 50% 100%; filter: drop-shadow(0 2px 3px rgba(0,0,0,.45)); cursor: pointer;
+  animation: pin-in .45s cubic-bezier(.2, 1.5, .4, 1) both; transition: transform .15s ease; }
+.pin:hover { transform: scale(1.12); }
+.pin svg { display: block; width: 100%; height: 100%; }
+@keyframes pin-in { from { transform: translateY(-14px) scale(.3); opacity: 0; } to { transform: none; opacity: 1; } }
+.badge { display: inline-block; width: 20px; height: 20px; vertical-align: -5px; flex: none; }
+.badge svg { display: block; width: 100%; height: 100%; }
+@media (prefers-reduced-motion: reduce) { .pin { animation: none; } }
 .leaflet-popup-content { font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; margin: 12px 14px; }
 
-.under { display: flex; gap: 10px 22px; align-items: center; flex-wrap: wrap; padding: 10px 12px; font-size: 13px; }
-.scale { flex: 0 1 320px; min-width: 260px; }
+/* Point popup (click on the map): plain-language summary of ground movement at one spot */
+.cw-pop .leaflet-popup-content-wrapper, .cw-pop .leaflet-popup-tip { background: var(--surface); color: var(--text); }
+.cw-pop .leaflet-popup-content { margin: 14px 16px 12px; }
+.pp-chip { display: inline-block; font-size: 12px; font-weight: 650; padding: 2px 9px; border-radius: 999px; color: #fff; }
+.pp-chip.calm { background: #6b6a65; } .pp-chip.small { background: var(--s2); } .pp-chip.big { background: var(--alert); } .pp-chip.none { background: var(--muted); }
+.pp-head { font-size: 19px; font-weight: 650; line-height: 1.25; margin: 6px 0 2px; }
+.pp-sub { color: var(--text-2); font-size: 13px; line-height: 1.4; }
+.pp-sec { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--grid); font-size: 13px; line-height: 1.4; }
+.pp-sec h4 { margin: 0; font-size: 13px; font-weight: 650; }
+.pp-row { display: flex; justify-content: space-between; gap: 12px; }
+.pp-row + .pp-row { margin-top: 3px; }
+.pp-row span:first-child { color: var(--text-2); }
+.pp-row b { font-weight: 600; text-align: right; }
+.pp-hint { color: var(--text-2); font-size: 12px; margin-top: 3px; }
+.pp-zone { background: var(--alert-wash); border-top: 0; border-radius: 8px; padding: 7px 10px; }
+.pp-spark { display: block; width: 100%; height: auto; margin-top: 2px; overflow: visible; }
+.pp-spark text { font-size: 10px; fill: var(--muted); font-variant-numeric: tabular-nums; }
+.pp-foot { margin-top: 8px; font-size: 11.5px; line-height: 1.35; color: var(--muted); }
+
+/* Legend floats over the bottom-left corner of the map */
+.under { position: absolute; left: 12px; bottom: 12px; z-index: 1000; max-width: calc(100% - 24px); display: flex; gap: 8px 20px; align-items: center; flex-wrap: nowrap;
+  padding: 10px 14px; font-size: 13px; background: color-mix(in srgb, var(--surface) 94%, transparent); backdrop-filter: blur(6px); box-shadow: 0 2px 10px rgba(0,0,0,.3); }
+.scale { flex: none; width: 300px; }
 .legend-bar { width: 100%; height: 12px; border-radius: 3px; display: block; }
 .legend-ticks { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-2); margin-top: 2px; font-variant-numeric: tabular-nums; }
-.keys { display: grid; gap: 3px; }
-.dot { display: inline-grid; place-items: center; width: 16px; height: 16px; border-radius: 50%; margin-right: 6px; vertical-align: -3px; background: #d03b3b; color: #fff; font: 700 10px system-ui; }
-#readout { font-variant-numeric: tabular-nums; color: var(--text-2); flex: 1 1 150px; }
+.keys { display: flex; flex-wrap: wrap; gap: 4px 14px; white-space: nowrap; }
+.keys > span { display: inline-flex; align-items: center; gap: 6px; cursor: help; }
+.under .small { white-space: nowrap; }
+#readout { font-variant-numeric: tabular-nums; color: var(--text-2); min-width: 170px; }
 #readout b { color: var(--text); font-weight: 650; font-size: 15px; }
-details.adv { position: relative; margin-left: auto; }
+details.adv { position: relative; }
 details.adv summary { cursor: pointer; list-style: none; border: 1px solid var(--axis); border-radius: 8px; padding: 6px 12px; font-size: 14px; }
 details.adv summary::-webkit-details-marker { display: none; }
-details.adv .pop { position: absolute; right: 0; bottom: calc(100% + 6px); z-index: 1100; width: 280px; padding: 12px; display: grid; gap: 10px; box-shadow: 0 8px 24px rgba(0,0,0,.25); }
+details.adv .pop { position: absolute; left: 0; bottom: calc(100% + 6px); z-index: 1100; width: 280px; padding: 12px; display: grid; gap: 10px; box-shadow: 0 8px 24px rgba(0,0,0,.25); }
 details.adv .pop label { display: grid; gap: 3px; font-size: 13px; color: var(--text-2); }
 details.adv .pop label.row { display: flex; gap: 6px; color: var(--text); }
 
 /* Timeline bar above the map: title, prev / date / next, jump to latest, play, then the track of measurement dates */
-#timeline { --tl-tint: color-mix(in srgb, var(--s1) 20%, var(--surface)); display: flex; flex-wrap: wrap; align-items: center; gap: 8px 6px; padding: 10px 16px; }
+#timeline { --tl-tint: color-mix(in srgb, var(--s1) 20%, var(--surface)); display: flex; flex-wrap: wrap; align-items: center; gap: 8px 6px; padding: 8px 20px; border-top: 1px solid var(--grid); }
 .tl-title { font-size: 16px; font-weight: 500; margin-right: 8px; white-space: nowrap; }
 .tl-date { font-size: 16px; font-weight: 500; color: var(--accent); min-width: 98px; text-align: center; white-space: nowrap; font-variant-numeric: tabular-nums; }
 #timeline button { display: grid; place-items: center; padding: 0; border-radius: 50%; }
@@ -95,83 +125,65 @@ details.adv .pop label.row { display: flex; gap: 6px; color: var(--text); }
 #tl { position: relative; flex: 1 1 380px; height: 46px; margin: 0 26px 0 48px; cursor: pointer; touch-action: none; user-select: none; }
 .tl-band { position: absolute; left: -18px; right: -18px; top: 4px; height: 20px; border-radius: 10px; background: linear-gradient(90deg, transparent, var(--tl-tint) 28px); }
 .tl-stop { position: absolute; top: 14px; width: 5px; height: 5px; border-radius: 50%; background: var(--text); transform: translate(-50%, -50%); }
-.tl-stop.on { width: 20px; height: 20px; background: var(--accent); }
+/* The big dot glides between dates instead of jumping */
+.tl-thumb { position: absolute; top: 14px; width: 20px; height: 20px; border-radius: 50%; background: var(--accent); transform: translate(-50%, -50%);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent); transition: left .35s cubic-bezier(.4, 0, .2, 1); pointer-events: none; }
+.tl-lab { transition: color .2s; }
+@media (prefers-reduced-motion: reduce) { .tl-thumb { transition: none; } }
 .tl-lab { position: absolute; top: 27px; transform: translateX(-50%); font-size: 13px; color: var(--text-2); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .tl-lab.on { color: var(--text); }
-
-.how { margin-top: 14px; padding: 16px 18px; }
-.how ol { list-style: none; margin: 12px 0 0; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; counter-reset: step; }
-.how li { counter-increment: step; background: var(--wash); border-radius: 10px; padding: 12px 14px 12px 50px; position: relative; font-size: 14px; color: var(--text-2); }
-.how li::before { content: counter(step); position: absolute; left: 12px; top: 12px; width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; font-weight: 700; }
-.how li b { display: block; color: var(--text); margin-bottom: 2px; }
-.how .mind { margin-top: 12px; font-size: 14px; color: var(--text-2); }
-.how .mind b { color: var(--text); }
-@media (max-width: 1000px) { .how ol { grid-template-columns: 1fr; } }
-#detail { margin-top: 14px; padding: 14px 16px; }
-#detail .sub { font-size: 13px; color: var(--text-2); margin: 2px 0 6px; }
-.chart-legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--text-2); }
-
-.about { margin-top: 22px; display: grid; gap: 10px; }
-.about summary { cursor: pointer; padding: 12px 16px; font-weight: 650; }
-.about .body { padding: 0 16px 14px; }
-.about ul { margin: 0; padding-left: 20px; max-width: 80ch; }
-.about li { margin-bottom: 5px; }
-.scroll-x { overflow-x: auto; }
-table { border-collapse: collapse; width: 100%; font-size: 14px; }
-th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--grid); vertical-align: top; }
-th { font-weight: 600; color: var(--text-2); font-size: 12px; }
-.methods td:first-child { font-weight: 600; width: 19%; }
-.methods tr.grp td { background: var(--wash); font-weight: 650; color: var(--accent); }
-footer { margin-top: 22px; padding-top: 12px; border-top: 1px solid var(--grid); font-size: 13px; color: var(--text-2); }
-code { font-size: 13px; }
+.tl-lab.first { transform: translateX(-12px); }
+.tl-lab.last { transform: translateX(calc(-100% + 12px)); }
 
 #tip { position: fixed; z-index: 3000; pointer-events: none; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 14px rgba(0,0,0,.2); padding: 6px 9px; font-size: 12px; line-height: 1.4; display: none; max-width: 260px; font-variant-numeric: tabular-nums; }
 #tip b { font-weight: 650; }
-#status { padding: 40px 16px; text-align: center; color: var(--text-2); }
+#status { flex: 1; display: grid; place-items: center; padding: 40px 16px; text-align: center; color: var(--text-2); }
 
 @media (max-width: 1000px) {
-  #map { height: 420px; }
-  details.adv { margin-left: 0; }
-  details.adv .pop { right: auto; left: 0; }
+  .under { flex-wrap: wrap; }
+  .scale { width: 260px; }
+}
+@media (max-width: 700px) {
+  .bar { padding: 8px 16px; }
+  .bar h1 { padding-left: 0; border-left: 0; flex-basis: 100%; order: 1; font-size: 17px; }
+  .loc { flex: 1 1 100%; }
+  .loc select { flex: 1; }
+  #timeline { padding: 6px 16px; }
+  #tl { margin: 0 14px; flex-basis: 100%; }
+  .under { right: 12px; }
+  .scale { width: 100%; }
 }
 </style>
 </head>
 <body>
 
 <header class="topbar">
-  <div class="in">
+  <div class="bar">
     <div class="brand">
       <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#184f95"/><path d="M4 12c4-5 8 3 12-1s8 3 12-1" fill="none" stroke="#9ec5f4" stroke-width="2.2" stroke-linecap="round"/><path d="M4 21h9l3-3 3 3h9" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
       <span>Corridor Watch</span>
     </div>
-    <div class="top-actions">
-      <label class="loc" id="locWrap">Lokalizacja
-        <select id="loc" aria-label="Lokalizacja"></select>
-      </label>
-    </div>
+    <h1 id="title"></h1>
+    <div id="periodWrap"><div class="seg" id="period" role="group" aria-label="Okres obserwacji"></div></div>
+    <span class="sp"></span>
+    <label class="loc" id="locWrap">Lokalizacja
+      <select id="loc" aria-label="Lokalizacja"></select>
+    </label>
+  </div>
+  <div id="timeline" hidden>
+    <span class="tl-title">Pomiary radarowe</span>
+    <button id="prev" class="tl-nav" aria-label="Poprzedni pomiar" title="Poprzedni pomiar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 6l-6 6 6 6"/></svg></button>
+    <span class="tl-date" id="tlDate"></span>
+    <button id="next" class="tl-nav" aria-label="Następny pomiar" title="Następny pomiar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
+    <button id="latest" class="tl-round" aria-label="Najnowszy pomiar" title="Najnowszy pomiar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 6l6 6-6 6M17 6v12"/></svg></button>
+    <button id="play" class="tl-round" aria-label="Odtwórz" title="Odtwórz"></button>
+    <div id="tl" role="slider" tabindex="0" aria-label="Oś czasu pomiarów: kliknij lub przeciągnij, żeby zmienić datę"></div>
   </div>
 </header>
 
 <div id="status">Wczytywanie danych…</div>
 
-<div class="wrap" id="app" hidden>
-  <section class="head">
-    <h1 id="title"></h1>
-    <span class="sp"></span>
-    <div id="periodWrap"><div class="seg" id="period" role="group" aria-label="Okres obserwacji"></div></div>
-  </section>
-
-  <main class="work">
-    <div class="mapcol">
-      <div class="card" id="timeline">
-        <span class="tl-title">Pomiary radarowe</span>
-        <button id="prev" class="tl-nav" aria-label="Poprzedni pomiar" title="Poprzedni pomiar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 6l-6 6 6 6"/></svg></button>
-        <span class="tl-date" id="tlDate"></span>
-        <button id="next" class="tl-nav" aria-label="Następny pomiar" title="Następny pomiar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
-        <button id="latest" class="tl-round" aria-label="Najnowszy pomiar" title="Najnowszy pomiar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 6l6 6-6 6M17 6v12"/></svg></button>
-        <button id="play" class="tl-round" aria-label="Odtwórz" title="Odtwórz"></button>
-        <div id="tl" role="slider" tabindex="0" aria-label="Oś czasu pomiarów: kliknij lub przeciągnij, żeby zmienić datę"></div>
-      </div>
+<main id="app" hidden>
       <div id="map" aria-label="Mapa zmian terenu"></div>
       <div class="card under">
         <div class="scale" id="legend"></div>
@@ -195,17 +207,7 @@ code { font-size: 13px; }
           </div>
         </details>
       </div>
-    </div>
-  </main>
-
-  <section class="card how">
-    <h2>Jak to zostało obliczone</h2>
-    <ol id="howSteps"></ol>
-    <div class="mind" id="howMind"></div>
-  </section>
-
-  <footer id="footer"></footer>
-</div>
+</main>
 
 <div id="tip"></div>
 
@@ -253,7 +255,7 @@ code { font-size: 13px; }
     R = { cum: await unpack(DATA.payload.cum, Int16Array), coh: await unpack(DATA.payload.coh, Uint8Array),
           vwin: DATA.payload.vwin ? await unpack(DATA.payload.vwin, Int16Array) : null };
   } catch (err) { return fail('Nie udało się rozpakować danych: ' + err.message); }
-  $('status').hidden = true; $('app').hidden = false;
+  $('status').hidden = true; $('app').hidden = false; $('timeline').hidden = false;
 
   // Only the first observation period is shown; later periods in the package are ignored
   const dates = G.dates, times = dates.map(dTime), SER = G.series.slice(0, 1), last = SER.length - 1;
@@ -263,23 +265,41 @@ code { font-size: 13px; }
   const seenBy = (z) => S().start + z.first_index <= state.t;  // already an anomaly on the selected date?
   const anomalies = () => DATA.zones.filter((z) => z.series === state.s && seenBy(z));
   const peakAt = (z) => z.peak_series[state.t - S().start];
-  const WHAT = { down: 'Osunięcie lub osiadanie', up: 'Wypiętrzenie gruntu' };
+
+  // ---------------------------------------------------------- anomaly types
+  // Every type has its own colour and a simple white icon (24×24 grid, drawn with strokes).
+  // The analysis can set zones[].type explicitly (landslide / subsidence / uplift, or the
+  // Polish names); otherwise the type is inferred from the direction of movement and the
+  // hazard of the location (e.g. "Kompleks osuwiskowy" → downward zones are landslides).
+  const TYPES = {
+    landslide: { name: 'Osuwisko', color: '#d9480f', desc: 'Fragment zbocza zsuwa się w dół.',
+      icon: '<path d="M3 20V9l18 11z" fill="#fff" stroke="none"/><path d="M7.5 3.5l9 6M14.9 5.9l1.6 3.6-3.9.4"/>' },
+    subsidence: { name: 'Osiadanie', color: '#862e9c', desc: 'Grunt zapada się w miejscu.',
+      icon: '<path d="M2.5 14h5l2 5h5l2-5h5"/><path d="M12 3v9M8.5 8.5L12 12l3.5-3.5"/>' },
+    uplift: { name: 'Wypiętrzenie', color: '#1864ab', desc: 'Grunt się podnosi (np. u podnóża osuwiska, gdzie spychana ziemia się spiętrza).',
+      icon: '<path d="M2.5 20h5l2-4h5l2 4h5"/><path d="M12 13V3.5M8.5 7L12 3.5 15.5 7"/>' },
+    other: { name: 'Inny ruch', color: '#495057', desc: 'Wyraźny ruch gruntu bez rozpoznanego typu.',
+      icon: '<path d="M12 5v9M12 18.5v.5"/>' },
+  };
+  const TYPE_ALIASES = { osuwisko: 'landslide', osiadanie: 'subsidence', wypietrzenie: 'uplift', 'wypiętrzenie': 'uplift' };
+  const hazardIsSlope = /osuwisk|zbocz|landslide|slope/i.test(DATA.config.hazard || '');
+  function zoneType(z) {
+    const explicit = z.type && (TYPES[z.type] ? z.type : TYPE_ALIASES[String(z.type).toLowerCase()]);
+    if (explicit) return explicit;
+    if (z.kind === 'up') return 'uplift';
+    if (z.kind === 'down') return hazardIsSlope ? 'landslide' : 'subsidence';
+    return 'other';
+  }
+  const iconG = (T) => `<g fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">${T.icon}</g>`;
+  // Map pin (teardrop) with the type's icon; the tip points at the strongest movement
+  const pinSVG = (type) => { const T = TYPES[type]; return `<svg viewBox="0 0 36 44" aria-hidden="true"><path d="M18 42.5S4.5 28.5 4.5 18a13.5 13.5 0 0 1 27 0c0 10.5-13.5 24.5-13.5 24.5z" fill="${T.color}" stroke="#fff" stroke-width="2.5"/><g transform="translate(8 8) scale(.8333)">${iconG(T)}</g></svg>`; };
+  // Round badge with the same icon, for the legend, tooltips and popups
+  const badge = (type) => { const T = TYPES[type]; return `<span class="badge"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="${T.color}"/><g transform="translate(4 4) scale(.6667)">${iconG(T)}</g></svg></span>`; };
 
   // --------------------------------------------------------------- header
   $('title').textContent = `${DATA.config.name}, ${DATA.config.region}`;
   $('period').innerHTML = SER.map((s, i) => `<button data-s="${i}" aria-pressed="${i === state.s}">${dPL(dates[s.start])} – ${dPL(dates[s.end])}</button>`).join('');
   if (SER.length < 2) $('periodWrap').hidden = true;
-  $('footer').innerHTML = `Dane: NISAR L2 GUNW (NASA/ISRO, ASF DAAC). Podkład mapy: Esri. Prototyp badawczy, nie do decyzji operacyjnych.`;
-  function renderHow() {
-    const s = S(), px = G.pixel_m, P = DATA.params;
-    $('howSteps').innerHTML = [
-      ['Satelita mierzy odległość do ziemi', `Radar NISAR przelatuje nad tym samym miejscem co 12 dni i za każdym razem mierzy, jak daleko jest grunt.${s.step_days ? ` Bierzemy pomiary w równych odstępach co ${s.step_days} dni, żeby na osi czasu nie było przerw.` : ''}`],
-      ['Porównujemy przeloty', 'Jeśli odległość się zmieniła, grunt się ruszył. Zmiany z kolejnych przelotów dodajemy. Czerwony: grunt się oddalił (osunął lub osiadł). Niebieski: zbliżył się (wypiętrzył).'],
-      ['Odrzucamy błąd pomiaru', `W tym okresie pomiar myli się o ok. ${fmt(s.noise_mm)} mm. Za prawdziwy ruch uznajemy dopiero zmianę trzy razy większą: ${fmt(s.threshold_mm)} mm.`],
-      ['Szukamy anomalii', `Anomalia to miejsce, gdzie taki ruch obejmuje co najmniej ${P.min_zone_px} sąsiednich pól mapy (pole to ${fmt(px)} × ${fmt(px)} m) albo co najmniej ${P.strong_px} pola z ruchem ponad ${fmt(s.threshold_mm * P.strong_k)} mm. Pojedyncze pola pomijamy, bo mogą być błędem.`],
-      ['Sprawdzamy, od kiedy ją widać', 'To samo liczymy dla każdej daty. Na osi czasu anomalia pojawia się w dniu, w którym pierwszy raz spełniła ten warunek.'],    ].map(([t, d]) => `<li><b>${t}</b>${d}</li>`).join('');
-    $('howMind').innerHTML = `<b>Pamiętaj:</b> brak anomalii nie znaczy, że teren jest bezpieczny, bo nie każde zapadnięcie daje wcześniej widoczny ruch. Satelita widzi ruch tylko w swoim kierunku patrzenia, więc prawdziwe przemieszczenie może być większe. Zmian mniejszych niż ok. ${fmt(px * 2)} m nie widać. Dane kończą się na ostatnim przelocie.`;
-  }
 
   // ------------------------------------------------------------------ map
   const map = L.map('map', { zoomSnap: 0.25 });
@@ -289,7 +309,18 @@ code { font-size: 13px; }
   const light = L.layerGroup([esri('Canvas/World_Light_Gray_Base'), esri('Canvas/World_Light_Gray_Reference', { pane: 'labels' })]);
   const imagery = esri('World_Imagery', { maxZoom: 18, attribution: 'Esri World Imagery' });
   L.control.layers({ 'Mapa ciemna': dark, 'Mapa jasna': light, 'Zdjęcia satelitarne': imagery }, null, { position: 'topright' }).addTo(map);
-  L.control.scale({ imperial: false }).addTo(map);
+  L.control.scale({ imperial: false, position: 'bottomright' }).addTo(map);
+  map.attributionControl.addAttribution('Ruch gruntu: NISAR (NASA/ISRO, ASF DAAC)');
+
+  // Lock the map to this case study: no panning away and no zooming out past the study area.
+  // The limits come from the location's data, so every case study gets its own.
+  const caseArea = L.latLngBounds(G.bounds);
+  if (DATA.config.view) caseArea.extend(L.latLngBounds(DATA.config.view));
+  map.setMaxBounds(caseArea.pad(0.25));
+  map.options.maxBoundsViscosity = 1.0;  // hard edge instead of rubber-banding
+  const updateMinZoom = () => map.setMinZoom(Math.max(0, map.getBoundsZoom(caseArea) - 0.5));
+  updateMinZoom();
+  map.on('resize', updateMinZoom);
   map.fitBounds(DATA.config.view || G.bounds);
   map.createPane('zones').style.zIndex = 430;
   map.createPane('marks').style.zIndex = 620;
@@ -297,7 +328,18 @@ code { font-size: 13px; }
   const canvas = document.createElement('canvas');
   canvas.width = G.width; canvas.height = G.height;
   const ctx = canvas.getContext('2d'), img = ctx.createImageData(G.width, G.height);
-  const overlay = L.imageOverlay(canvas.toDataURL(), G.bounds, { className: 'pix', opacity: 0.9 }).addTo(map);
+  // Leaflet positions this <canvas> exactly like an image overlay, but each animation frame is
+  // just a putImageData (no PNG encoding), which keeps the date transitions smooth.
+  const CanvasOverlay = L.ImageOverlay.extend({
+    _initImage() {
+      const el = this._image = canvas;
+      L.DomUtil.addClass(el, 'leaflet-image-layer');
+      if (this._zoomAnimated) L.DomUtil.addClass(el, 'leaflet-zoom-animated');
+      if (this.options.className) L.DomUtil.addClass(el, this.options.className);
+      el.onselectstart = L.Util.falseFn; el.onmousemove = L.Util.falseFn;
+    },
+  });
+  const overlay = new CanvasOverlay('', G.bounds, { className: 'pix', opacity: 0.9 }).addTo(map);
   const DIV = [[-1, 178, 24, 43], [-0.667, 239, 138, 98], [-0.333, 253, 219, 199], [0, 240, 239, 236], [0.333, 209, 229, 240], [0.667, 103, 169, 207], [1, 33, 102, 172]];
   const SEQ = [[0, 205, 226, 251], [0.5, 57, 135, 229], [1, 13, 54, 107]];
   function ramp(stops, x) {
@@ -309,32 +351,68 @@ code { font-size: 13px; }
     return stops[stops.length - 1].slice(1);
   }
   const windowIndex = (t) => winEnd.indexOf(dates[t]);
-  function valueAt(i, mode = state.mode) {
+  function valueAt(i, mode = state.mode, t = state.t) {
     const c = R.coh[i];
     if (c === ND8 || c / 250 < state.cohMin) return null;
     if (mode === 'coh') return c / 250;
     if (mode === 'cum') {
-      const a = R.cum[state.t * N + i], b = R.cum[state.ref * N + i];
+      const a = R.cum[t * N + i], b = R.cum[state.ref * N + i];
       return a === ND16 || b === ND16 ? null : (a - b) / 10;
     }
-    const w = windowIndex(state.t);
+    const w = windowIndex(t);
     if (w < 0 || !R.vwin) return null;
     const v = R.vwin[w * N + i];
     return v === ND16 ? null : v / 10;
   }
   const noise = () => (state.mode === 'cum' ? S().threshold_mm : 50);
-  function renderRaster() {
-    const px = img.data, mode = state.mode, range = state.range, fade = noise();
-    for (let i = 0; i < N; i++) {
-      const v = valueAt(i), o = i * 4;
-      if (v === null) { px[o + 3] = 0; continue; }
-      let c, a = 235;
-      if (mode === 'coh') c = ramp(SEQ, v);
-      else { c = ramp(DIV, v / range); a = 255 * (0.72 + 0.28 * Math.min(1, Math.abs(v) / fade)); }
-      px[o] = c[0]; px[o + 1] = c[1]; px[o + 2] = c[2]; px[o + 3] = a;
+
+  // Colour lookup tables (512 steps) so painting a frame is a table lookup per pixel
+  const LUT_N = 512;
+  function makeLut(stops) {
+    const lut = new Uint8ClampedArray(LUT_N * 3), x0 = stops[0][0], x1 = stops[stops.length - 1][0];
+    for (let k = 0; k < LUT_N; k++) { const c = ramp(stops, x0 + k / (LUT_N - 1) * (x1 - x0)); lut.set(c, k * 3); }
+    return lut;
+  }
+  const LUT_DIV = makeLut(DIV), LUT_SEQ = makeLut(SEQ);
+
+  // Raster state: what is on screen now (shown*), where it is heading (tgt*), where the
+  // current transition started (from*). V = value, P = presence 0..1 (used to fade pixels in/out).
+  const shownV = new Float32Array(N), shownP = new Float32Array(N), tgtV = new Float32Array(N), tgtP = new Float32Array(N);
+  const fromV = new Float32Array(N), fromP = new Float32Array(N);
+  const ANIM_MS = 650, reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let animFrame = null;
+  function paint() {
+    const px = img.data, coh = state.mode === 'coh', lut = coh ? LUT_SEQ : LUT_DIV, range = state.range, fade = noise(), top = LUT_N - 1;
+    for (let i = 0, o = 0; i < N; i++, o += 4) {
+      const p = shownP[i];
+      if (p < 0.004) { px[o + 3] = 0; continue; }
+      const v = shownV[i];
+      let k, a;
+      if (coh) { k = Math.round(Math.max(0, Math.min(1, v)) * top); a = 235; }
+      else { k = Math.round((Math.max(-1, Math.min(1, v / range)) + 1) / 2 * top); a = 255 * (0.72 + 0.28 * Math.min(1, Math.abs(v) / fade)); }
+      k *= 3; px[o] = lut[k]; px[o + 1] = lut[k + 1]; px[o + 2] = lut[k + 2]; px[o + 3] = a * p;
     }
     ctx.putImageData(img, 0, 0);
-    overlay.setUrl(canvas.toDataURL());
+  }
+  // animate = true: colours flow smoothly from the current picture to the new date (eased morph
+  // of every pixel's value), instead of the map jumping between measurements.
+  function renderRaster(animate = false) {
+    if (animFrame) { cancelAnimationFrame(animFrame); animFrame = null; }
+    for (let i = 0; i < N; i++) {
+      const v = valueAt(i);
+      if (v === null) { tgtP[i] = 0; tgtV[i] = shownV[i]; } else { tgtP[i] = 1; tgtV[i] = v; }
+    }
+    if (!animate || reduceMotion) { shownV.set(tgtV); shownP.set(tgtP); paint(); return; }
+    fromV.set(shownV); fromP.set(shownP);
+    for (let i = 0; i < N; i++) if (fromP[i] === 0) fromV[i] = tgtV[i];  // new pixels fade in with their final colour
+    const t0 = performance.now();
+    const step = (now) => {
+      const k = Math.min(1, (now - t0) / ANIM_MS), e = k < 0.5 ? 4 * k * k * k : 1 - (-2 * k + 2) ** 3 / 2;  // ease-in-out
+      for (let i = 0; i < N; i++) { shownV[i] = fromV[i] + (tgtV[i] - fromV[i]) * e; shownP[i] = fromP[i] + (tgtP[i] - fromP[i]) * e; }
+      paint();
+      animFrame = k < 1 ? requestAnimationFrame(step) : null;
+    };
+    animFrame = requestAnimationFrame(step);
   }
   const MR = 6378137;
   function pixelOf(latlng) {
@@ -348,7 +426,9 @@ code { font-size: 13px; }
     $('legend').innerHTML = state.mode === 'coh'
       ? `<span class="legend-bar" style="background:${grad(SEQ)}"></span><div class="legend-ticks"><span>niepewny pomiar</span><span>pewny</span></div>`
       : `<span class="legend-bar" style="background:${grad(DIV)}"></span><div class="legend-ticks"><span>−${r} ${unit} · osuwanie</span><span>wypiętrzanie · +${r} ${unit}</span></div>`;
-    $('keys').innerHTML = `<span><span class="dot">!</span>anomalia</span>`;
+    // One legend entry per anomaly type that occurs in this case study (hover = explanation)
+    const present = Object.keys(TYPES).filter((k) => DATA.zones.some((z) => z.series === state.s && zoneType(z) === k));
+    $('keys').innerHTML = present.map((k) => `<span title="${TYPES[k].desc}">${badge(k)}${TYPES[k].name}</span>`).join('');
   }
 
   // -------------------------------------------------------------- vectors
@@ -362,14 +442,25 @@ code { font-size: 13px; }
   const zoneLayer = L.layerGroup().addTo(map), contourLayer = L.layerGroup();
   const pointMarker = L.circleMarker([0, 0], { pane: 'marks', radius: 7, color: '#0b0b0b', weight: 2, fillColor: '#fff', fillOpacity: 1, interactive: false });
 
+  // Zones are only rebuilt when the set of visible anomalies changes, so pins that are already
+  // on the map stay put and only newly detected ones "drop in" while the timeline plays.
+  let zonesKey = '';
   function renderZones() {
+    const zs = anomalies(), key = zs.map((z) => z.id).join();
+    if (key === zonesKey) return;
+    zonesKey = key;
     zoneLayer.clearLayers();
-    anomalies().forEach((z) => {
-      L.geoJSON(z.geometry, { pane: 'zones', interactive: false, style: { color: '#fff', weight: 4, fill: false } }).addTo(zoneLayer);
-      const shape = L.geoJSON(z.geometry, { pane: 'zones', style: { color: '#d03b3b', weight: 2, fillOpacity: 0 } }).addTo(zoneLayer);
-      const marker = L.marker(z.peak_latlon, { pane: 'marks', icon: L.divIcon({ className: '', iconSize: [28, 28], html: `<span class="am">${z.rank}</span>` }) }).addTo(zoneLayer);
+    zs.forEach((z) => {
+      const type = zoneType(z), T = TYPES[type];
+      L.geoJSON(z.geometry, { pane: 'zones', interactive: false, style: { color: '#fff', weight: 4, opacity: 0.9, fill: false } }).addTo(zoneLayer);
+      const shape = L.geoJSON(z.geometry, { pane: 'zones', style: { color: T.color, weight: 2.2, fillColor: T.color, fillOpacity: 0.12 } }).addTo(zoneLayer);
+      const marker = L.marker(z.peak_latlon, { pane: 'marks', riseOnHover: true, keyboard: true, title: T.name,
+        icon: L.divIcon({ className: '', iconSize: [36, 44], iconAnchor: [18, 43], html: `<span class="pin">${pinSVG(type)}</span>` }) }).addTo(zoneLayer);
+      marker.on('click', (e) => { L.DomEvent.stopPropagation(e); hideTip(); selectPoint(L.latLng(z.peak_latlon)); });
+      shape.on('click', (e) => { L.DomEvent.stopPropagation(e); selectPoint(e.latlng); });
       [shape, marker].forEach((l) => {
-        l.on('mousemove', (e) => showTip(`<b>Anomalia ${z.rank}</b><br>${WHAT[z.kind]}: ${fmt(Math.abs(peakAt(z)))} mm`, e.originalEvent)); l.on('mouseout', hideTip);
+        l.on('mousemove', (e) => showTip(`<div style="display:flex;gap:6px;align-items:center">${badge(type)}<b>${T.name}</b></div>${T.desc}<br>Ruch do <b>${amount(peakAt(z))}</b> · kliknij po szczegóły`, e.originalEvent));
+        l.on('mouseout', hideTip);
       });
     });
   }
@@ -391,14 +482,22 @@ code { font-size: 13px; }
     const label = playing ? 'Zatrzymaj' : 'Odtwórz';
     $('play').innerHTML = playing ? ICON_PAUSE : ICON_PLAY; $('play').title = label; $('play').setAttribute('aria-label', label);
   }
-  function renderTimeline() {
-    const idx = seriesIdx(), every = Math.ceil(idx.length / 12);  // thin out labels when there are many dates
+  // Track structure (dots + labels + thumb) is built once per period / resize; changing the date
+  // only moves the thumb, which slides there with a CSS transition.
+  function buildTimeline() {
+    // Thin out date labels so they never overlap: roughly one label per 85 px of track width
+    const idx = seriesIdx(), room = Math.max(2, Math.floor(($('tl').clientWidth || 600) / 85)), every = Math.ceil(idx.length / room);
     $('tl').innerHTML = '<div class="tl-band"></div>' + idx.map((i, j) => {
-      const on = i === state.t ? ' on' : '', left = `left:${(tlFrac(i) * 100).toFixed(2)}%`;
+      const left = `left:${(tlFrac(i) * 100).toFixed(2)}%`;
       const newYear = j === 0 || dates[i].slice(0, 4) !== dates[idx[j - 1]].slice(0, 4);
-      return `<span class="tl-stop${on}" style="${left}"></span>`
-        + (j % every === 0 ? `<span class="tl-lab${on}" style="${left}">${newYear ? dLong(dates[i]) : dShort(dates[i])}</span>` : '');
-    }).join('');
+      return `<span class="tl-stop" style="${left}"></span>`
+        + (j % every === 0 ? `<span class="tl-lab${j === 0 ? ' first' : j === idx.length - 1 ? ' last' : ''}" data-i="${i}" style="${left}">${newYear ? dLong(dates[i]) : dShort(dates[i])}</span>` : '');
+    }).join('') + '<span class="tl-thumb" id="tlThumb"></span>';
+    renderTimeline();
+  }
+  function renderTimeline() {
+    $('tlThumb').style.left = `${(tlFrac(state.t) * 100).toFixed(2)}%`;
+    $('tl').querySelectorAll('.tl-lab').forEach((l) => l.classList.toggle('on', +l.dataset.i === state.t));
     $('tl').setAttribute('aria-valuetext', dLong(dates[state.t]));
   }
   // Click or drag anywhere on the track to jump to the nearest measurement (listeners live
@@ -422,29 +521,118 @@ code { font-size: 13px; }
   })();
 
   // ------------------------------------------------------------ selection
-  function selectPoint(latlng) {
-    const i = pixelOf(latlng); if (i < 0) return;
-    const v = valueAt(i, 'cum');
-    pointMarker.setLatLng(latlng).addTo(map);
-    const what = v === null ? 'Brak pomiaru w tym miejscu.'
-      : `<b>${sgn(v, 0)} mm</b> od ${dPL(dates[state.ref])} do ${dPL(dates[state.t])}<br>${Math.abs(v) < S().threshold_mm ? 'Bez istotnej zmiany (w granicach błędu pomiaru).' : v < 0 ? 'Grunt się osunął lub osiadł.' : 'Grunt się wypiętrzył.'}`;
-    L.popup({ maxWidth: 240 }).setLatLng(latlng).setContent(what).openOn(map).on('remove', () => pointMarker.remove());
+  // ------------------------------------------------------- point popup
+  // Written for people who don't know GIS/InSAR: plain words, cm instead of LOS jargon,
+  // a verdict chip, a mini chart of this spot over time and a confidence level.
+  const pointPopup = L.popup({ className: 'cw-pop', minWidth: 280, maxWidth: 300, autoPanPadding: [20, 20] });
+  pointPopup.on('remove', () => { pointMarker.remove(); pointPopup.latlng = null; });
+  const amount = (mm) => (Math.abs(mm) >= 10 ? `${fmt(Math.abs(mm) / 10, 1)} cm` : `${fmt(Math.abs(mm))} mm`);
+  const cumBetween = (i, t, ref) => { const a = R.cum[t * N + i], b = R.cum[ref * N + i]; return a === ND16 || b === ND16 ? null : (a - b) / 10; };
+  const coordText = (ll) => `${fmt(Math.abs(ll.lat), 4)}° ${ll.lat >= 0 ? 'N' : 'S'}, ${fmt(Math.abs(ll.lng), 4)}° ${ll.lng >= 0 ? 'E' : 'W'}`;
+  function inRing(x, y, ring) {
+    let inside = false;
+    for (let a = 0, b = ring.length - 1; a < ring.length; b = a++) {
+      const [xa, ya] = ring[a], [xb, yb] = ring[b];
+      if ((ya > y) !== (yb > y) && x < (xb - xa) * (y - ya) / (yb - ya) + xa) inside = !inside;
+    }
+    return inside;
   }
+  function inGeometry(g, ll) {
+    const polys = g.type === 'Polygon' ? [g.coordinates] : g.type === 'MultiPolygon' ? g.coordinates : [];
+    return polys.some((p) => inRing(ll.lng, ll.lat, p[0]) && !p.slice(1).some((hole) => inRing(ll.lng, ll.lat, hole)));
+  }
+  function confidence(c) {
+    if (c >= 0.6) return ['wysoka', '●●●', ''];
+    if (c >= 0.35) return ['średnia', '●●○', ''];
+    return ['niska', '●○○', 'Sygnał radaru jest tu zakłócony (np. roślinność, woda), więc ta liczba może być mocno niedokładna.'];
+  }
+  // Small chart: how this spot moved on every measurement date, relative to the start date
+  function sparkline(i) {
+    const idx = seriesIdx(), vals = idx.map((t) => cumBetween(i, t, state.ref)), ok = vals.filter((v) => v !== null);
+    if (ok.length < 2) return '';
+    const thr = S().threshold_mm, W = 268, H = 66, L0 = 4, R0 = 4, T0 = 6, B0 = 16;
+    let lo = Math.min(-thr, ...ok), hi = Math.max(thr, ...ok); const pad = (hi - lo) * 0.08; lo -= pad; hi += pad;
+    const x = (j) => L0 + j / (idx.length - 1) * (W - L0 - R0), y = (v) => T0 + (hi - v) / (hi - lo) * (H - T0 - B0);
+    let d = '', pen = false;
+    vals.forEach((v, j) => { if (v === null) { pen = false; return; } d += `${pen ? 'L' : 'M'}${x(j).toFixed(1)} ${y(v).toFixed(1)}`; pen = true; });
+    const cur = idx.indexOf(state.t), curV = vals[cur];
+    return `<svg class="pp-spark" viewBox="0 0 ${W} ${H}" aria-hidden="true">
+      <rect x="${L0}" y="${y(thr)}" width="${W - L0 - R0}" height="${y(-thr) - y(thr)}" fill="var(--wash)" rx="3"/>
+      <line x1="${L0}" x2="${W - R0}" y1="${y(0)}" y2="${y(0)}" stroke="var(--axis)" stroke-dasharray="3 3"/>
+      <path d="${d}" fill="none" stroke="var(--text-2)" stroke-width="1.8" stroke-linejoin="round"/>
+      ${vals.map((v, j) => (v === null || j === cur ? '' : `<circle cx="${x(j)}" cy="${y(v)}" r="2.3" fill="var(--text-2)"/>`)).join('')}
+      ${curV === null ? '' : `<circle cx="${x(cur)}" cy="${y(curV)}" r="5" fill="var(--accent)" stroke="var(--surface)" stroke-width="2"/>`}
+      <text x="${L0}" y="${H - 3}">${dShort(dates[idx[0]])}</text>
+      <text x="${W - R0}" y="${H - 3}" text-anchor="end">${dShort(dates[idx[idx.length - 1]])}</text>
+    </svg>`;
+  }
+  function pointHTML(latlng) {
+    const foot = (extra = '') => `<div class="pp-foot">${extra}${coordText(latlng)}</div>`;
+    const i = pixelOf(latlng);
+    if (i < 0) return `<span class="pp-chip none">Poza obszarem</span><div class="pp-head">Brak danych</div>
+      <div class="pp-sub">Ten punkt leży poza obszarem, który przeanalizowaliśmy. Kliknij w kolorowej części mapy.</div>${foot()}`;
+    const c = R.coh[i], v = c === ND8 ? null : cumBetween(i, state.t, state.ref);
+    if (v === null) return `<span class="pp-chip none">Brak pomiaru</span><div class="pp-head">Satelita nic tu nie zmierzył</div>
+      <div class="pp-sub">Zwykle dzieje się tak nad wodą, w gęstym lesie albo w miejscach zasłoniętych przez strome zbocza. To nie znaczy, że teren jest stabilny – po prostu nie wiemy.</div>${foot()}`;
+
+    const thr = S().threshold_mm, a = Math.abs(v), t0 = dates[Math.min(state.ref, state.t)], t1 = dates[Math.max(state.ref, state.t)];
+    const days = Math.round(Math.abs(times[state.t] - times[state.ref]) / 864e5);
+    const [level, chip] = a < thr ? ['calm', 'Stabilnie'] : a < 3 * thr ? ['small', 'Wyraźny ruch'] : ['big', 'Duży ruch'];
+    let head, sub;
+    if (state.t === state.ref) { head = 'Data początkowa'; sub = 'Od tej daty liczymy zmianę. Wybierz późniejszą datę na osi czasu, żeby zobaczyć, o ile ruszył się grunt.'; }
+    else if (level === 'calm') { head = 'Teren stabilny'; sub = `Zmiana (${sgn(v)} mm) jest mniejsza niż błąd pomiaru (±${fmt(thr)} mm), więc traktujemy ją jak brak ruchu.`; }
+    else if (v < 0) { head = `Grunt obniżył się o ${amount(v)}`; sub = 'Teren osiada albo zsuwa się po zboczu (np. osuwisko).'; }
+    else { head = `Grunt podniósł się o ${amount(v)}`; sub = 'Teren się wypiętrza – bywa tak np. u podnóża osuwiska, gdzie spychana ziemia się spiętrza.'; }
+
+    const rate = a / days * 365.25;  // mm per year, extrapolated from this period
+    const rows = [`<div class="pp-row"><span>Okres</span><b>${t0.slice(0, 4) === t1.slice(0, 4) ? dShort(t0) : dLong(t0)} → ${dLong(t1)} (${days} dni)</b></div>`];
+    if (level !== 'calm' && days >= 20) rows.push(`<div class="pp-row"><span>Tempo</span><b>ok. ${rate >= 100 ? fmt(rate / 10) + ' cm' : amount(rate)} na rok</b></div>`);
+    const [conf, dots, confHint] = confidence(c / 250);
+    rows.push(`<div class="pp-row"><span>Pewność pomiaru</span><b>${dots} ${conf}</b></div>`);
+
+    const zone = anomalies().find((z) => inGeometry(z.geometry, latlng));
+    let zoneHTML = '';
+    if (zone) {
+      const type = zoneType(zone), T = TYPES[type];
+      zoneHTML = `<div class="pp-sec pp-zone" style="background:color-mix(in srgb, ${T.color} 13%, transparent)"><div style="display:flex;gap:7px;align-items:center;margin-bottom:2px">${badge(type)}<b>${T.name}</b></div>Ten punkt leży w strefie, w której cały fragment terenu rusza się razem (maks. ${amount(peakAt(zone))}). Warto sprawdzić na miejscu.</div>`;
+    }
+    else {
+      const near = anomalies().map((z) => [z, map.distance(latlng, z.peak_latlon)]).sort((p, q) => p[1] - q[1])[0];
+      if (near && near[1] < 2000) {
+        const type = zoneType(near[0]);
+        zoneHTML = `<div class="pp-sec" style="display:flex;gap:7px;align-items:center">${badge(type)}<span>Najbliższa anomalia: <b>${TYPES[type].name.toLowerCase()}</b>, ok. ${near[1] < 1000 ? fmt(Math.round(near[1] / 10) * 10) + ' m' : fmt(near[1] / 1000, 1) + ' km'} stąd.</span></div>`;
+      }
+    }
+
+    return `<span class="pp-chip ${level}">${chip}</span>
+      <div class="pp-head">${head}</div><div class="pp-sub">${sub}</div>
+      ${zoneHTML}
+      <div class="pp-sec">${rows.join('')}${confHint ? `<div class="pp-hint">${confHint}</div>` : ''}</div>
+      <div class="pp-sec"><h4>Historia tego miejsca</h4><div class="pp-hint" style="margin:0">w dół = grunt opada · niebieska kropka = wybrana data</div>${sparkline(i)}</div>
+      ${foot('Satelita patrzy z ukosa, więc prawdziwy ruch może być większy. ')}`;
+  }
+  function selectPoint(latlng) {
+    pointMarker.setLatLng(latlng).addTo(map);
+    pointPopup.latlng = latlng;
+    pointPopup.setLatLng(latlng).setContent(pointHTML(latlng)).openOn(map);
+  }
+  // Keep an open popup in sync when the date changes (arrows, timeline, playback)
+  const refreshPointPopup = () => { if (pointPopup.latlng && map.hasLayer(pointPopup)) pointPopup.setContent(pointHTML(pointPopup.latlng)); };
 
   // ---------------------------------------------------------- date / period
-  function setDate(t) {
+  function setDate(t, animate = true) {
     state.t = Math.max(S().start, Math.min(S().end, t));
     $('tlDate').textContent = dLong(dates[state.t]);
     $('prev').disabled = state.t <= S().start; $('next').disabled = state.t >= S().end;
     $('tlNote').textContent = state.mode === 'cum' ? (state.t === state.ref ? 'początek okresu: zmiana = 0' : `zmiana od ${dPL(dates[state.ref])}`) : '';
-    renderRaster(); renderContours(); renderTimeline(); renderZones();
+    renderRaster(animate); renderContours(); renderTimeline(); renderZones(); refreshPointPopup();
   }
   function setPeriod(s) {
     stop(); map.closePopup(); pointMarker.remove();
     state.s = s; state.t = SER[s].end; state.ref = SER[s].start;
     $('period').querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', +b.dataset.s === s));
     $('ref').innerHTML = seriesIdx().map((i) => `<option value="${i}">${dPL(dates[i])}${i === S().start ? ' (początek okresu)' : ''}</option>`).join('');
-    renderLegend(); renderHow(); setDate(state.t);
+    zonesKey = ''; renderLegend(); buildTimeline(); setDate(state.t);
   }
   function stop() { clearInterval(state.timer); state.timer = null; setPlayIcon(false); }
 
@@ -454,13 +642,14 @@ code { font-size: 13px; }
     if (state.timer) return stop();
     if (state.t >= S().end) setDate(S().start);
     setPlayIcon(true);
-    state.timer = setInterval(() => { if (state.t >= S().end) return stop(); setDate(state.t + 1); }, 750);
+    // A step every 950 ms: the 650 ms colour morph finishes and the frame holds briefly before the next one
+    state.timer = setInterval(() => { if (state.t >= S().end) return stop(); setDate(state.t + 1); }, 950);
   });
   $('latest').addEventListener('click', () => { stop(); setDate(S().end); });
   $('prev').addEventListener('click', () => { stop(); setDate(state.t - 1); });
   $('next').addEventListener('click', () => { stop(); setDate(state.t + 1); });
   if (!R.vwin) $('mode').querySelector('[value="vwin"]').remove();
-  $('mode').addEventListener('change', (e) => { state.mode = e.target.value; renderLegend(); setDate(state.t); });
+  $('mode').addEventListener('change', (e) => { state.mode = e.target.value; renderLegend(); setDate(state.t, false); });
   $('ref').addEventListener('change', (e) => { state.ref = +e.target.value; setDate(state.t); });
   $('range').addEventListener('change', (e) => { state.range = +e.target.value; renderLegend(); renderRaster(); });
   $('opacity').addEventListener('input', (e) => overlay.setOpacity(+e.target.value));
@@ -476,7 +665,7 @@ code { font-size: 13px; }
   });
   map.on('mouseout', () => { $('readout').textContent = 'Najedź na mapę.'; });
 
-  window.addEventListener('resize', hideTip);
+  window.addEventListener('resize', () => { hideTip(); buildTimeline(); });
 
   // ---------------------------------------------------------------- start
   setPeriod(state.s);

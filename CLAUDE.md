@@ -82,7 +82,20 @@ Projekt/
   Metadane z backendu (name, region, hazard, summary, view) nadpisują `DATA.config`.
   `window.CW_API` pozwala wskazać API pod innym adresem.
 - Serwowana przez backend pod `/` (jeden serwer, bez CORS).
-- Znany drobiazg: w JS jest na sztywno `NEAR_M = 500`, a ta wartość przychodzi też w `DATA.params.dist_near_m`.
+- Od 14.11 UI mocno przerobione (na prośbę użytkownika): układ pełnoekranowy jak Google Earth – stały górny
+  panel (logo, nazwa case study, wybór lokalizacji) + oś czasu w stylu „Zdjęcia historyczne” GE, pod spodem
+  mapa na cały ekran, legenda pływa w lewym dolnym rogu. Mapa zablokowana na obszar case study
+  (`maxBounds` + `minZoom` liczone z `grid.bounds`/`view` danej lokalizacji).
+  Usunięte: samouczek, kafelki statystyk, panel anomalii, gazociągi (mapa/legenda), sekcja
+  „Jak to zostało obliczone”, stopka. Pokazywany jest tylko pierwszy okres z `grid.series`.
+  Popup po kliknięciu w mapę jest pisany dla laika (werdykt, ruch w cm, pewność, mini-wykres historii punktu).
+- Anomalie = pinezki z ikoną typu (osuwisko / osiadanie / wypiętrzenie / inny), kolor per typ, legenda typów.
+  Dane (`zones[].kind`) znają tylko `down`/`up`, więc typ jest **wyprowadzany**: `up` → wypiętrzenie,
+  `down` → osuwisko, jeśli `hazard` lokalizacji wskazuje zbocze/osuwisko, w przeciwnym razie osiadanie.
+  Opcjonalne pole `zones[].type` (`landslide|subsidence|uplift|other` lub polskie nazwy) ma pierwszeństwo –
+  warto poprosić zespół analizy, żeby je dodawał (`TYPES` w index.html łatwo rozszerzyć o nowe typy).
+- Zmiana daty animuje raster (płynne przejście wartości pikseli, ~650 ms, canvas zamiast PNG);
+  `prefers-reduced-motion` wyłącza animacje.
 
 ## Stan (14.11.2026, wieczór)
 - **Pełne uruchomienie potwierdzone** na maszynie użytkownika (Python 3.12.10, `backend/.venv`): import
