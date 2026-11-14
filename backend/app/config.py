@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     api_prefix: str = "/api/v1"
     data_dir: Path = Path("data")  # uploaded layers, locations and their registries live here
     frontend_dir: Path = Path("../frontend")  # web page served at "/" (skipped if the folder is missing)
+    # Ready-made frontend data folders from the analysis team, served at "/datasets" (<folder>/data/meta.json)
+    datasets_dir: Path = Path("../Dane")
     max_upload_mb: int = 50  # reject uploaded files bigger than this
     # Frontend addresses allowed to call the API from a browser (CORS).
     # Not needed when the page is served by this backend (same address).

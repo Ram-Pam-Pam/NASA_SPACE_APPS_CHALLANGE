@@ -48,7 +48,8 @@ Projekt/
     app/services/         location_registry.py, location_package.py, layer_registry.py, geojson_reader.py
     scripts/import_corridor_watch.py   import location.json + data.js z folderu corridor_watch/locations
     data/                 dane runtime (poza Gitem): locations/locations.json, locations/<id>/data.json, layers/
-  frontend/index.html     strona Corridor Watch (Leaflet, vanilla JS), dane z API
+  frontend/index.html     strona Corridor Watch (Leaflet, vanilla JS)
+  Dane/<folder>/data/     gotowe dane dla frontendu od zespołu analizy (meta.json, PNG, GeoJSON) – źródło danych strony
 ```
 
 ## Backend – najważniejsze
@@ -96,6 +97,25 @@ Projekt/
   warto poprosić zespół analizy, żeby je dodawał (`TYPES` w index.html łatwo rozszerzyć o nowe typy).
 - Zmiana daty animuje raster (płynne przejście wartości pikseli, ~650 ms, canvas zamiast PNG);
   `prefers-reduced-motion` wyłącza animacje.
+
+## Źródło danych strony (zmiana 14.11.2026, późny wieczór)
+- **Strona nie czyta już pakietu `data.js` z `/locations/{id}/data`.** Dane bierze z folderów
+  `Dane/<folder>/data/` (opis plików: `Dane/dla_frontendu_portuguese_bend/data/README.md`).
+- Backend: `GET /api/v1/datasets` (`app/api/datasets.py`, `services/dataset_registry.py`) wyszukuje
+  `Dane/*/data/meta.json` i zwraca `id` (= `meta.aoi`), `name`, `base_url`; pliki są serwowane statycznie
+  pod `/datasets/...` (`APP_DATASETS_DIR`, domyślnie `../Dane`). Nowa lokalizacja = nowy folder w `Dane/`.
+- Rejestr `/api/v1/locations` jest dla strony opcjonalny: dokłada metadane (region, hazard, view) po `id`
+  i pokazuje lokalizacje bez danych jako „wkrótce”.
+- Mapowanie na UI: raster = klatki `img/cum_XX.png` (przenikanie między datami zamiast morfowania pikseli);
+  tryby: zmiana terenu, prążki (`fringe_XX.png`), tempo (`velocity.png`), pewność (`confidence.png`).
+  Odczyt pod kursorem, popup i mini-wykres = `timeseries.json` (siatka `meta.focus`, tylko środek obszaru;
+  poza nią mapa pokazuje sam kolor). Próg „istotnego ruchu” = 3 × `meta.noise_mm_yr` przeliczone na okres.
+  Anomalie = `active_zone.geojson` (osuwisko, zawsze) + `alerts.geojson` (pinezki w dniu końca okna).
+  Warstwy obiektów z klasą zagrożenia (wczytywane po włączeniu): `pipelines`, `critical`, `roads_risk`,
+  `buildings_risk`; kolory z `meta.risk_colors`. Podkład `img/relief.png` jako opcja.
+- Usunięte z opcji, bo nowe dane tego nie mają: data odniesienia, zakres skali, filtr koherencji, izolinie.
+- Sprawdzone 14.11 na macOS (Python 3.12, headless Chrome sterowany przez DevTools): start strony, popup,
+  zmiana daty, tryby, warstwy, odtwarzanie – bez błędów w konsoli.
 
 ## Stan (14.11.2026, wieczór)
 - **Pełne uruchomienie potwierdzone** na maszynie użytkownika (Python 3.12.10, `backend/.venv`): import

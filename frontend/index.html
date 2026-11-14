@@ -101,6 +101,10 @@ input[type="range"], input[type="checkbox"] { accent-color: var(--accent); }
 #map { position: absolute; inset: 0; background: var(--page); z-index: 0; }
 .leaflet-container { font-family: var(--font); }
 .leaflet-image-layer.pix { image-rendering: pixelated; }
+/* Raster frames cross-fade when the date changes (keep Leaflet's zoom animation on the same element) */
+.leaflet-image-layer.fade { transition: opacity .65s ease; }
+.leaflet-zoom-anim .leaflet-image-layer.fade { transition: transform .25s cubic-bezier(0, 0, .25, 1), opacity .65s ease; }
+@media (prefers-reduced-motion: reduce) { .leaflet-image-layer.fade { transition: none; } }
 
 /* Leaflet controls, restyled to match the rest of the UI */
 .leaflet-container .leaflet-bar { border: 1px solid var(--grid); border-radius: 8px; box-shadow: var(--shadow); overflow: hidden; }
@@ -179,7 +183,8 @@ input[type="range"], input[type="checkbox"] { accent-color: var(--accent); }
 .legend-body .small:empty { display: none; }
 /* Anomaly types: a dot and the name; the one-line explanation is in the hover title */
 .keys { display: flex; flex-wrap: wrap; gap: 6px 16px; }
-.keys > span { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; color: var(--text); cursor: help; }
+.keys > span { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; color: var(--text); }
+.keys > span[title] { cursor: help; }
 .lg-note { margin: 0; padding-top: 10px; border-top: 1px solid var(--grid); font-size: 12.5px; line-height: 1.45; color: var(--text-2); }
 
 /* -------------------------------------------------------------- side panel
@@ -290,6 +295,10 @@ details.adv .pop label.row input { width: 16px; height: 16px; margin: 0; }
           <p class="lg-h">Typy anomalii</p>
           <div class="keys" id="keys"></div>
         </div>
+        <div id="riskWrap" hidden>
+          <p class="lg-h">Zagrożenie obiektów</p>
+          <div class="keys" id="riskKeys"></div>
+        </div>
         <p class="lg-note">Miejsca bez koloru to brak pomiaru, a nie brak ruchu.</p>
       </div>
     </details>
@@ -304,16 +313,15 @@ details.adv .pop label.row input { width: 16px; height: 16px; margin: 0; }
       <summary>Warstwy i opcje mapy</summary>
       <div class="pop">
         <label>Co pokazuje mapa
-          <select id="mode"><option value="cum">Zmiana terenu [mm]</option><option value="vwin">Tempo ruchu [mm/rok]</option><option value="coh">Pewność pomiaru</option></select>
-        </label>
-        <label>Licz zmianę od daty<select id="ref"></select></label>
-        <label>Zakres skali kolorów
-          <select id="range"><option value="25">±25</option><option value="50" selected>±50</option><option value="100">±100</option><option value="200">±200</option><option value="400">±400</option><option value="800">±800</option></select>
+          <select id="mode"><option value="cum">Zmiana terenu [mm]</option><option value="fringe">Prążki interferometryczne</option><option value="vel">Tempo ruchu [mm/rok]</option><option value="conf">Pewność pomiaru</option></select>
         </label>
         <label>Krycie warstwy<input id="opacity" type="range" min="0.2" max="1" step="0.05" value="0.9"></label>
-        <label>Ukryj piksele o koherencji poniżej <span id="cohVal">0,00</span><input id="coh" type="range" min="0" max="0.8" step="0.05" value="0"></label>
         <label class="row"><input type="checkbox" id="showZones" checked> Anomalie</label>
-        <label class="row"><input type="checkbox" id="showContours"> Izolinie co 50 mm</label>
+        <label class="row"><input type="checkbox" id="showPipes" checked> Rurociągi i gazociągi</label>
+        <label class="row"><input type="checkbox" id="showCritical"> Zagrożona kolej i linie energetyczne</label>
+        <label class="row"><input type="checkbox" id="showRoads"> Zagrożone drogi</label>
+        <label class="row"><input type="checkbox" id="showBuildings"> Zagrożone budynki</label>
+        <label class="row"><input type="checkbox" id="showRelief"> Rzeźba terenu</label>
       </div>
     </details>
     <p class="note" role="note"><b>Ograniczenia pomiaru</b>Satelita patrzy na Ziemię z ukosa, więc prawdziwy ruch może być większy. Prototyp badawczy, nie do decyzji operacyjnych.</p>
@@ -326,91 +334,105 @@ details.adv .pop label.row input { width: 16px; height: 16px; margin: 0; }
 <script>
 (async function () {
   const $ = (id) => document.getElementById(id);
-  const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
   const fmt = (v, d = 0) => v == null || !isFinite(v) ? 'brak' : v.toLocaleString('pl-PL', { minimumFractionDigits: d, maximumFractionDigits: d }).replace('-', '−');
   const sgn = (v, d = 0) => (v > 0 ? '+' : '') + fmt(v, d);
   const dISO = (d) => `${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6, 8)}`;
   const dPL = (d) => `${d.slice(6, 8)}.${d.slice(4, 6)}.${d.slice(0, 4)}`;
   const dTime = (d) => Date.UTC(+d.slice(0, 4), +d.slice(4, 6) - 1, +d.slice(6, 8));
+  const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const fail = (msg) => { $('status').textContent = msg; };
 
-  // ------------------------------------------- locations (from the backend API)
+  // ------------------------------------------------- locations and their data
+  // Data comes from ready-made folders prepared by the analysis team (PNG frames, GeoJSON layers,
+  // meta.json). The backend lists them at /api/v1/datasets and serves the files as static content.
+  // The location registry (/api/v1/locations) is optional: it adds metadata (region, hazard, view)
+  // and lists locations that have no data yet ("wkrótce").
   const API = window.CW_API || '/api/v1';  // override with window.CW_API when the API runs elsewhere
   const getJSON = async (url) => {
     const res = await fetch(url);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return res.json();
   };
-  let LOCS;
-  try { LOCS = await getJSON(`${API}/locations`); }
+  let SETS;
+  try { SETS = await getJSON(`${API}/datasets`); }
   catch (err) { return fail(`Nie udało się połączyć z serwerem (${err.message}). Czy backend jest uruchomiony?`); }
+  let REG = [];
+  try { REG = await getJSON(`${API}/locations`); } catch (err) { /* registry is optional */ }
+  const LOCS = SETS.map((d) => ({ ...(REG.find((r) => r.id === d.id) || {}), id: d.id, name: (REG.find((r) => r.id === d.id) || {}).name || d.name, base: d.base_url, ready: true }))
+    .concat(REG.filter((r) => !SETS.some((d) => d.id === r.id)).map((r) => ({ ...r, ready: false })));
   const ready = LOCS.filter((l) => l.ready);
-  $('loc').innerHTML = LOCS.map((l) => `<option value="${l.id}" ${l.ready ? '' : 'disabled'}>${l.name}${l.region ? ', ' + l.region : ''}${l.ready ? '' : ' (wkrótce)'}</option>`).join('');
-  if (!ready.length) return fail('Brak przygotowanych lokalizacji. Wgraj pakiet danych przez API (/docs) albo skryptem import_corridor_watch.py.');
+  $('loc').innerHTML = LOCS.map((l) => `<option value="${esc(l.id)}" ${l.ready ? '' : 'disabled'}>${esc(l.name)}${l.region ? ', ' + esc(l.region) : ''}${l.ready ? '' : ' (wkrótce)'}</option>`).join('');
+  if (!ready.length) return fail('Brak przygotowanych danych. Umieść folder z danymi dla frontendu (…/data/meta.json) w katalogu „Dane”.');
   const LOC = ready.find((l) => l.id === decodeURIComponent(location.hash.slice(1))) || ready[0];
   $('loc').value = LOC.id;
   $('loc').addEventListener('change', (e) => { location.hash = e.target.value; location.reload(); });
-  let DATA;
-  try { DATA = await getJSON(`${API}/locations/${encodeURIComponent(LOC.id)}/data`); }
-  catch (err) { return fail(`Nie udało się wczytać danych lokalizacji ${LOC.name}: ${err.message}`); }
-  // Metadata edited in the backend (PATCH /locations/{id}) wins over values baked into the package
-  for (const key of ['name', 'region', 'hazard', 'summary', 'view']) if (LOC[key] != null) DATA.config[key] = LOC[key];
-  const G = DATA.grid;
-  const N = G.width * G.height, ND16 = -32768, ND8 = 255;
-  async function unpack(b64, Type) {
-    const bin = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
-    return new Type(await new Response(new Blob([bin]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer());
-  }
-  let R;
+  const BASE = LOC.base;
+  let META, TSRAW, ACTIVE, ALERTS, MONITORING;
   try {
-    R = { cum: await unpack(DATA.payload.cum, Int16Array), coh: await unpack(DATA.payload.coh, Uint8Array),
-          vwin: DATA.payload.vwin ? await unpack(DATA.payload.vwin, Int16Array) : null };
-  } catch (err) { return fail('Nie udało się rozpakować danych: ' + err.message); }
+    [META, TSRAW, ACTIVE, ALERTS, MONITORING] = await Promise.all(
+      ['meta.json', 'timeseries.json', 'active_zone.geojson', 'alerts.geojson', 'monitoring.json'].map((f) => getJSON(BASE + f)));
+  } catch (err) { return fail(`Nie udało się wczytać danych lokalizacji ${LOC.name}: ${err.message}`); }
+
+  // Per-pixel displacement series [mm since the first date] on the "focus" grid (EPSG:3857)
+  const F = META.focus, E = F.epochs, ND = TSRAW.nodata;
+  const TS = new Int16Array(Uint8Array.from(atob(TSRAW.b64), (c) => c.charCodeAt(0)).buffer);
   $('status').hidden = true; $('app').hidden = false; $('timeline').hidden = false;
 
-  // Only the first observation period is shown; later periods in the package are ignored
-  const dates = G.dates, times = dates.map(dTime), SER = G.series.slice(0, 1), last = SER.length - 1;
-  const winEnd = G.windows.map((w) => w.split('-')[1]);
-  const state = { s: last, t: SER[last].end, ref: SER[last].start, mode: 'cum', range: 50, cohMin: 0, timer: null };
-  const S = () => SER[state.s];
-  const seenBy = (z) => S().start + z.first_index <= state.t;  // already an anomaly on the selected date?
-  const anomalies = () => DATA.zones.filter((z) => z.series === state.s && seenBy(z));
-  const peakAt = (z) => z.peak_series[state.t - S().start];
+  const dates = META.dates, times = dates.map(dTime), T0 = 0, T1 = dates.length - 1;
+  const state = { t: T1, mode: 'cum', opacity: 0.9, timer: null };
+  // Smallest change we treat as real movement: 3 x background noise of the velocity
+  // (mm/yr, from meta.json) converted to displacement over the analysis period.
+  const THR = Math.round(3 * META.noise_mm_yr * META.period.days / 365.25);
+  const SCALE = META.scale_mm;  // colour scale limit of the PNG frames (+-SCALE)
+
+  const project = (ll) => L.CRS.EPSG3857.project(L.latLng(ll));
+  function pixelOf(latlng) {
+    const p = project(latlng), col = Math.floor((p.x - F.x0) / F.res), row = Math.floor((F.y1 - p.y) / F.res);
+    return col < 0 || row < 0 || col >= F.w || row >= F.h ? -1 : row * F.w + col;
+  }
+  const valueAt = (i, t = state.t) => { const v = TS[i * E + t]; return v === ND ? null : v; };
 
   // ---------------------------------------------------------- anomaly types
-  // Every type has its own colour and a simple white icon (24×24 grid, drawn with strokes).
-  // The analysis can set zones[].type explicitly (landslide / subsidence / uplift, or the
-  // Polish names); otherwise the type is inferred from the direction of movement and the
-  // hazard of the location (e.g. "Kompleks osuwiskowy" → downward zones are landslides).
+  // Anomalies in this data set: the active landslide zone (one polygon, always shown) and the
+  // change-detection alerts (shown on the date their monitoring window ends).
   const TYPES = {
-    landslide: { name: 'Osuwisko', color: '#d9480f', desc: 'Fragment zbocza zsuwa się w dół.',
+    landslide: { name: 'Osuwisko', color: '#d9480f', desc: 'Aktywna strefa osuwiska: fragment zbocza zsuwa się w dół.',
       icon: '<path d="M3 20V9l18 11z" fill="#fff" stroke="none"/><path d="M7.5 3.5l9 6M14.9 5.9l1.6 3.6-3.9.4"/>' },
-    subsidence: { name: 'Osiadanie', color: '#862e9c', desc: 'Grunt zapada się w miejscu.',
-      icon: '<path d="M2.5 14h5l2 5h5l2-5h5"/><path d="M12 3v9M8.5 8.5L12 12l3.5-3.5"/>' },
-    uplift: { name: 'Wypiętrzenie', color: '#1864ab', desc: 'Grunt się podnosi (np. u podnóża osuwiska, gdzie spychana ziemia się spiętrza).',
-      icon: '<path d="M2.5 20h5l2-4h5l2 4h5"/><path d="M12 13V3.5M8.5 7L12 3.5 15.5 7"/>' },
-    other: { name: 'Inny ruch', color: '#495057', desc: 'Wyraźny ruch gruntu bez rozpoznanego typu.',
+    accel: { name: 'Przyspieszenie', color: '#c2255c', desc: 'Grunt, który już się ruszał, zaczął ruszać się szybciej.',
+      icon: '<path d="M4 18l6-6 4 4 6-9"/><path d="M15 7h5v5"/>' },
+    newzone: { name: 'Nowa strefa ruchu', color: '#862e9c', desc: 'Ruch pojawił się tam, gdzie wcześniej grunt był stabilny.',
       icon: '<path d="M12 5v9M12 18.5v.5"/>' },
+    slowdown: { name: 'Spowolnienie', color: '#1864ab', desc: 'Ruch gruntu wyraźnie zwolnił.',
+      icon: '<path d="M4 7l6 6 4-4 6 9"/><path d="M15 18h5v-5"/>' },
   };
-  const TYPE_ALIASES = { osuwisko: 'landslide', osiadanie: 'subsidence', wypietrzenie: 'uplift', 'wypiętrzenie': 'uplift' };
-  const hazardIsSlope = /osuwisk|zbocz|landslide|slope/i.test(DATA.config.hazard || '');
-  function zoneType(z) {
-    const explicit = z.type && (TYPES[z.type] ? z.type : TYPE_ALIASES[String(z.type).toLowerCase()]);
-    if (explicit) return explicit;
-    if (z.kind === 'up') return 'uplift';
-    if (z.kind === 'down') return hazardIsSlope ? 'landslide' : 'subsidence';
-    return 'other';
-  }
+  const ALERT_TYPES = { 'przyspieszenie': 'accel', 'nowa strefa ruchu': 'newzone', 'spowolnienie': 'slowdown' };
   const iconG = (T) => `<g fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">${T.icon}</g>`;
-  // Map pin (teardrop) with the type's icon; the tip points at the strongest movement
+  // Map pin (teardrop) with the type's icon; the tip points at the anomaly
   const pinSVG = (type) => { const T = TYPES[type]; return `<svg viewBox="0 0 36 44" aria-hidden="true"><path d="M18 42.5S4.5 28.5 4.5 18a13.5 13.5 0 0 1 27 0c0 10.5-13.5 24.5-13.5 24.5z" fill="${T.color}" stroke="#fff" stroke-width="2.5"/><g transform="translate(8 8) scale(.8333)">${iconG(T)}</g></svg>`; };
   // Round badge with the same icon, for the legend, tooltips and popups
   const badge = (type) => { const T = TYPES[type]; return `<span class="badge"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="${T.color}"/><g transform="translate(4 4) scale(.6667)">${iconG(T)}</g></svg></span>`; };
+  const amount = (mm) => (Math.abs(mm) >= 10 ? `${fmt(Math.abs(mm) / 10, 1)} cm` : `${fmt(Math.abs(mm))} mm`);
+  function centroid(geometry) {
+    const ring = geometry.type === 'Polygon' ? geometry.coordinates[0] : geometry.coordinates[0][0];
+    const sum = ring.reduce((a, c) => [a[0] + c[0], a[1] + c[1]], [0, 0]);
+    return [sum[1] / ring.length, sum[0] / ring.length];  // [lat, lon]
+  }
+  const corePx = pixelOf(L.latLng(META.core.lat, META.core.lon));
+  const ANOMALIES = ACTIVE.features.map((f, k) => ({
+    id: `zone${k}`, type: 'landslide', geometry: f.geometry, latlon: [META.core.lat, META.core.lon], date: null,
+    line: () => { const v = corePx < 0 ? null : valueAt(corePx); return `Powierzchnia ${fmt(f.properties.pow_km2, 1)} km²${v === null ? '' : ` · ruch w jądrze: <b>${amount(v)}</b>`}`; },
+    inside: `Ten punkt leży w aktywnej strefie osuwiska (${fmt(f.properties.pow_km2, 1)} km², ruch szybszy niż 100 mm na rok). Warto sprawdzić na miejscu.`,
+  })).concat(ALERTS.features.filter((f) => ALERT_TYPES[f.properties.typ]).map((f, k) => {
+    const p = f.properties, win = p.okno.split('-').map(dPL).join(' – ');
+    return { id: `alert${k}`, type: ALERT_TYPES[p.typ], geometry: f.geometry, latlon: centroid(f.geometry), date: p.data,
+      line: () => `Tempo w tym oknie: <b>${sgn(p.v_mm_rok)} mm/rok</b>`,
+      inside: `Monitoring zmian wykrył tu: ${p.typ} (${sgn(p.v_mm_rok)} mm/rok w oknie ${win}). Warto sprawdzić na miejscu.` };
+  }));
+  const anomalies = () => ANOMALIES.filter((a) => a.date === null || a.date === dISO(dates[state.t]));
 
   // --------------------------------------------------------------- header
-  $('title').textContent = `${DATA.config.name}, ${DATA.config.region}`;
-  $('period').innerHTML = SER.map((s, i) => `<button data-s="${i}" aria-pressed="${i === state.s}">${dPL(dates[s.start])} – ${dPL(dates[s.end])}</button>`).join('');
-  if (SER.length < 2) $('periodWrap').hidden = true;
+  $('title').textContent = `${LOC.name}${LOC.region ? ', ' + LOC.region : ''}`;
+  $('periodWrap').hidden = true;  // this data set has a single observation period
 
   // ------------------------------------------------------------------ map
   const map = L.map('map', { zoomSnap: 0.25 });
@@ -421,125 +443,89 @@ details.adv .pop label.row input { width: 16px; height: 16px; margin: 0; }
   const imagery = esri('World_Imagery', { maxZoom: 18, attribution: 'Esri World Imagery' });
   L.control.layers({ 'Mapa ciemna': dark, 'Mapa jasna': light, 'Zdjęcia satelitarne': imagery }, null, { position: 'topright' }).addTo(map);
   L.control.scale({ imperial: false, position: 'bottomright' }).addTo(map);
-  map.attributionControl.addAttribution('Ruch gruntu: NISAR (NASA/ISRO, ASF DAAC)');
+  map.attributionControl.addAttribution((META.sources || ['NISAR (NASA/ISRO, ASF DAAC)']).map(esc).join(' · '));
 
   // Lock the map to this case study: no panning away and no zooming out past the study area.
-  // The limits come from the location's data, so every case study gets its own.
-  const caseArea = L.latLngBounds(G.bounds);
-  if (DATA.config.view) caseArea.extend(L.latLngBounds(DATA.config.view));
+  const view = LOC.view || F.bounds;
+  const caseArea = L.latLngBounds(META.overlay_bounds).extend(L.latLngBounds(view));
   map.setMaxBounds(caseArea.pad(0.25));
   map.options.maxBoundsViscosity = 1.0;  // hard edge instead of rubber-banding
   const updateMinZoom = () => map.setMinZoom(Math.max(0, map.getBoundsZoom(caseArea) - 0.5));
   updateMinZoom();
   map.on('resize', updateMinZoom);
-  map.fitBounds(DATA.config.view || G.bounds);
+  map.fitBounds(view);
+  map.createPane('relief').style.zIndex = 250;
+  map.createPane('infra').style.zIndex = 425;
   map.createPane('zones').style.zIndex = 430;
   map.createPane('marks').style.zIndex = 620;
 
-  const canvas = document.createElement('canvas');
-  canvas.width = G.width; canvas.height = G.height;
-  const ctx = canvas.getContext('2d'), img = ctx.createImageData(G.width, G.height);
-  // Leaflet positions this <canvas> exactly like an image overlay, but each animation frame is
-  // just a putImageData (no PNG encoding), which keeps the date transitions smooth.
-  const CanvasOverlay = L.ImageOverlay.extend({
-    _initImage() {
-      const el = this._image = canvas;
-      L.DomUtil.addClass(el, 'leaflet-image-layer');
-      if (this._zoomAnimated) L.DomUtil.addClass(el, 'leaflet-zoom-animated');
-      if (this.options.className) L.DomUtil.addClass(el, this.options.className);
-      el.onselectstart = L.Util.falseFn; el.onmousemove = L.Util.falseFn;
-    },
-  });
-  const overlay = new CanvasOverlay('', G.bounds, { className: 'pix', opacity: 0.9 }).addTo(map);
-  const DIV = [[-1, 178, 24, 43], [-0.667, 239, 138, 98], [-0.333, 253, 219, 199], [0, 240, 239, 236], [0.333, 209, 229, 240], [0.667, 103, 169, 207], [1, 33, 102, 172]];
-  const SEQ = [[0, 205, 226, 251], [0.5, 57, 135, 229], [1, 13, 54, 107]];
-  function ramp(stops, x) {
-    x = Math.max(stops[0][0], Math.min(stops[stops.length - 1][0], x));
-    for (let i = 1; i < stops.length; i++) if (x <= stops[i][0]) {
-      const a = stops[i - 1], b = stops[i], f = (x - a[0]) / (b[0] - a[0]);
-      return [a[1] + f * (b[1] - a[1]), a[2] + f * (b[2] - a[2]), a[3] + f * (b[3] - a[3])];
-    }
-    return stops[stops.length - 1].slice(1);
-  }
-  const windowIndex = (t) => winEnd.indexOf(dates[t]);
-  function valueAt(i, mode = state.mode, t = state.t) {
-    const c = R.coh[i];
-    if (c === ND8 || c / 250 < state.cohMin) return null;
-    if (mode === 'coh') return c / 250;
-    if (mode === 'cum') {
-      const a = R.cum[t * N + i], b = R.cum[state.ref * N + i];
-      return a === ND16 || b === ND16 ? null : (a - b) / 10;
-    }
-    const w = windowIndex(t);
-    if (w < 0 || !R.vwin) return null;
-    const v = R.vwin[w * N + i];
-    return v === ND16 ? null : v / 10;
-  }
-  const noise = () => (state.mode === 'cum' ? S().threshold_mm : 50);
-
-  // Colour lookup tables (512 steps) so painting a frame is a table lookup per pixel
-  const LUT_N = 512;
-  function makeLut(stops) {
-    const lut = new Uint8ClampedArray(LUT_N * 3), x0 = stops[0][0], x1 = stops[stops.length - 1][0];
-    for (let k = 0; k < LUT_N; k++) { const c = ramp(stops, x0 + k / (LUT_N - 1) * (x1 - x0)); lut.set(c, k * 3); }
-    return lut;
-  }
-  const LUT_DIV = makeLut(DIV), LUT_SEQ = makeLut(SEQ);
-
-  // Raster state: what is on screen now (shown*), where it is heading (tgt*), where the
-  // current transition started (from*). V = value, P = presence 0..1 (used to fade pixels in/out).
-  const shownV = new Float32Array(N), shownP = new Float32Array(N), tgtV = new Float32Array(N), tgtP = new Float32Array(N);
-  const fromV = new Float32Array(N), fromP = new Float32Array(N);
-  const ANIM_MS = 650, reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  let animFrame = null;
-  function paint() {
-    const px = img.data, coh = state.mode === 'coh', lut = coh ? LUT_SEQ : LUT_DIV, range = state.range, fade = noise(), top = LUT_N - 1;
-    for (let i = 0, o = 0; i < N; i++, o += 4) {
-      const p = shownP[i];
-      if (p < 0.004) { px[o + 3] = 0; continue; }
-      const v = shownV[i];
-      let k, a;
-      if (coh) { k = Math.round(Math.max(0, Math.min(1, v)) * top); a = 235; }
-      else { k = Math.round((Math.max(-1, Math.min(1, v / range)) + 1) / 2 * top); a = 255 * (0.72 + 0.28 * Math.min(1, Math.abs(v) / fade)); }
-      k *= 3; px[o] = lut[k]; px[o + 1] = lut[k + 1]; px[o + 2] = lut[k + 2]; px[o + 3] = a * p;
-    }
-    ctx.putImageData(img, 0, 0);
-  }
-  // animate = true: colours flow smoothly from the current picture to the new date (eased morph
-  // of every pixel's value), instead of the map jumping between measurements.
-  function renderRaster(animate = false) {
-    if (animFrame) { cancelAnimationFrame(animFrame); animFrame = null; }
-    for (let i = 0; i < N; i++) {
-      const v = valueAt(i);
-      if (v === null) { tgtP[i] = 0; tgtV[i] = shownV[i]; } else { tgtP[i] = 1; tgtV[i] = v; }
-    }
-    if (!animate || reduceMotion) { shownV.set(tgtV); shownP.set(tgtP); paint(); return; }
-    fromV.set(shownV); fromP.set(shownP);
-    for (let i = 0; i < N; i++) if (fromP[i] === 0) fromV[i] = tgtV[i];  // new pixels fade in with their final colour
-    const t0 = performance.now();
-    const step = (now) => {
-      const k = Math.min(1, (now - t0) / ANIM_MS), e = k < 0.5 ? 4 * k * k * k : 1 - (-2 * k + 2) ** 3 / 2;  // ease-in-out
-      for (let i = 0; i < N; i++) { shownV[i] = fromV[i] + (tgtV[i] - fromV[i]) * e; shownP[i] = fromP[i] + (tgtP[i] - fromP[i]) * e; }
-      paint();
-      animFrame = k < 1 ? requestAnimationFrame(step) : null;
+  // ---------------------------------------------------------------- raster
+  // Pre-rendered PNG frames (EPSG:3857) from the data folder. Two stacked image overlays give a
+  // cross-fade between dates: the new frame fades in on top, then the old one is hidden.
+  const pad2 = (n) => String(n).padStart(2, '0');
+  const MODES = {
+    cum: { url: (t) => `img/cum_${pad2(t)}.png`, perDate: true },
+    fringe: { url: (t) => `img/fringe_${pad2(t)}.png`, perDate: true },
+    vel: { url: () => 'img/velocity.png', perDate: false },
+    conf: { url: () => 'img/confidence.png', perDate: false },
+  };
+  const ANIM_MS = 650;
+  const mkFrame = () => L.imageOverlay(BASE + MODES.cum.url(state.t), META.overlay_bounds, { className: 'pix fade', opacity: 0 }).addTo(map);
+  const frames = [mkFrame(), mkFrame()];
+  let front = 0, shownUrl = null, swapToken = 0;
+  function renderRaster() {
+    const url = BASE + MODES[state.mode].url(state.t);
+    if (url === shownUrl) { frames[front].setOpacity(state.opacity); return; }
+    const back = 1 - front, old = front, my = ++swapToken;
+    const swap = () => {
+      if (my !== swapToken) return;  // a newer frame was requested meanwhile
+      frames[back].setZIndex(2); frames[old].setZIndex(1);
+      frames[back].setOpacity(state.opacity);
+      front = back; shownUrl = url;
+      setTimeout(() => { if (my === swapToken) frames[old].setOpacity(0); }, ANIM_MS);
     };
-    animFrame = requestAnimationFrame(step);
+    const el = frames[back].getElement();
+    if (frames[back]._url === url && el && el.complete) swap();
+    else { frames[back].once('load', swap); frames[back].setUrl(url); }
   }
-  const MR = 6378137;
-  function pixelOf(latlng) {
-    const x = MR * latlng.lng * Math.PI / 180, y = MR * Math.log(Math.tan(Math.PI / 4 + latlng.lat * Math.PI / 360));
-    const col = Math.floor((x - G.mercator.west) / G.mercator.pixel), row = Math.floor((G.mercator.north - y) / G.mercator.pixel);
-    return col < 0 || row < 0 || col >= G.width || row >= G.height ? -1 : row * G.width + col;
+  dates.forEach((_, t) => { new Image().src = BASE + MODES.cum.url(t); });  // preload for smooth playback
+
+  // Measurement confidence per pixel, read from confidence.png (green = full series, orange = part of pairs)
+  let CONF = null;
+  (function () {
+    const im = new Image();
+    im.onload = () => {
+      try {
+        const c = document.createElement('canvas'); c.width = im.naturalWidth; c.height = im.naturalHeight;
+        const x = c.getContext('2d'); x.drawImage(im, 0, 0);
+        CONF = { w: c.width, h: c.height, d: x.getImageData(0, 0, c.width, c.height).data };
+      } catch (err) { CONF = null; }
+    };
+    im.src = BASE + MODES.conf.url();
+  })();
+  function confidenceAt(latlng) {
+    if (!CONF) return null;
+    const p = project(latlng), sw = project(META.overlay_bounds[0]), ne = project(META.overlay_bounds[1]);
+    const col = Math.floor((p.x - sw.x) / (ne.x - sw.x) * CONF.w), row = Math.floor((ne.y - p.y) / (ne.y - sw.y) * CONF.h);
+    if (col < 0 || row < 0 || col >= CONF.w || row >= CONF.h) return null;
+    const o = (row * CONF.w + col) * 4;
+    if (CONF.d[o + 3] < 10) return null;
+    return CONF.d[o + 1] > CONF.d[o] ? ['wysoka', '●●●', ''] : ['średnia', '●●○', 'W tym miejscu część pomiarów wypadła (np. przez roślinność), więc liczba jest mniej pewna.'];
   }
+
+  const RDBU = ['#67001f', '#b2182b', '#d6604d', '#f4a582', '#fddbc7', '#f7f7f7', '#d1e5f0', '#92c5de', '#4393c3', '#2166ac', '#053061'];
+  const HSV = ['#ff0000', '#ffff00', '#00ff00', '#00ffff', '#0000ff', '#ff00ff', '#ff0000'];
   function renderLegend() {
-    const grad = (stops) => `linear-gradient(90deg, ${stops.map((s) => `rgb(${s[1]},${s[2]},${s[3]}) ${((s[0] - stops[0][0]) / (stops[stops.length - 1][0] - stops[0][0])) * 100}%`).join(',')})`;
-    const r = state.range, unit = state.mode === 'cum' ? 'mm' : 'mm/rok';
-    $('legend').innerHTML = state.mode === 'coh'
-      ? `<span class="legend-bar" style="background:${grad(SEQ)}"></span><div class="legend-ticks"><span>niepewny pomiar</span><span>pewny</span></div>`
-      : `<span class="legend-bar" style="background:${grad(DIV)}"></span><div class="legend-ticks"><span>−${r} ${unit} · osuwanie</span><span>wypiętrzanie · +${r} ${unit}</span></div>`;
+    const bar = (colors) => `<span class="legend-bar" style="background:linear-gradient(90deg, ${colors.join(',')})"></span>`;
+    const m = state.mode;
+    $('legend').innerHTML =
+      m === 'cum' ? `${bar(RDBU)}<div class="legend-ticks"><span>−${SCALE} mm · osuwanie</span><span>wypiętrzanie · +${SCALE} mm</span></div>`
+      : m === 'vel' ? `${bar(RDBU)}<div class="legend-ticks"><span>−${SCALE} mm/rok · osuwanie</span><span>wypiętrzanie · +${SCALE} mm/rok</span></div>`
+      : m === 'fringe' ? `${bar(HSV)}<div class="legend-ticks"><span>jeden pełny cykl barw = ${fmt(META.half_wavelength_mm)} mm ruchu</span></div>`
+      : `<div class="keys"><span><span class="badge" style="background:#2f8f57"></span>pełny szereg pomiarów</span><span><span class="badge" style="background:#e3871f"></span>część pomiarów</span></div>`;
     // One legend entry per anomaly type that occurs in this case study (hover = explanation)
-    const present = Object.keys(TYPES).filter((k) => DATA.zones.some((z) => z.series === state.s && zoneType(z) === k));
-    $('keys').innerHTML = present.map((k) => `<span title="${TYPES[k].desc}">${badge(k)}${TYPES[k].name}</span>`).join('');
+    const present = Object.keys(TYPES).filter((k) => ANOMALIES.some((a) => a.type === k));
+    $('keys').innerHTML = present.map((k) => `<span title="${esc(TYPES[k].desc)}">${badge(k)}${TYPES[k].name}</span>`).join('');
   }
 
   // -------------------------------------------------------------- vectors
@@ -550,50 +536,87 @@ details.adv .pop label.row input { width: 16px; height: 16px; margin: 0; }
     tip.style.top = Math.max(8, ev.clientY - tip.offsetHeight - 12) + 'px';
   }
   const hideTip = () => { tip.style.display = 'none'; };
-  const zoneLayer = L.layerGroup().addTo(map), contourLayer = L.layerGroup();
+  const zoneLayer = L.layerGroup().addTo(map);
   const pointMarker = L.circleMarker([0, 0], { pane: 'marks', radius: 7, color: '#0b0b0b', weight: 2, fillColor: '#fff', fillOpacity: 1, interactive: false });
 
-  // Zones are only rebuilt when the set of visible anomalies changes, so pins that are already
-  // on the map stay put and only newly detected ones "drop in" while the timeline plays.
-  let zonesKey = '';
+  // Anomalies are only rebuilt when the visible set changes, so pins that are already on the
+  // map stay put and only newly detected ones "drop in" while the timeline plays.
+  let zonesKey = null;
   function renderZones() {
     const zs = anomalies(), key = zs.map((z) => z.id).join();
     if (key === zonesKey) return;
     zonesKey = key;
     zoneLayer.clearLayers();
     zs.forEach((z) => {
-      const type = zoneType(z), T = TYPES[type];
+      const T = TYPES[z.type];
       L.geoJSON(z.geometry, { pane: 'zones', interactive: false, style: { color: '#fff', weight: 4, opacity: 0.9, fill: false } }).addTo(zoneLayer);
       const shape = L.geoJSON(z.geometry, { pane: 'zones', style: { color: T.color, weight: 2.2, fillColor: T.color, fillOpacity: 0.12 } }).addTo(zoneLayer);
-      const marker = L.marker(z.peak_latlon, { pane: 'marks', riseOnHover: true, keyboard: true, title: T.name,
-        icon: L.divIcon({ className: '', iconSize: [36, 44], iconAnchor: [18, 43], html: `<span class="pin">${pinSVG(type)}</span>` }) }).addTo(zoneLayer);
-      marker.on('click', (e) => { L.DomEvent.stopPropagation(e); hideTip(); selectPoint(L.latLng(z.peak_latlon)); });
+      const marker = L.marker(z.latlon, { pane: 'marks', riseOnHover: true, keyboard: true, title: T.name,
+        icon: L.divIcon({ className: '', iconSize: [36, 44], iconAnchor: [18, 43], html: `<span class="pin">${pinSVG(z.type)}</span>` }) }).addTo(zoneLayer);
+      marker.on('click', (e) => { L.DomEvent.stopPropagation(e); hideTip(); selectPoint(L.latLng(z.latlon)); });
       shape.on('click', (e) => { L.DomEvent.stopPropagation(e); selectPoint(e.latlng); });
       [shape, marker].forEach((l) => {
-        l.on('mousemove', (e) => showTip(`<div style="display:flex;gap:6px;align-items:center">${badge(type)}<b>${T.name}</b></div>${T.desc}<br>Ruch do <b>${amount(peakAt(z))}</b> · kliknij po szczegóły`, e.originalEvent));
+        l.on('mousemove', (e) => showTip(`<div style="display:flex;gap:6px;align-items:center">${badge(z.type)}<b>${T.name}</b></div>${T.desc}<br>${z.line()} · kliknij po szczegóły`, e.originalEvent));
         l.on('mouseout', hideTip);
       });
     });
   }
-  function renderContours() {
-    contourLayer.clearLayers();
-    L.geoJSON(DATA.contours.filter((f) => f.properties.data === dISO(dates[state.t])), { pane: 'zones', interactive: false, style: (f) => ({ color: '#f0efec', weight: f.properties.poziom_mm % 100 === 0 ? 1.4 : 0.7 }) }).addTo(contourLayer);
+
+  // Objects at risk (pipelines, rail, power lines, roads, buildings). Each layer is fetched the
+  // first time it is switched on. Colours = risk class, taken from the data (meta.risk_colors).
+  const RISK = META.risk_colors || {};
+  const risky = (f) => f.properties.klasa === 'wysokie' || f.properties.klasa === 'średnie';
+  const PIPE_TYPES = ['gazociąg', 'rurociąg', 'ropociąg'];
+  const INFRA = {
+    showPipes: { file: 'pipelines.geojson', filter: () => true },
+    showCritical: { file: 'critical.geojson', filter: (f) => risky(f) && !PIPE_TYPES.includes(f.properties.typ) },
+    showRoads: { file: 'roads_risk.geojson', filter: risky },
+    showBuildings: { file: 'buildings_risk.geojson', filter: risky, canvas: true },
+  };
+  function infraTip(p) {
+    const what = p.typ || p.typ_budynku || 'obiekt', name = p.nazwa || p.operator || '';
+    return `<b>${esc(what)}${name ? ' · ' + esc(name) : ''}</b><br>Zagrożenie: <b>${esc(p.klasa)}</b>${p.powod ? '<br>' + esc(p.powod) : ''}`;
   }
+  function infraLayer(spec) {
+    const group = L.layerGroup();
+    getJSON(BASE + spec.file).then((gj) => {
+      const features = gj.features.filter(spec.filter), renderer = spec.canvas ? L.canvas({ pane: 'infra' }) : undefined;
+      const lines = features.filter((f) => f.geometry.type.includes('LineString'));
+      if (lines.length) L.geoJSON(lines, { pane: 'infra', interactive: false, style: { color: '#fff', weight: 6, opacity: 0.85 } }).addTo(group);
+      L.geoJSON(features, { pane: 'infra', renderer,
+        style: (f) => { const k = f.properties.klasa, hot = risky(f); return { color: RISK[k] || '#98a3ab', weight: hot ? 3.5 : 2, opacity: hot ? 1 : 0.75, dashArray: k === 'brak danych' ? '5 5' : null, fillColor: RISK[k] || '#98a3ab', fillOpacity: 0.55 }; },
+        onEachFeature: (f, l) => { l.on('mousemove', (e) => showTip(infraTip(f.properties), e.originalEvent)); l.on('mouseout', hideTip); },
+      }).addTo(group);
+    }).catch(() => { /* layer file missing in this data set: the toggle simply shows nothing */ });
+    return group;
+  }
+  const infraLayers = {};
+  function renderRiskLegend() {
+    const on = Object.keys(INFRA).some((id) => $(id).checked);
+    $('riskWrap').hidden = !on;
+    $('riskKeys').innerHTML = Object.entries(RISK).map(([k, c]) => `<span><span class="badge" style="background:${esc(c)}"></span>${esc(k)}</span>`).join('');
+  }
+  function toggleInfra(id) {
+    if ($(id).checked) (infraLayers[id] = infraLayers[id] || infraLayer(INFRA[id])).addTo(map);
+    else if (infraLayers[id]) infraLayers[id].remove();
+    renderRiskLegend();
+  }
+  const relief = L.imageOverlay(BASE + 'img/relief.png', META.relief_bounds || META.overlay_bounds, { pane: 'relief', opacity: 0.6, attribution: 'Copernicus DEM' });
 
   // ------------------------------------------------------------- timeline
   const MONTHS = ['sty', 'lut', 'mar', 'kwi', 'maj', 'cze', 'lip', 'sie', 'wrz', 'paź', 'lis', 'gru'];
   const dShort = (d) => `${+d.slice(6, 8)} ${MONTHS[+d.slice(4, 6) - 1]}`;
   const dLong = (d) => `${dShort(d)} ${d.slice(0, 4)}`;
-  const seriesIdx = () => { const out = []; for (let i = S().start; i <= S().end; i++) out.push(i); return out; };
+  const seriesIdx = () => dates.map((_, i) => i);
   // Position of a measurement on the track, 0..1, proportional to time
-  const tlFrac = (i) => { const t0 = times[S().start], t1 = times[S().end]; return t1 > t0 ? (times[i] - t0) / (t1 - t0) : 0.5; };
+  const tlFrac = (i) => (times[T1] > times[T0] ? (times[i] - times[T0]) / (times[T1] - times[T0]) : 0.5);
   const ICON_PLAY = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg>';
   const ICON_PAUSE = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"/></svg>';
   function setPlayIcon(playing) {
     const label = playing ? 'Zatrzymaj' : 'Odtwórz';
     $('play').innerHTML = playing ? ICON_PAUSE : ICON_PLAY; $('play').title = label; $('play').setAttribute('aria-label', label);
   }
-  // Track structure (dots + labels + thumb) is built once per period / resize; changing the date
+  // Track structure (dots + labels + thumb) is built once per resize; changing the date
   // only moves the thumb, which slides there with a CSS transition.
   function buildTimeline() {
     // Thin out date labels so they never overlap: roughly one label per 85 px of track width
@@ -614,31 +637,31 @@ details.adv .pop label.row input { width: 16px; height: 16px; margin: 0; }
   // Click or drag anywhere on the track to jump to the nearest measurement (listeners live
   // on the track element itself, which survives re-rendering of its children).
   (function () {
-    const svg = $('tl'); let drag = false;
+    const track = $('tl'); let drag = false;
     const pick = (ev) => {
-      const r = svg.getBoundingClientRect(), f = (ev.clientX - r.left) / r.width;
+      const r = track.getBoundingClientRect(), f = (ev.clientX - r.left) / r.width;
       return seriesIdx().reduce((best, i) => (Math.abs(tlFrac(i) - f) < Math.abs(tlFrac(best) - f) ? i : best));
     };
     const go = (ev) => { const i = pick(ev); if (i !== state.t) { stop(); setDate(i); } };
-    const hint = (ev) => { const i = pick(ev); showTip(`<b>${dLong(dates[i])}</b><br>Teren w ruchu: ${fmt(S().moving_km2_by_date[i - S().start], 2)} km²`, ev); };
-    svg.addEventListener('pointerdown', (ev) => { drag = true; svg.setPointerCapture(ev.pointerId); go(ev); hint(ev); ev.preventDefault(); });
-    svg.addEventListener('pointermove', (ev) => { if (drag) go(ev); hint(ev); });
-    ['pointerup', 'pointercancel'].forEach((n) => svg.addEventListener(n, () => { drag = false; }));
-    svg.addEventListener('pointerleave', () => { if (!drag) hideTip(); });
-    svg.addEventListener('keydown', (ev) => {
+    const hint = (ev) => {
+      const i = pick(ev), win = MONITORING.find((w) => w.data === dates[i]);
+      showTip(`<b>${dLong(dates[i])}</b>${win ? `<br>Teren w ruchu: ${fmt(win.ruch_km2, 1)} km² (okno ${win.okno.split('-').map(dPL).join(' – ')})` : ''}`, ev);
+    };
+    track.addEventListener('pointerdown', (ev) => { drag = true; track.setPointerCapture(ev.pointerId); go(ev); hint(ev); ev.preventDefault(); });
+    track.addEventListener('pointermove', (ev) => { if (drag) go(ev); hint(ev); });
+    ['pointerup', 'pointercancel'].forEach((n) => track.addEventListener(n, () => { drag = false; }));
+    track.addEventListener('pointerleave', () => { if (!drag) hideTip(); });
+    track.addEventListener('keydown', (ev) => {
       if (ev.key === 'ArrowLeft') { stop(); setDate(state.t - 1); ev.preventDefault(); }
       if (ev.key === 'ArrowRight') { stop(); setDate(state.t + 1); ev.preventDefault(); }
     });
   })();
 
-  // ------------------------------------------------------------ selection
   // ------------------------------------------------------- point popup
   // Written for people who don't know GIS/InSAR: plain words, cm instead of LOS jargon,
   // a verdict chip, a mini chart of this spot over time and a confidence level.
   const pointPopup = L.popup({ className: 'cw-pop', minWidth: 280, maxWidth: 300, autoPanPadding: [20, 20] });
   pointPopup.on('remove', () => { pointMarker.remove(); pointPopup.latlng = null; });
-  const amount = (mm) => (Math.abs(mm) >= 10 ? `${fmt(Math.abs(mm) / 10, 1)} cm` : `${fmt(Math.abs(mm))} mm`);
-  const cumBetween = (i, t, ref) => { const a = R.cum[t * N + i], b = R.cum[ref * N + i]; return a === ND16 || b === ND16 ? null : (a - b) / 10; };
   const coordText = (ll) => `${fmt(Math.abs(ll.lat), 4)}° ${ll.lat >= 0 ? 'N' : 'S'}, ${fmt(Math.abs(ll.lng), 4)}° ${ll.lng >= 0 ? 'E' : 'W'}`;
   function inRing(x, y, ring) {
     let inside = false;
@@ -652,23 +675,18 @@ details.adv .pop label.row input { width: 16px; height: 16px; margin: 0; }
     const polys = g.type === 'Polygon' ? [g.coordinates] : g.type === 'MultiPolygon' ? g.coordinates : [];
     return polys.some((p) => inRing(ll.lng, ll.lat, p[0]) && !p.slice(1).some((hole) => inRing(ll.lng, ll.lat, hole)));
   }
-  function confidence(c) {
-    if (c >= 0.6) return ['wysoka', '●●●', ''];
-    if (c >= 0.35) return ['średnia', '●●○', ''];
-    return ['niska', '●○○', 'Sygnał radaru jest tu zakłócony (np. roślinność, woda), więc ta liczba może być mocno niedokładna.'];
-  }
-  // Small chart: how this spot moved on every measurement date, relative to the start date
+  // Small chart: how this spot moved on every measurement date, relative to the first date
   function sparkline(i) {
-    const idx = seriesIdx(), vals = idx.map((t) => cumBetween(i, t, state.ref)), ok = vals.filter((v) => v !== null);
+    const idx = seriesIdx(), vals = idx.map((t) => valueAt(i, t)), ok = vals.filter((v) => v !== null);
     if (ok.length < 2) return '';
-    const thr = S().threshold_mm, W = 268, H = 66, L0 = 4, R0 = 4, T0 = 6, B0 = 16;
-    let lo = Math.min(-thr, ...ok), hi = Math.max(thr, ...ok); const pad = (hi - lo) * 0.08; lo -= pad; hi += pad;
-    const x = (j) => L0 + j / (idx.length - 1) * (W - L0 - R0), y = (v) => T0 + (hi - v) / (hi - lo) * (H - T0 - B0);
+    const W = 268, H = 66, L0 = 4, R0 = 4, T0y = 6, B0 = 16;
+    let lo = Math.min(-THR, ...ok), hi = Math.max(THR, ...ok); const pad = (hi - lo) * 0.08; lo -= pad; hi += pad;
+    const x = (j) => L0 + j / (idx.length - 1) * (W - L0 - R0), y = (v) => T0y + (hi - v) / (hi - lo) * (H - T0y - B0);
     let d = '', pen = false;
     vals.forEach((v, j) => { if (v === null) { pen = false; return; } d += `${pen ? 'L' : 'M'}${x(j).toFixed(1)} ${y(v).toFixed(1)}`; pen = true; });
     const cur = idx.indexOf(state.t), curV = vals[cur];
     return `<svg class="pp-spark" viewBox="0 0 ${W} ${H}" aria-hidden="true">
-      <rect x="${L0}" y="${y(thr)}" width="${W - L0 - R0}" height="${y(-thr) - y(thr)}" fill="var(--wash)" rx="3"/>
+      <rect x="${L0}" y="${y(THR)}" width="${W - L0 - R0}" height="${y(-THR) - y(THR)}" fill="var(--wash)" rx="3"/>
       <line x1="${L0}" x2="${W - R0}" y1="${y(0)}" y2="${y(0)}" stroke="var(--axis)" stroke-dasharray="3 3"/>
       <path d="${d}" fill="none" stroke="var(--text-2)" stroke-width="1.8" stroke-linejoin="round"/>
       ${vals.map((v, j) => (v === null || j === cur ? '' : `<circle cx="${x(j)}" cy="${y(v)}" r="2.3" fill="var(--text-2)"/>`)).join('')}
@@ -680,45 +698,48 @@ details.adv .pop label.row input { width: 16px; height: 16px; margin: 0; }
   function pointHTML(latlng) {
     const foot = (extra = '') => `<div class="pp-foot">${extra}${coordText(latlng)}</div>`;
     const i = pixelOf(latlng);
-    if (i < 0) return `<span class="pp-chip none">Poza obszarem</span><div class="pp-head">Brak danych</div>
-      <div class="pp-sub">Ten punkt leży poza obszarem, który przeanalizowaliśmy. Kliknij w kolorowej części mapy.</div>${foot()}`;
-    const c = R.coh[i], v = c === ND8 ? null : cumBetween(i, state.t, state.ref);
+    if (i < 0) {
+      return L.latLngBounds(META.overlay_bounds).contains(latlng)
+        ? `<span class="pp-chip none">Bez odczytu</span><div class="pp-head">Tu mapa pokazuje tylko kolor</div>
+          <div class="pp-sub">Dokładne wartości i historię punktu mamy dla środkowej części obszaru analizy. Kliknij bliżej osuwiska.</div>${foot()}`
+        : `<span class="pp-chip none">Poza obszarem</span><div class="pp-head">Brak danych</div>
+          <div class="pp-sub">Ten punkt leży poza obszarem, który przeanalizowaliśmy. Kliknij w kolorowej części mapy.</div>${foot()}`;
+    }
+    const v = valueAt(i);
     if (v === null) return `<span class="pp-chip none">Brak pomiaru</span><div class="pp-head">Satelita nic tu nie zmierzył</div>
       <div class="pp-sub">Zwykle dzieje się tak nad wodą, w gęstym lesie albo w miejscach zasłoniętych przez strome zbocza. To nie znaczy, że teren jest stabilny – po prostu nie wiemy.</div>${foot()}`;
 
-    const thr = S().threshold_mm, a = Math.abs(v), t0 = dates[Math.min(state.ref, state.t)], t1 = dates[Math.max(state.ref, state.t)];
-    const days = Math.round(Math.abs(times[state.t] - times[state.ref]) / 864e5);
-    const [level, chip] = a < thr ? ['calm', 'Stabilnie'] : a < 3 * thr ? ['small', 'Wyraźny ruch'] : ['big', 'Duży ruch'];
+    const a = Math.abs(v), d0 = dates[T0], d1 = dates[state.t];
+    const days = Math.round((times[state.t] - times[T0]) / 864e5);
+    const [level, chip] = a < THR ? ['calm', 'Stabilnie'] : a < 3 * THR ? ['small', 'Wyraźny ruch'] : ['big', 'Duży ruch'];
     let head, sub;
-    if (state.t === state.ref) { head = 'Data początkowa'; sub = 'Od tej daty liczymy zmianę. Wybierz późniejszą datę na osi czasu, żeby zobaczyć, o ile ruszył się grunt.'; }
-    else if (level === 'calm') { head = 'Teren stabilny'; sub = `Zmiana (${sgn(v)} mm) jest mniejsza niż błąd pomiaru (±${fmt(thr)} mm), więc traktujemy ją jak brak ruchu.`; }
+    if (state.t === T0) { head = 'Data początkowa'; sub = 'Od tej daty liczymy zmianę. Wybierz późniejszą datę na osi czasu, żeby zobaczyć, o ile ruszył się grunt.'; }
+    else if (level === 'calm') { head = 'Teren stabilny'; sub = `Zmiana (${sgn(v)} mm) jest mniejsza niż błąd pomiaru (±${fmt(THR)} mm), więc traktujemy ją jak brak ruchu.`; }
     else if (v < 0) { head = `Grunt obniżył się o ${amount(v)}`; sub = 'Teren osiada albo zsuwa się po zboczu (np. osuwisko).'; }
     else { head = `Grunt podniósł się o ${amount(v)}`; sub = 'Teren się wypiętrza – bywa tak np. u podnóża osuwiska, gdzie spychana ziemia się spiętrza.'; }
 
-    const rate = a / days * 365.25;  // mm per year, extrapolated from this period
-    const rows = [`<div class="pp-row"><span>Okres</span><b>${t0.slice(0, 4) === t1.slice(0, 4) ? dShort(t0) : dLong(t0)} → ${dLong(t1)} (${days} dni)</b></div>`];
-    if (level !== 'calm' && days >= 20) rows.push(`<div class="pp-row"><span>Tempo</span><b>ok. ${rate >= 100 ? fmt(rate / 10) + ' cm' : amount(rate)} na rok</b></div>`);
-    const [conf, dots, confHint] = confidence(c / 250);
-    rows.push(`<div class="pp-row"><span>Pewność pomiaru</span><b>${dots} ${conf}</b></div>`);
+    const rows = [];
+    if (state.t !== T0) rows.push(`<div class="pp-row"><span>Okres</span><b>${d0.slice(0, 4) === d1.slice(0, 4) ? dShort(d0) : dLong(d0)} → ${dLong(d1)} (${days} dni)</b></div>`);
+    if (level !== 'calm' && days >= 20) { const rate = a / days * 365.25; rows.push(`<div class="pp-row"><span>Tempo</span><b>ok. ${rate >= 100 ? fmt(rate / 10) + ' cm' : amount(rate)} na rok</b></div>`); }
+    const conf = confidenceAt(latlng);
+    if (conf) rows.push(`<div class="pp-row"><span>Pewność pomiaru</span><b>${conf[1]} ${conf[0]}</b></div>`);
 
     const zone = anomalies().find((z) => inGeometry(z.geometry, latlng));
     let zoneHTML = '';
     if (zone) {
-      const type = zoneType(zone), T = TYPES[type];
-      zoneHTML = `<div class="pp-sec pp-zone" style="background:color-mix(in srgb, ${T.color} 13%, transparent)"><div style="display:flex;gap:7px;align-items:center;margin-bottom:2px">${badge(type)}<b>${T.name}</b></div>Ten punkt leży w strefie, w której cały fragment terenu rusza się razem (maks. ${amount(peakAt(zone))}). Warto sprawdzić na miejscu.</div>`;
-    }
-    else {
-      const near = anomalies().map((z) => [z, map.distance(latlng, z.peak_latlon)]).sort((p, q) => p[1] - q[1])[0];
+      const T = TYPES[zone.type];
+      zoneHTML = `<div class="pp-sec pp-zone" style="background:color-mix(in srgb, ${T.color} 13%, transparent)"><div style="display:flex;gap:7px;align-items:center;margin-bottom:2px">${badge(zone.type)}<b>${T.name}</b></div>${zone.inside}</div>`;
+    } else {
+      const near = anomalies().map((z) => [z, map.distance(latlng, z.latlon)]).sort((p, q) => p[1] - q[1])[0];
       if (near && near[1] < 2000) {
-        const type = zoneType(near[0]);
-        zoneHTML = `<div class="pp-sec" style="display:flex;gap:7px;align-items:center">${badge(type)}<span>Najbliższa anomalia: <b>${TYPES[type].name.toLowerCase()}</b>, ok. ${near[1] < 1000 ? fmt(Math.round(near[1] / 10) * 10) + ' m' : fmt(near[1] / 1000, 1) + ' km'} stąd.</span></div>`;
+        zoneHTML = `<div class="pp-sec" style="display:flex;gap:7px;align-items:center">${badge(near[0].type)}<span>Najbliższa anomalia: <b>${TYPES[near[0].type].name.toLowerCase()}</b>, ok. ${near[1] < 1000 ? fmt(Math.round(near[1] / 10) * 10) + ' m' : fmt(near[1] / 1000, 1) + ' km'} stąd.</span></div>`;
       }
     }
 
     return `<span class="pp-chip ${level}">${chip}</span>
       <div class="pp-head">${head}</div><div class="pp-sub">${sub}</div>
       ${zoneHTML}
-      <div class="pp-sec">${rows.join('')}${confHint ? `<div class="pp-hint">${confHint}</div>` : ''}</div>
+      ${rows.length ? `<div class="pp-sec">${rows.join('')}${conf && conf[2] ? `<div class="pp-hint">${conf[2]}</div>` : ''}</div>` : ''}
       <div class="pp-sec"><h4>Historia tego miejsca</h4><div class="pp-hint" style="margin:0">w dół = grunt opada · niebieska kropka = wybrana data</div>${sparkline(i)}</div>
       ${foot('Satelita patrzy z ukosa, więc prawdziwy ruch może być większy. ')}`;
   }
@@ -730,56 +751,46 @@ details.adv .pop label.row input { width: 16px; height: 16px; margin: 0; }
   // Keep an open popup in sync when the date changes (arrows, timeline, playback)
   const refreshPointPopup = () => { if (pointPopup.latlng && map.hasLayer(pointPopup)) pointPopup.setContent(pointHTML(pointPopup.latlng)); };
 
-  // ---------------------------------------------------------- date / period
-  function setDate(t, animate = true) {
-    state.t = Math.max(S().start, Math.min(S().end, t));
+  // ------------------------------------------------------------------ date
+  function setDate(t) {
+    state.t = Math.max(T0, Math.min(T1, t));
     $('tlDate').textContent = dLong(dates[state.t]);
-    $('prev').disabled = state.t <= S().start; $('next').disabled = state.t >= S().end;
-    $('tlNote').textContent = state.mode === 'cum' ? (state.t === state.ref ? 'początek okresu: zmiana = 0' : `zmiana od ${dPL(dates[state.ref])}`) : '';
-    renderRaster(animate); renderContours(); renderTimeline(); renderZones(); refreshPointPopup();
-  }
-  function setPeriod(s) {
-    stop(); map.closePopup(); pointMarker.remove();
-    state.s = s; state.t = SER[s].end; state.ref = SER[s].start;
-    $('period').querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', +b.dataset.s === s));
-    $('ref').innerHTML = seriesIdx().map((i) => `<option value="${i}">${dPL(dates[i])}${i === S().start ? ' (początek okresu)' : ''}</option>`).join('');
-    zonesKey = ''; renderLegend(); buildTimeline(); setDate(state.t);
+    $('prev').disabled = state.t <= T0; $('next').disabled = state.t >= T1;
+    $('tlNote').textContent = !MODES[state.mode].perDate ? 'ta warstwa obejmuje cały okres i nie zależy od wybranej daty'
+      : state.t === T0 ? 'początek okresu: zmiana = 0' : `zmiana od ${dPL(dates[T0])}`;
+    renderRaster(); renderTimeline(); renderZones(); refreshPointPopup();
   }
   function stop() { clearInterval(state.timer); state.timer = null; setPlayIcon(false); }
 
   // --------------------------------------------------------------- wiring
-  $('period').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) setPeriod(+b.dataset.s); });
   $('play').addEventListener('click', () => {
     if (state.timer) return stop();
-    if (state.t >= S().end) setDate(S().start);
+    if (state.t >= T1) setDate(T0);
     setPlayIcon(true);
-    // A step every 950 ms: the 650 ms colour morph finishes and the frame holds briefly before the next one
-    state.timer = setInterval(() => { if (state.t >= S().end) return stop(); setDate(state.t + 1); }, 950);
+    // A step every 950 ms: the 650 ms cross-fade finishes and the frame holds briefly before the next one
+    state.timer = setInterval(() => { if (state.t >= T1) return stop(); setDate(state.t + 1); }, 950);
   });
-  $('latest').addEventListener('click', () => { stop(); setDate(S().end); });
+  $('latest').addEventListener('click', () => { stop(); setDate(T1); });
   $('prev').addEventListener('click', () => { stop(); setDate(state.t - 1); });
   $('next').addEventListener('click', () => { stop(); setDate(state.t + 1); });
-  if (!R.vwin) $('mode').querySelector('[value="vwin"]').remove();
-  $('mode').addEventListener('change', (e) => { state.mode = e.target.value; renderLegend(); setDate(state.t, false); });
-  $('ref').addEventListener('change', (e) => { state.ref = +e.target.value; setDate(state.t); });
-  $('range').addEventListener('change', (e) => { state.range = +e.target.value; renderLegend(); renderRaster(); });
-  $('opacity').addEventListener('input', (e) => overlay.setOpacity(+e.target.value));
-  $('coh').addEventListener('input', (e) => { state.cohMin = +e.target.value; $('cohVal').textContent = fmt(state.cohMin, 2); renderRaster(); });
-  const toggle = (id, layer) => $(id).addEventListener('change', (e) => (e.target.checked ? layer.addTo(map) : layer.remove()));
-  toggle('showZones', zoneLayer); toggle('showContours', contourLayer);
+  $('mode').addEventListener('change', (e) => { state.mode = e.target.value; renderLegend(); setDate(state.t); });
+  $('opacity').addEventListener('input', (e) => { state.opacity = +e.target.value; frames[front].setOpacity(state.opacity); });
+  $('showZones').addEventListener('change', (e) => (e.target.checked ? zoneLayer.addTo(map) : zoneLayer.remove()));
+  $('showRelief').addEventListener('change', (e) => (e.target.checked ? relief.addTo(map) : relief.remove()));
+  Object.keys(INFRA).forEach((id) => { $(id).addEventListener('change', () => toggleInfra(id)); toggleInfra(id); });
   document.addEventListener('click', (e) => { if (!$('adv').contains(e.target)) $('adv').open = false; });
   map.on('click', (e) => selectPoint(e.latlng));
   map.on('mousemove', (e) => {
-    const i = pixelOf(e.latlng), v = i < 0 ? null : valueAt(i, 'cum');
-    $('readout').innerHTML = v === null ? 'Brak pomiaru w tym miejscu.'
-      : `<b>${sgn(v, 0)} mm</b> ${Math.abs(v) < S().threshold_mm ? 'bez istotnej zmiany' : v < 0 ? 'osuwanie lub osiadanie' : 'wypiętrzanie'}`;
+    const i = pixelOf(e.latlng), v = i < 0 ? null : valueAt(i);
+    $('readout').innerHTML = i < 0 ? 'Dokładny odczyt jest dostępny bliżej osuwiska.' : v === null ? 'Brak pomiaru w tym miejscu.'
+      : `<b>${sgn(v, 0)} mm</b> ${Math.abs(v) < THR ? 'bez istotnej zmiany' : v < 0 ? 'osuwanie lub osiadanie' : 'wypiętrzanie'}`;
   });
   map.on('mouseout', () => { $('readout').textContent = 'Najedź na mapę.'; });
 
   window.addEventListener('resize', () => { hideTip(); buildTimeline(); });
 
   // ---------------------------------------------------------------- start
-  setPeriod(state.s);
+  setPlayIcon(false); renderLegend(); buildTimeline(); setDate(state.t);
 })();
 </script>
 </body>

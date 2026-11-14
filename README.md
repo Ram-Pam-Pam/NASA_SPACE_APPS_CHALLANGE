@@ -21,7 +21,14 @@ uvicorn app.main:app --reload
 - Strona: http://127.0.0.1:8000/
 - API i dokumentacja (można klikać): http://127.0.0.1:8000/docs
 
-## Dane lokalizacji
+## Dane strony
+
+Strona czyta gotowe dane z folderów `Dane/<folder>/data/` (m.in. `meta.json`, klatki PNG, warstwy GeoJSON;
+opis w `Dane/dla_frontendu_portuguese_bend/data/README.md`). Backend sam je wyszukuje
+(`GET /api/v1/datasets`) i serwuje pod `/datasets/...`. Nowa lokalizacja to nowy folder w `Dane/`,
+bez importu i bez restartu serwera.
+
+## Rejestr lokalizacji (opcjonalny: metadane i lokalizacje „wkrótce”)
 
 Analizę liczy `build_location.py` (repo Corridor Watch, wymaga GDAL). Wynik, czyli `data.js`,
 trafia do backendu na jeden z dwóch sposobów:
