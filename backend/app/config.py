@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     api_prefix: str = "/api/v1"
     data_dir: Path = Path("data")  # uploaded layers and the layer registry live here
     max_upload_mb: int = 50  # reject uploaded files bigger than this
+        # Frontend addresses allowed to call the API from a browser (CORS)
+    cors_origins: list[str] = ["http://localhost:5173", "http://localhost:3000"]
 
 
 @lru_cache

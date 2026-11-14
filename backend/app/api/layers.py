@@ -1,6 +1,7 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi.responses import FileResponse
 
 from app.config import get_settings
 from app.schemas.layer import Layer, LayerRole
@@ -66,3 +67,13 @@ def delete_layer(layer_id: str, registry: Registry) -> None:
     """Delete a layer together with its data file."""
     if not registry.delete_layer(layer_id):
         raise HTTPException(status_code=404, detail=f"Layer '{layer_id}' not found")
+
+@router.get("/{layer_id}/data")
+def get_layer_data(layer_id: str, registry: Registry) -> FileResponse:
+    """Return the layer's data as GeoJSON (for drawing it on a map)."""
+    if registry.get_layer(layer_id) is None:
+        raise HTTPException(status_code=404, detail=f"Layer '{layer_id}' not found")
+    path = registry.data_path(layer_id)
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="Data file for this layer is missing")
+    return FileResponse(path, media_type="application/geo+json")
