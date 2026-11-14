@@ -4,10 +4,10 @@ __pycache__/
 *.pyc
 .pytest_cache/
 
-# Sekrety (hasła do bazy, klucze API) - NIGDY do repo
+# SECRETS (passwords, keys etc.)
 .env
 
-# Duże pliki danych SAR - trzymamy poza gitem
+# Big SAR files - outside GIT
 data/raw/
 *.tif
 *.tiff
@@ -15,7 +15,10 @@ data/raw/
 *.h5
 *.zip
 
-# Edytory / system
+# Editors / system
 .vscode/
 .idea/
 .DS_Store
+
+# Local app data (uploaded layers, registry)
+backend/data/
