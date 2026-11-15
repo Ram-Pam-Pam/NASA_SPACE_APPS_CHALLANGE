@@ -1,0 +1,49 @@
+{
+ "count": 211323,
+ "bbox": [
+  -118.53124125525459,
+  33.60615332375136,
+  -118.20694943768743,
+  33.87581998375532
+ ],
+ "layout": "uint16 x[n], y[n], half_len_dm[n], half_wid_dm[n]; uint8 angle[n] (0..255 = 0..180 deg, from east, counter-clockwise), meta[n] (low 4 bits height class, high 4 bits risk 0..3)",
+ "classes": [
+  {
+   "id": 0,
+   "name": "dom",
+   "h": 6
+  },
+  {
+   "id": 1,
+   "name": "blok / hotel",
+   "h": 15
+  },
+  {
+   "id": 2,
+   "name": "usługi / szkoła",
+   "h": 10
+  },
+  {
+   "id": 3,
+   "name": "przemysł / magazyn",
+   "h": 9
+  },
+  {
+   "id": 4,
+   "name": "garaż / wiata",
+   "h": 3
+  },
+  {
+   "id": 5,
+   "name": "kościół",
+   "h": 12
+  }
+ ],
+ "risk": [
+  "brak",
+  "niskie",
+  "średnie",
+  "wysokie"
+ ],
+ "source": "OpenStreetMap (ODbL), simplified to oriented rectangles"
+}

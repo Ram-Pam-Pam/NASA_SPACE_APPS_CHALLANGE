@@ -1,0 +1,308 @@
+{
+  "opis": "Narażenie budynków na ruch terenu NISAR (linia widzenia, mm/rok); ocena gruntu pod budynkiem, nie stanu budynku.",
+  "liczba_budynkow": 211345,
+  "wg_klasy": {
+    "wysokie": 297,
+    "średnie": 2353,
+    "niskie": 198144,
+    "brak danych": 10551
+  },
+  "pow_m2_wg_klasy": {
+    "wysokie": 104098.0,
+    "średnie": 717966.0,
+    "niskie": 50607102.0,
+    "brak danych": 3093742.0
+  },
+  "w_aktywnej_strefie": 225,
+  "w_odleglosci_od_strefy_aktywnej": {
+    "do_0_m": 225,
+    "do_100_m": 294,
+    "do_250_m": 510,
+    "do_500_m": 1015,
+    "do_1000_m": 3322
+  },
+  "wg_typu": {
+    "house": {
+      "wysokie": 223,
+      "średnie": 1925,
+      "niskie": 139466,
+      "brak danych": 4015
+    },
+    "residential": {
+      "wysokie": 0,
+      "średnie": 30,
+      "niskie": 19556,
+      "brak danych": 2093
+    },
+    "budynek": {
+      "wysokie": 44,
+      "średnie": 148,
+      "niskie": 13356,
+      "brak danych": 1738
+    },
+    "apartments": {
+      "wysokie": 16,
+      "średnie": 46,
+      "niskie": 9325,
+      "brak danych": 1509
+    },
+    "industrial": {
+      "wysokie": 1,
+      "średnie": 84,
+      "niskie": 5009,
+      "brak danych": 443
+    },
+    "retail": {
+      "wysokie": 3,
+      "średnie": 12,
+      "niskie": 2536,
+      "brak danych": 175
+    },
+    "commercial": {
+      "wysokie": 0,
+      "średnie": 4,
+      "niskie": 2132,
+      "brak danych": 227
+    },
+    "detached": {
+      "wysokie": 6,
+      "średnie": 34,
+      "niskie": 2218,
+      "brak danych": 3
+    },
+    "warehouse": {
+      "wysokie": 0,
+      "średnie": 5,
+      "niskie": 1754,
+      "brak danych": 163
+    },
+    "school": {
+      "wysokie": 0,
+      "średnie": 6,
+      "niskie": 582,
+      "brak danych": 5
+    },
+    "garage": {
+      "wysokie": 0,
+      "średnie": 4,
+      "niskie": 398,
+      "brak danych": 11
+    },
+    "static_caravan": {
+      "wysokie": 0,
+      "średnie": 0,
+      "niskie": 303,
+      "brak danych": 5
+    }
+  },
+  "pewnosc_danych": {
+    "pełna": 191894,
+    "częściowa": 8900
+  },
+  "potwierdzone_w_monitoringu": {
+    "wysokie": 251,
+    "średnie": 1312
+  },
+  "liczba_okien_monitoringu": 10,
+  "nazwane_zagrozone": [
+    {
+      "nazwa": "Bay Club",
+      "typ_budynku": "budynek",
+      "klasa": "wysokie",
+      "v": -151.5,
+      "odl_m": 5708.0,
+      "powod": "|v|=151 mm/rok (próg 47); ruch zróżnicowany 85 mm/100m/rok"
+    },
+    {
+      "nazwa": "Krispy Kreme",
+      "typ_budynku": "retail",
+      "klasa": "wysokie",
+      "v": -55.1,
+      "odl_m": 12204.0,
+      "powod": "|v|=55 mm/rok (próg 47); ruch zróżnicowany 66 mm/100m/rok"
+    },
+    {
+      "nazwa": "Jack in the Box",
+      "typ_budynku": "retail",
+      "klasa": "wysokie",
+      "v": -54.6,
+      "odl_m": 12264.0,
+      "powod": "|v|=55 mm/rok (próg 47); ruch zróżnicowany 52 mm/100m/rok"
+    },
+    {
+      "nazwa": "ampm",
+      "typ_budynku": "retail",
+      "klasa": "wysokie",
+      "v": -54.6,
+      "odl_m": 12264.0,
+      "powod": "|v|=55 mm/rok (próg 47); ruch zróżnicowany 52 mm/100m/rok"
+    },
+    {
+      "nazwa": "Nelsons Bar",
+      "typ_budynku": "retail",
+      "klasa": "średnie",
+      "v": 91.9,
+      "odl_m": 1883.0,
+      "powod": "|v|=92 mm/rok (próg 47)"
+    },
+    {
+      "nazwa": "Fog Signal House",
+      "typ_budynku": "government",
+      "klasa": "średnie",
+      "v": 72.9,
+      "odl_m": 2953.0,
+      "powod": "|v|=73 mm/rok (próg 47)"
+    },
+    {
+      "nazwa": "Paint House",
+      "typ_budynku": "garage",
+      "klasa": "średnie",
+      "v": 72.9,
+      "odl_m": 2957.0,
+      "powod": "|v|=73 mm/rok (próg 47)"
+    },
+    {
+      "nazwa": "Radio Room",
+      "typ_budynku": "government",
+      "klasa": "średnie",
+      "v": 72.9,
+      "odl_m": 2956.0,
+      "powod": "|v|=73 mm/rok (próg 47)"
+    },
+    {
+      "nazwa": "BYLTup",
+      "typ_budynku": "industrial",
+      "klasa": "średnie",
+      "v": 67.5,
+      "odl_m": 15647.0,
+      "powod": "|v|=67 mm/rok (próg 47); ruch zróżnicowany 35 mm/100m/rok"
+    },
+    {
+      "nazwa": "The Corner Store",
+      "typ_budynku": "retail",
+      "klasa": "średnie",
+      "v": 66.7,
+      "odl_m": 5925.0,
+      "powod": "|v|=67 mm/rok (próg 47)"
+    },
+    {
+      "nazwa": "Assistant Keeper's House",
+      "typ_budynku": "house",
+      "klasa": "średnie",
+      "v": 65.5,
+      "odl_m": 2868.0,
+      "powod": "|v|=66 mm/rok (próg 47)"
+    },
+    {
+      "nazwa": "Assistant Keeper's House",
+      "typ_budynku": "house",
+      "klasa": "średnie",
+      "v": 65.5,
+      "odl_m": 2868.0,
+      "powod": "|v|=66 mm/rok (próg 47); ruch zróżnicowany 21 mm/100m/rok"
+    },
+    {
+      "nazwa": "Maria Stella Maris Mission",
+      "typ_budynku": "budynek",
+      "klasa": "średnie",
+      "v": 58.8,
+      "odl_m": 6636.0,
+      "powod": "|v|=59 mm/rok (próg 47)"
+    },
+    {
+      "nazwa": "Plaza Palos Verdes Apartments",
+      "typ_budynku": "apartments",
+      "klasa": "średnie",
+      "v": -56.5,
+      "odl_m": 326.0,
+      "powod": "|v|=57 mm/rok (próg 47); ruch zróżnicowany 39 mm/100m/rok"
+    },
+    {
+      "nazwa": "Los Angeles Oiled Bird Care and Education Center",
+      "typ_budynku": "budynek",
+      "klasa": "średnie",
+      "v": 54.5,
+      "odl_m": 6479.0,
+      "powod": "|v|=55 mm/rok (próg 47)"
+    },
+    {
+      "nazwa": "Starbucks",
+      "typ_budynku": "retail",
+      "klasa": "średnie",
+      "v": 53.4,
+      "odl_m": 2747.0,
+      "powod": "|v|=53 mm/rok (próg 47)"
+    },
+    {
+      "nazwa": "Point Vicente Interpretive Center",
+      "typ_budynku": "civic",
+      "klasa": "średnie",
+      "v": 52.8,
+      "odl_m": 3028.0,
+      "powod": "|v|=53 mm/rok (próg 47)"
+    },
+    {
+      "nazwa": "Keeper's House",
+      "typ_budynku": "house",
+      "klasa": "średnie",
+      "v": 52.8,
+      "odl_m": 2791.0,
+      "powod": "|v|=53 mm/rok (próg 47); ruch zróżnicowany 21 mm/100m/rok"
+    },
+    {
+      "nazwa": "Bluewater Grill Seafood",
+      "typ_budynku": "budynek",
+      "klasa": "średnie",
+      "v": -50.0,
+      "odl_m": 5657.0,
+      "powod": "|v|=50 mm/rok (próg 47)"
+    },
+    {
+      "nazwa": "AT&T",
+      "typ_budynku": "budynek",
+      "klasa": "średnie",
+      "v": -49.3,
+      "odl_m": 12422.0,
+      "powod": "|v|=49 mm/rok (próg 47); ruch zróżnicowany 49 mm/100m/rok"
+    },
+    {
+      "nazwa": "7-Eleven",
+      "typ_budynku": "retail",
+      "klasa": "średnie",
+      "v": 49.1,
+      "odl_m": 2690.0,
+      "powod": "|v|=49 mm/rok (próg 47)"
+    },
+    {
+      "nazwa": "7-Eleven",
+      "typ_budynku": "roof",
+      "klasa": "średnie",
+      "v": 49.1,
+      "odl_m": 2772.0,
+      "powod": "|v|=49 mm/rok (próg 47)"
+    },
+    {
+      "nazwa": "Marine Mammal Care Center: LAUSD Center For Marine Studies",
+      "typ_budynku": "budynek",
+      "klasa": "średnie",
+      "v": 48.0,
+      "odl_m": 6598.0,
+      "powod": "|v|=48 mm/rok (próg 47)"
+    },
+    {
+      "nazwa": "Trader Joe's",
+      "typ_budynku": "retail",
+      "klasa": "średnie",
+      "v": 47.3,
+      "odl_m": 2676.0,
+      "powod": "|v|=47 mm/rok (próg 47)"
+    }
+  ],
+  "progi": {
+    "v_med": 46.6,
+    "v_high": 100,
+    "g_med": 20,
+    "g_high": 50
+  },
+  "okres": "23.11.2025–22.05.2026"
+}

@@ -1,0 +1,2085 @@
+{
+ "aoi": "tabasco_mexico",
+ "name": "Tabasco",
+ "kind": "scene3d",
+ "built": "2026-11-15",
+ "bbox": [
+  -93.83,
+  17.7,
+  -92.83,
+  18.51
+ ],
+ "size_m": [
+  105808.4,
+  89537.4
+ ],
+ "ground": {
+  "file": "ground.jpg",
+  "source": "Sentinel-2 cloudless 2024 (EOX IT Services, CC BY-NC-SA 4.0; zawiera zmodyfikowane dane Copernicus Sentinel)",
+  "date": "2024",
+  "resolution_m": 10,
+  "tiles": {
+   "dir": "ground_tiles",
+   "grid": 16,
+   "cells": 64,
+   "list": [
+    [
+     0,
+     15
+    ],
+    [
+     1,
+     5
+    ],
+    [
+     1,
+     6
+    ],
+    [
+     1,
+     7
+    ],
+    [
+     1,
+     8
+    ],
+    [
+     1,
+     9
+    ],
+    [
+     1,
+     10
+    ],
+    [
+     1,
+     11
+    ],
+    [
+     1,
+     12
+    ],
+    [
+     1,
+     13
+    ],
+    [
+     1,
+     14
+    ],
+    [
+     1,
+     15
+    ],
+    [
+     2,
+     2
+    ],
+    [
+     2,
+     3
+    ],
+    [
+     2,
+     4
+    ],
+    [
+     2,
+     5
+    ],
+    [
+     2,
+     6
+    ],
+    [
+     2,
+     7
+    ],
+    [
+     2,
+     8
+    ],
+    [
+     2,
+     9
+    ],
+    [
+     2,
+     10
+    ],
+    [
+     2,
+     11
+    ],
+    [
+     2,
+     12
+    ],
+    [
+     2,
+     13
+    ],
+    [
+     2,
+     14
+    ],
+    [
+     2,
+     15
+    ],
+    [
+     3,
+     0
+    ],
+    [
+     3,
+     1
+    ],
+    [
+     3,
+     2
+    ],
+    [
+     3,
+     3
+    ],
+    [
+     3,
+     4
+    ],
+    [
+     3,
+     5
+    ],
+    [
+     3,
+     6
+    ],
+    [
+     3,
+     7
+    ],
+    [
+     3,
+     8
+    ],
+    [
+     3,
+     9
+    ],
+    [
+     3,
+     10
+    ],
+    [
+     3,
+     11
+    ],
+    [
+     3,
+     12
+    ],
+    [
+     3,
+     13
+    ],
+    [
+     3,
+     14
+    ],
+    [
+     3,
+     15
+    ],
+    [
+     4,
+     0
+    ],
+    [
+     4,
+     1
+    ],
+    [
+     4,
+     2
+    ],
+    [
+     4,
+     3
+    ],
+    [
+     4,
+     4
+    ],
+    [
+     4,
+     5
+    ],
+    [
+     4,
+     6
+    ],
+    [
+     4,
+     7
+    ],
+    [
+     4,
+     8
+    ],
+    [
+     4,
+     9
+    ],
+    [
+     4,
+     10
+    ],
+    [
+     4,
+     11
+    ],
+    [
+     4,
+     12
+    ],
+    [
+     4,
+     13
+    ],
+    [
+     4,
+     14
+    ],
+    [
+     4,
+     15
+    ],
+    [
+     5,
+     0
+    ],
+    [
+     5,
+     1
+    ],
+    [
+     5,
+     2
+    ],
+    [
+     5,
+     3
+    ],
+    [
+     5,
+     4
+    ],
+    [
+     5,
+     5
+    ],
+    [
+     5,
+     6
+    ],
+    [
+     5,
+     7
+    ],
+    [
+     5,
+     8
+    ],
+    [
+     5,
+     9
+    ],
+    [
+     5,
+     10
+    ],
+    [
+     5,
+     11
+    ],
+    [
+     5,
+     12
+    ],
+    [
+     5,
+     13
+    ],
+    [
+     5,
+     14
+    ],
+    [
+     5,
+     15
+    ],
+    [
+     6,
+     0
+    ],
+    [
+     6,
+     1
+    ],
+    [
+     6,
+     2
+    ],
+    [
+     6,
+     3
+    ],
+    [
+     6,
+     4
+    ],
+    [
+     6,
+     5
+    ],
+    [
+     6,
+     6
+    ],
+    [
+     6,
+     7
+    ],
+    [
+     6,
+     8
+    ],
+    [
+     6,
+     9
+    ],
+    [
+     6,
+     10
+    ],
+    [
+     6,
+     11
+    ],
+    [
+     6,
+     12
+    ],
+    [
+     6,
+     13
+    ],
+    [
+     6,
+     14
+    ],
+    [
+     6,
+     15
+    ],
+    [
+     7,
+     0
+    ],
+    [
+     7,
+     1
+    ],
+    [
+     7,
+     2
+    ],
+    [
+     7,
+     3
+    ],
+    [
+     7,
+     4
+    ],
+    [
+     7,
+     5
+    ],
+    [
+     7,
+     6
+    ],
+    [
+     7,
+     7
+    ],
+    [
+     7,
+     8
+    ],
+    [
+     7,
+     9
+    ],
+    [
+     7,
+     10
+    ],
+    [
+     7,
+     11
+    ],
+    [
+     7,
+     12
+    ],
+    [
+     7,
+     13
+    ],
+    [
+     7,
+     14
+    ],
+    [
+     7,
+     15
+    ],
+    [
+     8,
+     0
+    ],
+    [
+     8,
+     1
+    ],
+    [
+     8,
+     2
+    ],
+    [
+     8,
+     3
+    ],
+    [
+     8,
+     4
+    ],
+    [
+     8,
+     5
+    ],
+    [
+     8,
+     6
+    ],
+    [
+     8,
+     7
+    ],
+    [
+     8,
+     8
+    ],
+    [
+     8,
+     9
+    ],
+    [
+     8,
+     10
+    ],
+    [
+     8,
+     11
+    ],
+    [
+     8,
+     12
+    ],
+    [
+     8,
+     13
+    ],
+    [
+     8,
+     14
+    ],
+    [
+     8,
+     15
+    ],
+    [
+     9,
+     0
+    ],
+    [
+     9,
+     1
+    ],
+    [
+     9,
+     2
+    ],
+    [
+     9,
+     3
+    ],
+    [
+     9,
+     4
+    ],
+    [
+     9,
+     5
+    ],
+    [
+     9,
+     6
+    ],
+    [
+     9,
+     7
+    ],
+    [
+     9,
+     8
+    ],
+    [
+     9,
+     9
+    ],
+    [
+     9,
+     10
+    ],
+    [
+     9,
+     11
+    ],
+    [
+     9,
+     12
+    ],
+    [
+     9,
+     13
+    ],
+    [
+     9,
+     14
+    ],
+    [
+     9,
+     15
+    ],
+    [
+     10,
+     0
+    ],
+    [
+     10,
+     1
+    ],
+    [
+     10,
+     2
+    ],
+    [
+     10,
+     3
+    ],
+    [
+     10,
+     4
+    ],
+    [
+     10,
+     5
+    ],
+    [
+     10,
+     6
+    ],
+    [
+     10,
+     7
+    ],
+    [
+     10,
+     8
+    ],
+    [
+     10,
+     9
+    ],
+    [
+     10,
+     10
+    ],
+    [
+     10,
+     11
+    ],
+    [
+     10,
+     12
+    ],
+    [
+     10,
+     13
+    ],
+    [
+     10,
+     14
+    ],
+    [
+     10,
+     15
+    ],
+    [
+     11,
+     0
+    ],
+    [
+     11,
+     1
+    ],
+    [
+     11,
+     2
+    ],
+    [
+     11,
+     3
+    ],
+    [
+     11,
+     4
+    ],
+    [
+     11,
+     5
+    ],
+    [
+     11,
+     6
+    ],
+    [
+     11,
+     7
+    ],
+    [
+     11,
+     8
+    ],
+    [
+     11,
+     9
+    ],
+    [
+     11,
+     10
+    ],
+    [
+     11,
+     11
+    ],
+    [
+     11,
+     12
+    ],
+    [
+     11,
+     13
+    ],
+    [
+     11,
+     14
+    ],
+    [
+     11,
+     15
+    ],
+    [
+     12,
+     0
+    ],
+    [
+     12,
+     1
+    ],
+    [
+     12,
+     2
+    ],
+    [
+     12,
+     3
+    ],
+    [
+     12,
+     4
+    ],
+    [
+     12,
+     5
+    ],
+    [
+     12,
+     6
+    ],
+    [
+     12,
+     7
+    ],
+    [
+     12,
+     8
+    ],
+    [
+     12,
+     9
+    ],
+    [
+     12,
+     10
+    ],
+    [
+     12,
+     11
+    ],
+    [
+     12,
+     12
+    ],
+    [
+     12,
+     13
+    ],
+    [
+     12,
+     14
+    ],
+    [
+     12,
+     15
+    ],
+    [
+     13,
+     0
+    ],
+    [
+     13,
+     1
+    ],
+    [
+     13,
+     2
+    ],
+    [
+     13,
+     3
+    ],
+    [
+     13,
+     4
+    ],
+    [
+     13,
+     5
+    ],
+    [
+     13,
+     6
+    ],
+    [
+     13,
+     7
+    ],
+    [
+     13,
+     8
+    ],
+    [
+     13,
+     9
+    ],
+    [
+     13,
+     10
+    ],
+    [
+     13,
+     11
+    ],
+    [
+     13,
+     12
+    ],
+    [
+     13,
+     13
+    ],
+    [
+     13,
+     14
+    ],
+    [
+     13,
+     15
+    ],
+    [
+     14,
+     0
+    ],
+    [
+     14,
+     1
+    ],
+    [
+     14,
+     2
+    ],
+    [
+     14,
+     3
+    ],
+    [
+     14,
+     4
+    ],
+    [
+     14,
+     5
+    ],
+    [
+     14,
+     6
+    ],
+    [
+     14,
+     7
+    ],
+    [
+     14,
+     8
+    ],
+    [
+     14,
+     9
+    ],
+    [
+     14,
+     10
+    ],
+    [
+     14,
+     11
+    ],
+    [
+     14,
+     12
+    ],
+    [
+     14,
+     13
+    ],
+    [
+     14,
+     14
+    ],
+    [
+     14,
+     15
+    ],
+    [
+     15,
+     0
+    ],
+    [
+     15,
+     1
+    ],
+    [
+     15,
+     2
+    ],
+    [
+     15,
+     3
+    ],
+    [
+     15,
+     4
+    ],
+    [
+     15,
+     5
+    ],
+    [
+     15,
+     6
+    ],
+    [
+     15,
+     7
+    ],
+    [
+     15,
+     8
+    ],
+    [
+     15,
+     9
+    ],
+    [
+     15,
+     10
+    ],
+    [
+     15,
+     11
+    ],
+    [
+     15,
+     12
+    ],
+    [
+     15,
+     13
+    ],
+    [
+     15,
+     14
+    ],
+    [
+     15,
+     15
+    ]
+   ],
+   "resolution_m": 8.61,
+   "layout": "<dir>/<row>_<col>.jpg; row 0 = north; tile (r, c) covers terrain cells r*cells..(r+1)*cells x c*cells..(c+1)*cells"
+  }
+ },
+ "terrain": {
+  "file": "terrain.bin",
+  "width": 1025,
+  "height": 1025,
+  "min_m": -0.5,
+  "max_m": 78.55,
+  "layout": "uint16[width*height], rows north -> south; height = min_m + value / 65535 * (max_m - min_m)",
+  "default_exaggeration": 5,
+  "exaggerations": [
+   1,
+   5,
+   10
+  ],
+  "sea_level_m": 0.0,
+  "carved_water": [],
+  "source": "FABDEM V1-2"
+ },
+ "trees": {
+  "file": "trees.bin",
+  "count": 699403,
+  "spacing_m": 24.5,
+  "layout": "uint16 x[n], y[n] (0..65535 = west..east, north..south); uint8 height_dm[n], r[n], g[n], b[n], kind[n] (0 round crown, 1 conical)"
+ },
+ "timeline": {
+  "series": [
+   {
+    "id": "a062",
+    "label": "A062 · wznosząca",
+    "dir": "timeline/a062",
+    "files": [
+     "frame_00.png",
+     "frame_01.png",
+     "frame_02.png",
+     "frame_03.png",
+     "frame_04.png",
+     "frame_05.png",
+     "frame_06.png",
+     "frame_07.png",
+     "frame_08.png",
+     "frame_09.png"
+    ],
+    "dates": [
+     "20260618",
+     "20260630",
+     "20260712",
+     "20260724",
+     "20260817",
+     "20260829",
+     "20260910",
+     "20260922",
+     "20261004",
+     "20261016"
+    ],
+    "bbox": [
+     -93.83,
+     17.7,
+     -92.83,
+     18.51
+    ],
+    "threshold_mm": 47,
+    "full_colour_mm": 200.0,
+    "anomalies": [
+     {
+      "kind": "pipeline",
+      "direction": "down",
+      "lon": -92.900621,
+      "lat": 18.313251,
+      "area_ha": 87,
+      "pipe_length_m": 25028,
+      "stretch_m": 9680.0,
+      "pipes_count": 4,
+      "pipes": [
+       {
+        "name": "GDO TDE BAT PIJIJE-TDR SAM 36\"X55.141 KM",
+        "status": "czynny",
+        "commodity": "SOUR GAS",
+        "diameter_in": 36.0
+       },
+       {
+        "name": "OLG TDE BAT LUNA-BAT OXI L-2 16\"X 54.159",
+        "status": "czynny",
+        "commodity": "OIL AND GAS",
+        "diameter_in": 16.0
+       },
+       {
+        "name": "OLG TDE BAT LUNA-BAT OXI 16\"X 49.706 KM",
+        "status": "czynny",
+        "commodity": "OIL AND GAS",
+        "diameter_in": 16.0
+       },
+       {
+        "name": "OLG CAB SEN NT -BAT PIJIJE 12\"X15.515 KM",
+        "status": "nieczynny",
+        "commodity": "OIL AND GAS",
+        "diameter_in": 12.0
+       }
+      ],
+      "pipes_active": 3,
+      "peak_mm": 290,
+      "peak_saturated": false,
+      "median_mm": 183,
+      "first_date": "20260630",
+      "series_mm": [
+       0,
+       -45,
+       -44,
+       -89,
+       -58,
+       -84,
+       -126,
+       -120,
+       -141,
+       -183
+      ],
+      "rank": 1
+     },
+     {
+      "kind": "pipeline",
+      "direction": "down",
+      "lon": -92.833046,
+      "lat": 18.368777,
+      "area_ha": 32,
+      "pipe_length_m": 6157,
+      "stretch_m": 3920.0,
+      "pipes_count": 4,
+      "pipes": [
+       {
+        "name": "GDO TDE BAT PIJIJE-TDR SAM 36\"X55.141 KM",
+        "status": "czynny",
+        "commodity": "SOUR GAS",
+        "diameter_in": 36.0
+       },
+       {
+        "name": "OLG TDE BAT LUNA-BAT OXI L-2 16\"X 54.159",
+        "status": "czynny",
+        "commodity": "OIL AND GAS",
+        "diameter_in": 16.0
+       },
+       {
+        "name": "OLG TDE BAT LUNA-BAT OXI 16\"X 49.706 KM",
+        "status": "czynny",
+        "commodity": "OIL AND GAS",
+        "diameter_in": 16.0
+       },
+       {
+        "name": "OLG CAB SEN NT -BAT PIJIJE 12\"X15.515 KM",
+        "status": "nieczynny",
+        "commodity": "OIL AND GAS",
+        "diameter_in": 12.0
+       }
+      ],
+      "pipes_active": 3,
+      "peak_mm": 255,
+      "peak_saturated": false,
+      "median_mm": 133,
+      "first_date": "20260817",
+      "series_mm": [
+       0,
+       -56,
+       -41,
+       -75,
+       -107,
+       -102,
+       -136,
+       -139,
+       -138,
+       -133
+      ],
+      "rank": 2
+     },
+     {
+      "kind": "pipeline",
+      "direction": "down",
+      "lon": -92.834675,
+      "lat": 18.007997,
+      "area_ha": 12,
+      "pipe_length_m": 3038,
+      "stretch_m": 1520.0,
+      "pipes_count": 2,
+      "pipes": [
+       {
+        "name": "GDO TDE CPG CP-TDR LA ISLA 24\"X80.108 KM",
+        "status": "nieczynny",
+        "commodity": "SOUR VAPORS",
+        "diameter_in": 24.0
+       },
+       {
+        "name": "OLD TDE VERNET-TDR LADRI. 12\"X61.076 KM",
+        "status": "nieczynny",
+        "commodity": "OLMECA",
+        "diameter_in": 12.0
+       }
+      ],
+      "pipes_active": 0,
+      "peak_mm": 129,
+      "peak_saturated": false,
+      "median_mm": 106,
+      "first_date": "20260922",
+      "series_mm": [
+       0,
+       -21,
+       -14,
+       -30,
+       -76,
+       -62,
+       -81,
+       -101,
+       -76,
+       -106
+      ],
+      "rank": 3
+     },
+     {
+      "kind": "pipeline",
+      "direction": "down",
+      "lon": -93.19864,
+      "lat": 18.156279,
+      "area_ha": 3,
+      "pipe_length_m": 2399,
+      "stretch_m": 720.0,
+      "pipes_count": 6,
+      "pipes": [
+       {
+        "name": "OLD L-3 TDE D BOCAS-MISTER 36\"X61.669 KM",
+        "status": "czynny",
+        "commodity": "MAYA",
+        "diameter_in": 36.0
+       },
+       {
+        "name": "OLD L-1 TDE D BOCAS-MIST 36\"X 62.555 KM",
+        "status": "czynny",
+        "commodity": "MAYA",
+        "diameter_in": 36.0
+       },
+       {
+        "name": "OLD L-2 TDE D BOCAS-CAST  36\"X58.345 KM",
+        "status": "czynny",
+        "commodity": "ISTHMUS",
+        "diameter_in": 36.0
+       },
+       {
+        "name": "OLG BAT CUND-DOS BOCAS-16\"X54.391KM",
+        "status": "czynny",
+        "commodity": "OIL AND GAS",
+        "diameter_in": 16.0
+       }
+      ],
+      "pipes_active": 5,
+      "peak_mm": 131,
+      "peak_saturated": false,
+      "median_mm": 108,
+      "first_date": "20261004",
+      "series_mm": [
+       0,
+       -6,
+       -22,
+       -20,
+       -40,
+       -58,
+       -73,
+       -78,
+       -103,
+       -108
+      ],
+      "rank": 4
+     },
+     {
+      "kind": "pipeline",
+      "direction": "down",
+      "lon": -92.985931,
+      "lat": 18.181563,
+      "area_ha": 3,
+      "pipe_length_m": 960,
+      "stretch_m": 400.0,
+      "pipes_count": 3,
+      "pipes": [
+       {
+        "name": "GDO TDE BAT PIJIJE-TDR SAM 36\"X55.141 KM",
+        "status": "czynny",
+        "commodity": "SOUR GAS",
+        "diameter_in": 36.0
+       },
+       {
+        "name": "OLG TDE BAT LUNA-BAT OXI L-2 16\"X 54.159",
+        "status": "czynny",
+        "commodity": "OIL AND GAS",
+        "diameter_in": 16.0
+       },
+       {
+        "name": "OLG TDE BAT LUNA-BAT OXI 16\"X 49.706 KM",
+        "status": "czynny",
+        "commodity": "OIL AND GAS",
+        "diameter_in": 16.0
+       }
+      ],
+      "pipes_active": 3,
+      "peak_mm": 234,
+      "peak_saturated": false,
+      "median_mm": 222,
+      "first_date": "20260724",
+      "series_mm": [
+       0,
+       -66,
+       -86,
+       -156,
+       -141,
+       -173,
+       -180,
+       -188,
+       -230,
+       -222
+      ],
+      "rank": 5
+     },
+     {
+      "kind": "pipeline",
+      "direction": "down",
+      "lon": -93.428727,
+      "lat": 18.321066,
+      "area_ha": 2,
+      "pipe_length_m": 560,
+      "stretch_m": 400.0,
+      "pipes_count": 4,
+      "pipes": [
+       {
+        "name": "LDD P GPE 3T-BAT GPE 1 3\"X1.398 KM",
+        "status": "czasowo zamknięty",
+        "commodity": "OIL AND GAS",
+        "diameter_in": 3.0
+       },
+       {
+        "name": "LDD P GPE 39-BAT GPE 1 3\"X1.349 KM",
+        "status": "czasowo zamknięty",
+        "commodity": "OIL AND GAS",
+        "diameter_in": 3.0
+       },
+       {
+        "name": "LDD P GPE 3D-BAT GPE 1 3\"X1.387 KM",
+        "status": "czynny",
+        "commodity": "OIL AND GAS",
+        "diameter_in": 3.0
+       },
+       {
+        "name": "LDD P GPE 95-BAT GPE 1 3\"X0.850 KM",
+        "status": "nieczynny",
+        "commodity": "OIL AND GAS",
+        "diameter_in": 3.0
+       }
+      ],
+      "pipes_active": 1,
+      "peak_mm": 223,
+      "peak_saturated": false,
+      "median_mm": 190,
+      "first_date": "20260817",
+      "series_mm": [
+       0,
+       -39,
+       -40,
+       -73,
+       -100,
+       -130,
+       -143,
+       -207,
+       -171,
+       -190
+      ],
+      "rank": 6
+     },
+     {
+      "kind": "pipeline",
+      "direction": "down",
+      "lon": -93.306446,
+      "lat": 18.274979,
+      "area_ha": 5,
+      "pipe_length_m": 880,
+      "stretch_m": 880.0,
+      "pipes_count": 1,
+      "pipes": [
+       {
+        "name": "OLD TDE CHP-BAT TUP 1 10\"X22.009 KM",
+        "status": "nieczynny",
+        "commodity": "OIL",
+        "diameter_in": 10.0
+       }
+      ],
+      "pipes_active": 0,
+      "peak_mm": 172,
+      "peak_saturated": false,
+      "median_mm": 116,
+      "first_date": "20260817",
+      "series_mm": [
+       0,
+       -25,
+       -34,
+       -54,
+       -69,
+       -86,
+       -85,
+       -142,
+       -108,
+       -116
+      ],
+      "rank": 7
+     },
+     {
+      "kind": "pipeline",
+      "direction": "down",
+      "lon": -92.890308,
+      "lat": 17.820784,
+      "area_ha": 2,
+      "pipe_length_m": 720,
+      "stretch_m": 400.0,
+      "pipes_count": 2,
+      "pipes": [
+       {
+        "name": "GLD TDE CPG CP-TDR NVO PM 24\"X74.142 KM",
+        "status": "czynny",
+        "commodity": "GASOLINE",
+        "diameter_in": 24.0
+       },
+       {
+        "name": "GDO TDE CD PM-TDR NVO PM 36\"X74.531 KM",
+        "status": "czynny",
+        "commodity": "SOUR GAS",
+        "diameter_in": 36.0
+       }
+      ],
+      "pipes_active": 2,
+      "peak_mm": 129,
+      "peak_saturated": false,
+      "median_mm": 125,
+      "first_date": "20260829",
+      "series_mm": [
+       0,
+       -21,
+       -35,
+       -50,
+       -64,
+       -84,
+       -108,
+       -123,
+       -114,
+       -125
+      ],
+      "rank": 8
+     },
+     {
+      "kind": "pipeline",
+      "direction": "down",
+      "lon": -93.33502,
+      "lat": 18.297976,
+      "area_ha": 4,
+      "pipe_length_m": 560,
+      "stretch_m": 560.0,
+      "pipes_count": 1,
+      "pipes": [
+       {
+        "name": "OLD TDE CHP-BAT TUP 1 10\"X22.009 KM",
+        "status": "nieczynny",
+        "commodity": "OIL",
+        "diameter_in": 10.0
+       }
+      ],
+      "pipes_active": 0,
+      "peak_mm": 172,
+      "peak_saturated": false,
+      "median_mm": 128,
+      "first_date": "20260817",
+      "series_mm": [
+       0,
+       7,
+       -30,
+       -79,
+       -88,
+       -130,
+       -149,
+       -182,
+       -128,
+       -128
+      ],
+      "rank": 9
+     }
+    ],
+    "anomaly_kind": "pipeline",
+    "source": "NISAR L2 GUNW · A062 (wznosząca)",
+    "note": "Kumulatywne przemieszczenie w linii widzenia satelity (LOS) od pierwszej akwizycji, nie ruch pionowy. Czerwony = od satelity, niebieski = w stronę satelity; zmiany poniżej 47 mm są przezroczyste. Próg przezroczystości to 2x szacowany szum tła (23.4 mm). Pokazano tylko wiarygodne piksele z przetworzonego szeregu. Daty to rzeczywiste akwizycje; wartości między pomiarami nie są interpolowane. To sygnał do wstępnej oceny, a nie diagnoza stanu infrastruktury."
+   },
+   {
+    "id": "d156",
+    "label": "D156 · zstępująca",
+    "dir": "timeline/d156",
+    "files": [
+     "frame_00.png",
+     "frame_01.png",
+     "frame_02.png",
+     "frame_03.png",
+     "frame_04.png",
+     "frame_05.png",
+     "frame_06.png",
+     "frame_07.png",
+     "frame_08.png"
+    ],
+    "dates": [
+     "20260625",
+     "20260707",
+     "20260719",
+     "20260812",
+     "20260824",
+     "20260905",
+     "20260917",
+     "20260929",
+     "20261011"
+    ],
+    "bbox": [
+     -93.83,
+     17.7,
+     -92.83,
+     18.51
+    ],
+    "threshold_mm": 57,
+    "full_colour_mm": 200.0,
+    "anomalies": [
+     {
+      "kind": "pipeline",
+      "direction": "down",
+      "lon": -92.921293,
+      "lat": 18.286262,
+      "area_ha": 150,
+      "pipe_length_m": 41179,
+      "stretch_m": 16630.0,
+      "pipes_count": 29,
+      "pipes": [
+       {
+        "name": "GDO TDE BAT PIJIJE-TDR SAM 36\"X55.141 KM",
+        "status": "czynny",
+        "commodity": "SOUR GAS",
+        "diameter_in": 36.0
+       },
+       {
+        "name": "OLG TDE BAT LUNA-BAT OXI L-2 16\"X 54.159",
+        "status": "czynny",
+        "commodity": "OIL AND GAS",
+        "diameter_in": 16.0
+       },
+       {
+        "name": "OLG TDE BAT LUNA-BAT OXI 16\"X 49.706 KM",
+        "status": "czynny",
+        "commodity": "OIL AND GAS",
+        "diameter_in": 16.0
+       },
+       {
+        "name": "LDD P SEN 63 - CAB SEN SUR 8\"X0.978 KM",
+        "status": "czynny",
+        "commodity": "OIL AND GAS",
+        "diameter_in": 8.0
+       }
+      ],
+      "pipes_active": 20,
+      "peak_mm": 290,
+      "peak_saturated": false,
+      "median_mm": 156,
+      "first_date": "20260812",
+      "series_mm": [
+       0,
+       -54,
+       -40,
+       -107,
+       -106,
+       -127,
+       -148,
+       -151,
+       -156
+      ],
+      "rank": 1
+     },
+     {
+      "kind": "pipeline",
+      "direction": "down",
+      "lon": -92.938451,
+      "lat": 18.260469,
+      "area_ha": 48,
+      "pipe_length_m": 9755,
+      "stretch_m": 5280.0,
+      "pipes_count": 5,
+      "pipes": [
+       {
+        "name": "GDO TDE BAT PIJIJE-TDR SAM 36\"X55.141 KM",
+        "status": "czynny",
+        "commodity": "SOUR GAS",
+        "diameter_in": 36.0
+       },
+       {
+        "name": "OLG TDE BAT LUNA-BAT OXI L-2 16\"X 54.159",
+        "status": "czynny",
+        "commodity": "OIL AND GAS",
+        "diameter_in": 16.0
+       },
+       {
+        "name": "LDD P TERRA 1-CAB SEN SUR 8\"X 9.474 KM",
+        "status": "czasowo zamknięty",
+        "commodity": "OIL AND GAS",
+        "diameter_in": 8.0
+       },
+       {
+        "name": "LDD P TERRA 23-CAB SEN SUR 8\"X 9.674 KM",
+        "status": "czasowo zamknięty",
+        "commodity": "OIL AND GAS",
+        "diameter_in": 8.0
+       }
+      ],
+      "pipes_active": 3,
+      "peak_mm": 205,
+      "peak_saturated": false,
+      "median_mm": 145,
+      "first_date": "20260905",
+      "series_mm": [
+       0,
+       -44,
+       -57,
+       -99,
+       -109,
+       -139,
+       -138,
+       -147,
+       -145
+      ],
+      "rank": 2
+     },
+     {
+      "kind": "pipeline",
+      "direction": "down",
+      "lon": -92.890455,
+      "lat": 18.326805,
+      "area_ha": 10,
+      "pipe_length_m": 3678,
+      "stretch_m": 1440.0,
+      "pipes_count": 4,
+      "pipes": [
+       {
+        "name": "GDO TDE BAT PIJIJE-TDR SAM 36\"X55.141 KM",
+        "status": "czynny",
+        "commodity": "SOUR GAS",
+        "diameter_in": 36.0
+       },
+       {
+        "name": "OLG TDE BAT LUNA-BAT OXI L-2 16\"X 54.159",
+        "status": "czynny",
+        "commodity": "OIL AND GAS",
+        "diameter_in": 16.0
+       },
+       {
+        "name": "OLG TDE BAT LUNA-BAT OXI 16\"X 49.706 KM",
+        "status": "czynny",
+        "commodity": "OIL AND GAS",
+        "diameter_in": 16.0
+       },
+       {
+        "name": "OLG CAB SEN NT -BAT PIJIJE 12\"X15.515 KM",
+        "status": "nieczynny",
+        "commodity": "OIL AND GAS",
+        "diameter_in": 12.0
+       }
+      ],
+      "pipes_active": 3,
+      "peak_mm": 191,
+      "peak_saturated": false,
+      "median_mm": 134,
+      "first_date": "20260917",
+      "series_mm": [
+       0,
+       -45,
+       26,
+       -53,
+       -37,
+       -91,
+       -118,
+       -125,
+       -134
+      ],
+      "rank": 3
+     },
+     {
+      "kind": "pipeline",
+      "direction": "down",
+      "lon": -92.987711,
+      "lat": 18.251897,
+      "area_ha": 8,
+      "pipe_length_m": 3198,
+      "stretch_m": 2000.0,
+      "pipes_count": 5,
+      "pipes": [
+       {
+        "name": "LDD P TERRA 1-CAB SEN SUR 8\"X 9.474 KM",
+        "status": "czasowo zamknięty",
+        "commodity": "OIL AND GAS",
+        "diameter_in": 8.0
+       },
+       {
+        "name": "LDD P TERRA 23-CAB SEN SUR 8\"X 9.674 KM",
+        "status": "czasowo zamknięty",
+        "commodity": "OIL AND GAS",
+        "diameter_in": 8.0
+       },
+       {
+        "name": "LDD P TERRA 1DL- CAB TERRA1 8\" X 5.578KM",
+        "status": "czynny",
+        "commodity": "OIL AND GAS",
+        "diameter_in": 8.0
+       },
+       {
+        "name": "OLG CAB TERRA 1-CAB SEN SUR 20\"X9.773 KM",
+        "status": "czynny",
+        "commodity": "OIL AND GAS",
+        "diameter_in": 20.0
+       }
+      ],
+      "pipes_active": 3,
+      "peak_mm": 180,
+      "peak_saturated": false,
+      "median_mm": 127,
+      "first_date": "20260917",
+      "series_mm": [
+       0,
+       -27,
+       -44,
+       -55,
+       -74,
+       -107,
+       -115,
+       -130,
+       -127
+      ],
+      "rank": 4
+     },
+     {
+      "kind": "pipeline",
+      "direction": "up",
+      "lon": -92.862553,
+      "lat": 18.35271,
+      "area_ha": 5,
+      "pipe_length_m": 2719,
+      "stretch_m": 880.0,
+      "pipes_count": 4,
+      "pipes": [
+       {
+        "name": "GDO TDE BAT PIJIJE-TDR SAM 36\"X55.141 KM",
+        "status": "czynny",
+        "commodity": "SOUR GAS",
+        "diameter_in": 36.0
+       },
+       {
+        "name": "OLG TDE BAT LUNA-BAT OXI L-2 16\"X 54.159",
+        "status": "czynny",
+        "commodity": "OIL AND GAS",
+        "diameter_in": 16.0
+       },
+       {
+        "name": "OLG TDE BAT LUNA-BAT OXI 16\"X 49.706 KM",
+        "status": "czynny",
+        "commodity": "OIL AND GAS",
+        "diameter_in": 16.0
+       },
+       {
+        "name": "OLG CAB SEN NT -BAT PIJIJE 12\"X15.515 KM",
+        "status": "nieczynny",
+        "commodity": "OIL AND GAS",
+        "diameter_in": 12.0
+       }
+      ],
+      "pipes_active": 3,
+      "peak_mm": 128,
+      "peak_saturated": false,
+      "median_mm": 118,
+      "first_date": "20261011",
+      "series_mm": [
+       0,
+       16,
+       36,
+       -33,
+       10,
+       1,
+       13,
+       28,
+       118
+      ],
+      "rank": 5
+     },
+     {
+      "kind": "pipeline",
+      "direction": "down",
+      "lon": -92.985218,
+      "lat": 18.183794,
+      "area_ha": 10,
+      "pipe_length_m": 2399,
+      "stretch_m": 1120.0,
+      "pipes_count": 3,
+      "pipes": [
+       {
+        "name": "GDO TDE BAT PIJIJE-TDR SAM 36\"X55.141 KM",
+        "status": "czynny",
+        "commodity": "SOUR GAS",
+        "diameter_in": 36.0
+       },
+       {
+        "name": "OLG TDE BAT LUNA-BAT OXI L-2 16\"X 54.159",
+        "status": "czynny",
+        "commodity": "OIL AND GAS",
+        "diameter_in": 16.0
+       },
+       {
+        "name": "OLG TDE BAT LUNA-BAT OXI 16\"X 49.706 KM",
+        "status": "czynny",
+        "commodity": "OIL AND GAS",
+        "diameter_in": 16.0
+       }
+      ],
+      "pipes_active": 3,
+      "peak_mm": 170,
+      "peak_saturated": false,
+      "median_mm": 133,
+      "first_date": "20260824",
+      "series_mm": [
+       0,
+       -62,
+       -98,
+       -75,
+       -118,
+       -117,
+       -120,
+       -124,
+       -133
+      ],
+      "rank": 6
+     },
+     {
+      "kind": "pipeline",
+      "direction": "down",
+      "lon": -92.831973,
+      "lat": 18.370266,
+      "area_ha": 5,
+      "pipe_length_m": 2319,
+      "stretch_m": 1440.0,
+      "pipes_count": 3,
+      "pipes": [
+       {
+        "name": "OLG TDE BAT LUNA-BAT OXI L-2 16\"X 54.159",
+        "status": "czynny",
+        "commodity": "OIL AND GAS",
+        "diameter_in": 16.0
+       },
+       {
+        "name": "OLG TDE BAT LUNA-BAT OXI 16\"X 49.706 KM",
+        "status": "czynny",
+        "commodity": "OIL AND GAS",
+        "diameter_in": 16.0
+       },
+       {
+        "name": "OLG CAB SEN NT -BAT PIJIJE 12\"X15.515 KM",
+        "status": "nieczynny",
+        "commodity": "OIL AND GAS",
+        "diameter_in": 12.0
+       }
+      ],
+      "pipes_active": 2,
+      "peak_mm": 181,
+      "peak_saturated": false,
+      "median_mm": 124,
+      "first_date": "20261011",
+      "series_mm": [
+       0,
+       -36,
+       39,
+       -28,
+       26,
+       -31,
+       -32,
+       -14,
+       -124
+      ],
+      "rank": 7
+     },
+     {
+      "kind": "pipeline",
+      "direction": "up",
+      "lon": -92.948704,
+      "lat": 18.353053,
+      "area_ha": 23,
+      "pipe_length_m": 1519,
+      "stretch_m": 1520.0,
+      "pipes_count": 1,
+      "pipes": [
+       {
+        "name": "LDD POZ SEN 301-CAB SEN 203 8\"X5.798 KM",
+        "status": "czynny",
+        "commodity": "OIL AND GAS",
+        "diameter_in": 8.0
+       }
+      ],
+      "pipes_active": 1,
+      "peak_mm": 206,
+      "peak_saturated": false,
+      "median_mm": 170,
+      "first_date": "20261011",
+      "series_mm": [
+       0,
+       -43,
+       23,
+       -49,
+       -27,
+       -74,
+       -84,
+       -52,
+       170
+      ],
+      "rank": 8
+     },
+     {
+      "kind": "pipeline",
+      "direction": "up",
+      "lon": -93.209788,
+      "lat": 18.424655,
+      "area_ha": 2,
+      "pipe_length_m": 1679,
+      "stretch_m": 560.0,
+      "pipes_count": 4,
+      "pipes": [
+       {
+        "name": "OLG BAT PCB- TMDB 24\"X8.841 KM",
+        "status": "czynny",
+        "commodity": "OIL AND GAS",
+        "diameter_in": 24.0
+       },
+       {
+        "name": "OLG CAB PCB 153-OLG 24\" TMDB 12\"X3.037KM",
+        "status": "czasowo zamknięty",
+        "commodity": "OIL AND GAS",
+        "diameter_in": 12.0
+       },
+       {
+        "name": "OLG CAB PCB 153-CAB PCB 159 8\"X4.403  KM",
+        "status": "czasowo zamknięty",
+        "commodity": "OIL AND GAS",
+        "diameter_in": 8.0
+       },
+       {
+        "name": "OLG BAT PCB- TMDB 16\"X8.888 KM",
+        "status": "czasowo zamknięty",
+        "commodity": "OIL AND GAS",
+        "diameter_in": 16.0
+       }
+      ],
+      "pipes_active": 1,
+      "peak_mm": 130,
+      "peak_saturated": false,
+      "median_mm": 120,
+      "first_date": "20261011",
+      "series_mm": [
+       0,
+       53,
+       47,
+       68,
+       87,
+       67,
+       86,
+       90,
+       120
+      ],
+      "rank": 9
+     },
+     {
+      "kind": "pipeline",
+      "direction": "down",
+      "lon": -92.969371,
+      "lat": 18.244603,
+      "area_ha": 5,
+      "pipe_length_m": 1039,
+      "stretch_m": 640.0,
+      "pipes_count": 2,
+      "pipes": [
+       {
+        "name": "LDD P TERRA 1DL- CAB TERRA1 8\" X 5.578KM",
+        "status": "czynny",
+        "commodity": "OIL AND GAS",
+        "diameter_in": 8.0
+       },
+       {
+        "name": "OLG CAB TERRA1DL-CAB TERRA1 16\"X5.482 KM",
+        "status": "czynny",
+        "commodity": "OIL AND GAS",
+        "diameter_in": 16.0
+       }
+      ],
+      "pipes_active": 2,
+      "peak_mm": 148,
+      "peak_saturated": false,
+      "median_mm": 126,
+      "first_date": "20260812",
+      "series_mm": [
+       0,
+       -22,
+       -59,
+       -171,
+       -165,
+       -190,
+       -185,
+       -162,
+       -126
+      ],
+      "rank": 10
+     },
+     {
+      "kind": "pipeline",
+      "direction": "up",
+      "lon": -92.959199,
+      "lat": 18.367544,
+      "area_ha": 3,
+      "pipe_length_m": 560,
+      "stretch_m": 560.0,
+      "pipes_count": 1,
+      "pipes": [
+       {
+        "name": "LDD POZ SEN 301-CAB SEN 203 8\"X5.798 KM",
+        "status": "czynny",
+        "commodity": "OIL AND GAS",
+        "diameter_in": 8.0
+       }
+      ],
+      "pipes_active": 1,
+      "peak_mm": 185,
+      "peak_saturated": false,
+      "median_mm": 160,
+      "first_date": "20261011",
+      "series_mm": [
+       0,
+       -52,
+       11,
+       -34,
+       -17,
+       -64,
+       -102,
+       -71,
+       160
+      ],
+      "rank": 11
+     }
+    ],
+    "anomaly_kind": "pipeline",
+    "source": "NISAR L2 GUNW · D156 (zstępująca)",
+    "note": "Kumulatywne przemieszczenie w linii widzenia satelity (LOS) od pierwszej akwizycji, nie ruch pionowy. Czerwony = od satelity, niebieski = w stronę satelity; zmiany poniżej 57 mm są przezroczyste. Próg przezroczystości to 2x szacowany szum tła (28.4 mm). Pokazano tylko wiarygodne piksele z przetworzonego szeregu. Daty to rzeczywiste akwizycje; wartości między pomiarami nie są interpolowane. To sygnał do wstępnej oceny, a nie diagnoza stanu infrastruktury."
+   }
+  ]
+ },
+ "layers": {
+  "roads": {
+   "file": "roads.geojson",
+   "count": 1991
+  },
+  "rail": {
+   "file": "rail.geojson",
+   "count": 0
+  },
+  "water": {
+   "file": "water.geojson",
+   "count": 0
+  },
+  "pipelines": {
+   "file": "pipelines.geojson",
+   "count": 1855
+  },
+  "areas": {
+   "file": "areas.geojson",
+   "count": 63
+  },
+  "places": {
+   "file": "places.geojson",
+   "count": 133
+  },
+  "buildings": {
+   "file": "buildings.geojson",
+   "count": 0
+  },
+  "power": {
+   "file": "power.geojson",
+   "count": 0
+  },
+  "hazards": {
+   "file": "hazards.geojson",
+   "count": 0
+  },
+  "forest": {
+   "file": "forest.geojson",
+   "count": 0
+  }
+ },
+ "only_layers": [
+  "areas",
+  "buildings",
+  "pipelines",
+  "places",
+  "roads",
+  "trees"
+ ],
+ "sources": [
+  "OpenStreetMap (ODbL), stan na 2026-11-15",
+  "Overture Maps 2026-10-21.0 (budynki: OSM + Microsoft ML Buildings)",
+  "Sentinel-2 cloudless 2024 (EOX IT Services, CC BY-NC-SA 4.0; zawiera zmodyfikowane dane Copernicus Sentinel)",
+  "ESA WorldCover 10 m 2021 (CC BY 4.0)",
+  "FABDEM V1-2 (Univ. of Bristol / Fathom, CC BY-NC-SA 4.0): Copernicus DEM GLO-30 bez drzew i budynków",
+  "Rurociągi i gazociągi: warstwa zespołu (tabasco_ogim.gpkg, OGIM / PEMEX)",
+  "Sentinel-2 cloudless 2024: kafle szczegółowe w pełnej rozdzielczości (~9 m)"
+ ],
+ "buildings_fp": {
+  "file": "buildings_fp.bin",
+  "count": 949910,
+  "layout": "per building: uint8 points, height_half_m, flags (1 = small, pitched roof), roof r, g, b; then points x uint16 x, y (little endian; 0..65535 = west..east, north..south)"
+ },
+ "pipes_one_class": true,
+ "pipe_style": "thin"
+}

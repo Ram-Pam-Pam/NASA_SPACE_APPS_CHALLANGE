@@ -1,0 +1,182 @@
+{
+ "A062": {
+  "aoi": "tabasco_mexico",
+  "stack": "A062",
+  "orbita": "wznoszaca",
+  "params": {
+   "aoi": "tabasco_mexico",
+   "window_pairs": 3,
+   "history_days": 120,
+   "baseline": null,
+   "k_sigma": 3.0,
+   "v_min": 50.0,
+   "dv_min": 50.0,
+   "min_px": 4,
+   "contour_step": 50.0
+  },
+  "classes": {
+   "0": "brak istotnego ruchu",
+   "1": "ruch stały",
+   "2": "przyspieszenie",
+   "3": "nowa strefa ruchu",
+   "4": "spowolnienie"
+  },
+  "windows": [
+   {
+    "okno": "20260618-20260724",
+    "data": "20260724",
+    "szum_mm_rok": 138.0,
+    "baza": "brak (rozbieg)",
+    "ruch_km2": 86.835,
+    "przyspieszenie": 0.0,
+    "nowa strefa ruchu": 0.0,
+    "spowolnienie": 0.0
+   },
+   {
+    "okno": "20260630-20260817",
+    "data": "20260817",
+    "szum_mm_rok": 93.7,
+    "baza": "brak (rozbieg)",
+    "ruch_km2": 80.87,
+    "przyspieszenie": 0.0,
+    "nowa strefa ruchu": 0.0,
+    "spowolnienie": 0.0
+   },
+   {
+    "okno": "20260712-20260829",
+    "data": "20260829",
+    "szum_mm_rok": 69.9,
+    "baza": "trailing",
+    "ruch_km2": 101.165,
+    "przyspieszenie": 1.523,
+    "nowa strefa ruchu": 82.861,
+    "spowolnienie": 41.453
+   },
+   {
+    "okno": "20260724-20260910",
+    "data": "20260910",
+    "szum_mm_rok": 91.1,
+    "baza": "trailing",
+    "ruch_km2": 60.506,
+    "przyspieszenie": 0.397,
+    "nowa strefa ruchu": 33.734,
+    "spowolnienie": 48.115
+   },
+   {
+    "okno": "20260817-20260922",
+    "data": "20260922",
+    "szum_mm_rok": 130.3,
+    "baza": "trailing",
+    "ruch_km2": 105.203,
+    "przyspieszenie": 3.699,
+    "nowa strefa ruchu": 72.365,
+    "spowolnienie": 21.043
+   },
+   {
+    "okno": "20260829-20261004",
+    "data": "20261004",
+    "szum_mm_rok": 108.9,
+    "baza": "trailing",
+    "ruch_km2": 80.454,
+    "przyspieszenie": 5.133,
+    "nowa strefa ruchu": 31.77,
+    "spowolnienie": 29.498
+   },
+   {
+    "okno": "20260910-20261016",
+    "data": "20261016",
+    "szum_mm_rok": 110.9,
+    "baza": "trailing",
+    "ruch_km2": 72.128,
+    "przyspieszenie": 3.462,
+    "nowa strefa ruchu": 21.894,
+    "spowolnienie": 32.902
+   }
+  ]
+ },
+ "D156": {
+  "aoi": "tabasco_mexico",
+  "stack": "D156",
+  "orbita": "zstepujaca",
+  "params": {
+   "aoi": "tabasco_mexico",
+   "window_pairs": 3,
+   "history_days": 120,
+   "baseline": null,
+   "k_sigma": 3.0,
+   "v_min": 50.0,
+   "dv_min": 50.0,
+   "min_px": 4,
+   "contour_step": 50.0
+  },
+  "classes": {
+   "0": "brak istotnego ruchu",
+   "1": "ruch stały",
+   "2": "przyspieszenie",
+   "3": "nowa strefa ruchu",
+   "4": "spowolnienie"
+  },
+  "windows": [
+   {
+    "okno": "20260625-20260812",
+    "data": "20260812",
+    "szum_mm_rok": 186.9,
+    "baza": "brak (rozbieg)",
+    "ruch_km2": 84.448,
+    "przyspieszenie": 0.0,
+    "nowa strefa ruchu": 0.0,
+    "spowolnienie": 0.0
+   },
+   {
+    "okno": "20260707-20260824",
+    "data": "20260824",
+    "szum_mm_rok": 200.9,
+    "baza": "brak (rozbieg)",
+    "ruch_km2": 37.306,
+    "przyspieszenie": 0.0,
+    "nowa strefa ruchu": 0.0,
+    "spowolnienie": 0.0
+   },
+   {
+    "okno": "20260719-20260905",
+    "data": "20260905",
+    "szum_mm_rok": 149.9,
+    "baza": "trailing",
+    "ruch_km2": 79.04,
+    "przyspieszenie": 0.0,
+    "nowa strefa ruchu": 61.978,
+    "spowolnienie": 75.27
+   },
+   {
+    "okno": "20260812-20260917",
+    "data": "20260917",
+    "szum_mm_rok": 238.7,
+    "baza": "trailing",
+    "ruch_km2": 11.462,
+    "przyspieszenie": 0.0,
+    "nowa strefa ruchu": 8.864,
+    "spowolnienie": 39.098
+   },
+   {
+    "okno": "20260824-20260929",
+    "data": "20260929",
+    "szum_mm_rok": 270.8,
+    "baza": "trailing",
+    "ruch_km2": 86.816,
+    "przyspieszenie": 0.0,
+    "nowa strefa ruchu": 80.813,
+    "spowolnienie": 14.432
+   },
+   {
+    "okno": "20260905-20261011",
+    "data": "20261011",
+    "szum_mm_rok": 147.8,
+    "baza": "trailing",
+    "ruch_km2": 130.662,
+    "przyspieszenie": 3.379,
+    "nowa strefa ruchu": 89.754,
+    "spowolnienie": 16.32
+   }
+  ]
+ }
+}

@@ -1,0 +1,56 @@
+{
+  "type": "FeatureCollection",
+  "name": "portuguese_bend_california",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "portuguese_bend_california",
+      "properties": {
+        "name": "Portuguese Bend Landslide Complex",
+        "center_lon_lat": [
+          -118.3692,
+          33.7409
+        ],
+        "window_width_km_approx": 30.0,
+        "window_height_km_approx": 30.0,
+        "area_km2_approx": 900.0,
+        "analysis": "InSAR ground-deformation search area",
+        "hazard": "Landslide movement",
+        "nearby_infrastructure": "Roads and utility corridors",
+        "candidate_sensors": [
+          "NISAR",
+          "Sentinel-1"
+        ],
+        "note": "Current monitoring candidate; check acquisition dates and coherence.",
+        "caveat": "Approximate rectangular AOI for searching InSAR acquisitions. Not an official hazard boundary or confirmation of data coverage."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -118.53124125525457,
+              33.60615332375135
+            ],
+            [
+              -118.20715874474544,
+              33.60615332375135
+            ],
+            [
+              -118.20715874474544,
+              33.87564667624866
+            ],
+            [
+              -118.53124125525457,
+              33.87564667624866
+            ],
+            [
+              -118.53124125525457,
+              33.60615332375135
+            ]
+          ]
+        ]
+      }
+    }
+  ]
+}

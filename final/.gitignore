@@ -1,0 +1,10 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# system
+.DS_Store
+
+# local download caches of the build scripts
+cache_*/

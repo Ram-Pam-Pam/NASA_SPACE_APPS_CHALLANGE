@@ -1,0 +1,1571 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+</head>
+<body>
+<title>Portuguese Bend w ruchu</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Rok pomiarów NISAR nad osuwiskiem Portuguese Bend: ruch terenu, wykrywanie zmian i bezpieczeństwo infrastruktury liniowej.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap">
+<style id="leaflet-css">/* required styles */
+
+.leaflet-pane,
+.leaflet-tile,
+.leaflet-marker-icon,
+.leaflet-marker-shadow,
+.leaflet-tile-container,
+.leaflet-pane > svg,
+.leaflet-pane > canvas,
+.leaflet-zoom-box,
+.leaflet-image-layer,
+.leaflet-layer {
+	position: absolute;
+	left: 0;
+	top: 0;
+	}
+.leaflet-container {
+	overflow: hidden;
+	}
+.leaflet-tile,
+.leaflet-marker-icon,
+.leaflet-marker-shadow {
+	-webkit-user-select: none;
+	   -moz-user-select: none;
+	        user-select: none;
+	  -webkit-user-drag: none;
+	}
+/* Prevents IE11 from highlighting tiles in blue */
+.leaflet-tile::selection {
+	background: transparent;
+}
+/* Safari renders non-retina tile on retina better with this, but Chrome is worse */
+.leaflet-safari .leaflet-tile {
+	image-rendering: -webkit-optimize-contrast;
+	}
+/* hack that prevents hw layers "stretching" when loading new tiles */
+.leaflet-safari .leaflet-tile-container {
+	width: 1600px;
+	height: 1600px;
+	-webkit-transform-origin: 0 0;
+	}
+.leaflet-marker-icon,
+.leaflet-marker-shadow {
+	display: block;
+	}
+/* .leaflet-container svg: reset svg max-width decleration shipped in Joomla! (joomla.org) 3.x */
+/* .leaflet-container img: map is broken in FF if you have max-width: 100% on tiles */
+.leaflet-container .leaflet-overlay-pane svg {
+	max-width: none !important;
+	max-height: none !important;
+	}
+.leaflet-container .leaflet-marker-pane img,
+.leaflet-container .leaflet-shadow-pane img,
+.leaflet-container .leaflet-tile-pane img,
+.leaflet-container img.leaflet-image-layer,
+.leaflet-container .leaflet-tile {
+	max-width: none !important;
+	max-height: none !important;
+	width: auto;
+	padding: 0;
+	}
+
+.leaflet-container img.leaflet-tile {
+	/* See: https://bugs.chromium.org/p/chromium/issues/detail?id=600120 */
+	mix-blend-mode: plus-lighter;
+}
+
+.leaflet-container.leaflet-touch-zoom {
+	-ms-touch-action: pan-x pan-y;
+	touch-action: pan-x pan-y;
+	}
+.leaflet-container.leaflet-touch-drag {
+	-ms-touch-action: pinch-zoom;
+	/* Fallback for FF which doesn't support pinch-zoom */
+	touch-action: none;
+	touch-action: pinch-zoom;
+}
+.leaflet-container.leaflet-touch-drag.leaflet-touch-zoom {
+	-ms-touch-action: none;
+	touch-action: none;
+}
+.leaflet-container {
+	-webkit-tap-highlight-color: transparent;
+}
+.leaflet-container a {
+	-webkit-tap-highlight-color: rgba(51, 181, 229, 0.4);
+}
+.leaflet-tile {
+	filter: inherit;
+	visibility: hidden;
+	}
+.leaflet-tile-loaded {
+	visibility: inherit;
+	}
+.leaflet-zoom-box {
+	width: 0;
+	height: 0;
+	-moz-box-sizing: border-box;
+	     box-sizing: border-box;
+	z-index: 800;
+	}
+/* workaround for https://bugzilla.mozilla.org/show_bug.cgi?id=888319 */
+.leaflet-overlay-pane svg {
+	-moz-user-select: none;
+	}
+
+.leaflet-pane         { z-index: 400; }
+
+.leaflet-tile-pane    { z-index: 200; }
+.leaflet-overlay-pane { z-index: 400; }
+.leaflet-shadow-pane  { z-index: 500; }
+.leaflet-marker-pane  { z-index: 600; }
+.leaflet-tooltip-pane   { z-index: 650; }
+.leaflet-popup-pane   { z-index: 700; }
+
+.leaflet-map-pane canvas { z-index: 100; }
+.leaflet-map-pane svg    { z-index: 200; }
+
+.leaflet-vml-shape {
+	width: 1px;
+	height: 1px;
+	}
+.lvml {
+	behavior: url(#default#VML);
+	display: inline-block;
+	position: absolute;
+	}
+
+
+/* control positioning */
+
+.leaflet-control {
+	position: relative;
+	z-index: 800;
+	pointer-events: visiblePainted; /* IE 9-10 doesn't have auto */
+	pointer-events: auto;
+	}
+.leaflet-top,
+.leaflet-bottom {
+	position: absolute;
+	z-index: 1000;
+	pointer-events: none;
+	}
+.leaflet-top {
+	top: 0;
+	}
+.leaflet-right {
+	right: 0;
+	}
+.leaflet-bottom {
+	bottom: 0;
+	}
+.leaflet-left {
+	left: 0;
+	}
+.leaflet-control {
+	float: left;
+	clear: both;
+	}
+.leaflet-right .leaflet-control {
+	float: right;
+	}
+.leaflet-top .leaflet-control {
+	margin-top: 10px;
+	}
+.leaflet-bottom .leaflet-control {
+	margin-bottom: 10px;
+	}
+.leaflet-left .leaflet-control {
+	margin-left: 10px;
+	}
+.leaflet-right .leaflet-control {
+	margin-right: 10px;
+	}
+
+
+/* zoom and fade animations */
+
+.leaflet-fade-anim .leaflet-popup {
+	opacity: 0;
+	-webkit-transition: opacity 0.2s linear;
+	   -moz-transition: opacity 0.2s linear;
+	        transition: opacity 0.2s linear;
+	}
+.leaflet-fade-anim .leaflet-map-pane .leaflet-popup {
+	opacity: 1;
+	}
+.leaflet-zoom-animated {
+	-webkit-transform-origin: 0 0;
+	    -ms-transform-origin: 0 0;
+	        transform-origin: 0 0;
+	}
+svg.leaflet-zoom-animated {
+	will-change: transform;
+}
+
+.leaflet-zoom-anim .leaflet-zoom-animated {
+	-webkit-transition: -webkit-transform 0.25s cubic-bezier(0,0,0.25,1);
+	   -moz-transition:    -moz-transform 0.25s cubic-bezier(0,0,0.25,1);
+	        transition:         transform 0.25s cubic-bezier(0,0,0.25,1);
+	}
+.leaflet-zoom-anim .leaflet-tile,
+.leaflet-pan-anim .leaflet-tile {
+	-webkit-transition: none;
+	   -moz-transition: none;
+	        transition: none;
+	}
+
+.leaflet-zoom-anim .leaflet-zoom-hide {
+	visibility: hidden;
+	}
+
+
+/* cursors */
+
+.leaflet-interactive {
+	cursor: pointer;
+	}
+.leaflet-grab {
+	cursor: -webkit-grab;
+	cursor:    -moz-grab;
+	cursor:         grab;
+	}
+.leaflet-crosshair,
+.leaflet-crosshair .leaflet-interactive {
+	cursor: crosshair;
+	}
+.leaflet-popup-pane,
+.leaflet-control {
+	cursor: auto;
+	}
+.leaflet-dragging .leaflet-grab,
+.leaflet-dragging .leaflet-grab .leaflet-interactive,
+.leaflet-dragging .leaflet-marker-draggable {
+	cursor: move;
+	cursor: -webkit-grabbing;
+	cursor:    -moz-grabbing;
+	cursor:         grabbing;
+	}
+
+/* marker & overlays interactivity */
+.leaflet-marker-icon,
+.leaflet-marker-shadow,
+.leaflet-image-layer,
+.leaflet-pane > svg path,
+.leaflet-tile-container {
+	pointer-events: none;
+	}
+
+.leaflet-marker-icon.leaflet-interactive,
+.leaflet-image-layer.leaflet-interactive,
+.leaflet-pane > svg path.leaflet-interactive,
+svg.leaflet-image-layer.leaflet-interactive path {
+	pointer-events: visiblePainted; /* IE 9-10 doesn't have auto */
+	pointer-events: auto;
+	}
+
+/* visual tweaks */
+
+.leaflet-container {
+	background: #ddd;
+	outline-offset: 1px;
+	}
+.leaflet-container a {
+	color: #0078A8;
+	}
+.leaflet-zoom-box {
+	border: 2px dotted #38f;
+	background: rgba(255,255,255,0.5);
+	}
+
+
+/* general typography */
+.leaflet-container {
+	font-family: "Helvetica Neue", Arial, Helvetica, sans-serif;
+	font-size: 12px;
+	font-size: 0.75rem;
+	line-height: 1.5;
+	}
+
+
+/* general toolbar styles */
+
+.leaflet-bar {
+	box-shadow: 0 1px 5px rgba(0,0,0,0.65);
+	border-radius: 4px;
+	}
+.leaflet-bar a {
+	background-color: #fff;
+	border-bottom: 1px solid #ccc;
+	width: 26px;
+	height: 26px;
+	line-height: 26px;
+	display: block;
+	text-align: center;
+	text-decoration: none;
+	color: black;
+	}
+.leaflet-bar a,
+.leaflet-control-layers-toggle {
+	background-position: 50% 50%;
+	background-repeat: no-repeat;
+	display: block;
+	}
+.leaflet-bar a:hover,
+.leaflet-bar a:focus {
+	background-color: #f4f4f4;
+	}
+.leaflet-bar a:first-child {
+	border-top-left-radius: 4px;
+	border-top-right-radius: 4px;
+	}
+.leaflet-bar a:last-child {
+	border-bottom-left-radius: 4px;
+	border-bottom-right-radius: 4px;
+	border-bottom: none;
+	}
+.leaflet-bar a.leaflet-disabled {
+	cursor: default;
+	background-color: #f4f4f4;
+	color: #bbb;
+	}
+
+.leaflet-touch .leaflet-bar a {
+	width: 30px;
+	height: 30px;
+	line-height: 30px;
+	}
+.leaflet-touch .leaflet-bar a:first-child {
+	border-top-left-radius: 2px;
+	border-top-right-radius: 2px;
+	}
+.leaflet-touch .leaflet-bar a:last-child {
+	border-bottom-left-radius: 2px;
+	border-bottom-right-radius: 2px;
+	}
+
+/* zoom control */
+
+.leaflet-control-zoom-in,
+.leaflet-control-zoom-out {
+	font: bold 18px 'Lucida Console', Monaco, monospace;
+	text-indent: 1px;
+	}
+
+.leaflet-touch .leaflet-control-zoom-in, .leaflet-touch .leaflet-control-zoom-out  {
+	font-size: 22px;
+	}
+
+
+/* layers control */
+
+.leaflet-control-layers {
+	box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+	background: #fff;
+	border-radius: 5px;
+	}
+.leaflet-control-layers-toggle {
+	background-image: url(images/layers.png);
+	width: 36px;
+	height: 36px;
+	}
+.leaflet-retina .leaflet-control-layers-toggle {
+	background-image: url(images/layers-2x.png);
+	background-size: 26px 26px;
+	}
+.leaflet-touch .leaflet-control-layers-toggle {
+	width: 44px;
+	height: 44px;
+	}
+.leaflet-control-layers .leaflet-control-layers-list,
+.leaflet-control-layers-expanded .leaflet-control-layers-toggle {
+	display: none;
+	}
+.leaflet-control-layers-expanded .leaflet-control-layers-list {
+	display: block;
+	position: relative;
+	}
+.leaflet-control-layers-expanded {
+	padding: 6px 10px 6px 6px;
+	color: #333;
+	background: #fff;
+	}
+.leaflet-control-layers-scrollbar {
+	overflow-y: scroll;
+	overflow-x: hidden;
+	padding-right: 5px;
+	}
+.leaflet-control-layers-selector {
+	margin-top: 2px;
+	position: relative;
+	top: 1px;
+	}
+.leaflet-control-layers label {
+	display: block;
+	font-size: 13px;
+	font-size: 1.08333em;
+	}
+.leaflet-control-layers-separator {
+	height: 0;
+	border-top: 1px solid #ddd;
+	margin: 5px -10px 5px -6px;
+	}
+
+/* Default icon URLs */
+.leaflet-default-icon-path { /* used only in path-guessing heuristic, see L.Icon.Default */
+	background-image: url(images/marker-icon.png);
+	}
+
+
+/* attribution and scale controls */
+
+.leaflet-container .leaflet-control-attribution {
+	background: #fff;
+	background: rgba(255, 255, 255, 0.8);
+	margin: 0;
+	}
+.leaflet-control-attribution,
+.leaflet-control-scale-line {
+	padding: 0 5px;
+	color: #333;
+	line-height: 1.4;
+	}
+.leaflet-control-attribution a {
+	text-decoration: none;
+	}
+.leaflet-control-attribution a:hover,
+.leaflet-control-attribution a:focus {
+	text-decoration: underline;
+	}
+.leaflet-attribution-flag {
+	display: inline !important;
+	vertical-align: baseline !important;
+	width: 1em;
+	height: 0.6669em;
+	}
+.leaflet-left .leaflet-control-scale {
+	margin-left: 5px;
+	}
+.leaflet-bottom .leaflet-control-scale {
+	margin-bottom: 5px;
+	}
+.leaflet-control-scale-line {
+	border: 2px solid #777;
+	border-top: none;
+	line-height: 1.1;
+	padding: 2px 5px 1px;
+	white-space: nowrap;
+	-moz-box-sizing: border-box;
+	     box-sizing: border-box;
+	background: rgba(255, 255, 255, 0.8);
+	text-shadow: 1px 1px #fff;
+	}
+.leaflet-control-scale-line:not(:first-child) {
+	border-top: 2px solid #777;
+	border-bottom: none;
+	margin-top: -2px;
+	}
+.leaflet-control-scale-line:not(:first-child):not(:last-child) {
+	border-bottom: 2px solid #777;
+	}
+
+.leaflet-touch .leaflet-control-attribution,
+.leaflet-touch .leaflet-control-layers,
+.leaflet-touch .leaflet-bar {
+	box-shadow: none;
+	}
+.leaflet-touch .leaflet-control-layers,
+.leaflet-touch .leaflet-bar {
+	border: 2px solid rgba(0,0,0,0.2);
+	background-clip: padding-box;
+	}
+
+
+/* popup */
+
+.leaflet-popup {
+	position: absolute;
+	text-align: center;
+	margin-bottom: 20px;
+	}
+.leaflet-popup-content-wrapper {
+	padding: 1px;
+	text-align: left;
+	border-radius: 12px;
+	}
+.leaflet-popup-content {
+	margin: 13px 24px 13px 20px;
+	line-height: 1.3;
+	font-size: 13px;
+	font-size: 1.08333em;
+	min-height: 1px;
+	}
+.leaflet-popup-content p {
+	margin: 17px 0;
+	margin: 1.3em 0;
+	}
+.leaflet-popup-tip-container {
+	width: 40px;
+	height: 20px;
+	position: absolute;
+	left: 50%;
+	margin-top: -1px;
+	margin-left: -20px;
+	overflow: hidden;
+	pointer-events: none;
+	}
+.leaflet-popup-tip {
+	width: 17px;
+	height: 17px;
+	padding: 1px;
+
+	margin: -10px auto 0;
+	pointer-events: auto;
+
+	-webkit-transform: rotate(45deg);
+	   -moz-transform: rotate(45deg);
+	    -ms-transform: rotate(45deg);
+	        transform: rotate(45deg);
+	}
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+	background: white;
+	color: #333;
+	box-shadow: 0 3px 14px rgba(0,0,0,0.4);
+	}
+.leaflet-container a.leaflet-popup-close-button {
+	position: absolute;
+	top: 0;
+	right: 0;
+	border: none;
+	text-align: center;
+	width: 24px;
+	height: 24px;
+	font: 16px/24px Tahoma, Verdana, sans-serif;
+	color: #757575;
+	text-decoration: none;
+	background: transparent;
+	}
+.leaflet-container a.leaflet-popup-close-button:hover,
+.leaflet-container a.leaflet-popup-close-button:focus {
+	color: #585858;
+	}
+.leaflet-popup-scrolled {
+	overflow: auto;
+	}
+
+.leaflet-oldie .leaflet-popup-content-wrapper {
+	-ms-zoom: 1;
+	}
+.leaflet-oldie .leaflet-popup-tip {
+	width: 24px;
+	margin: 0 auto;
+
+	-ms-filter: "progid:DXImageTransform.Microsoft.Matrix(M11=0.70710678, M12=0.70710678, M21=-0.70710678, M22=0.70710678)";
+	filter: progid:DXImageTransform.Microsoft.Matrix(M11=0.70710678, M12=0.70710678, M21=-0.70710678, M22=0.70710678);
+	}
+
+.leaflet-oldie .leaflet-control-zoom,
+.leaflet-oldie .leaflet-control-layers,
+.leaflet-oldie .leaflet-popup-content-wrapper,
+.leaflet-oldie .leaflet-popup-tip {
+	border: 1px solid #999;
+	}
+
+
+/* div icon */
+
+.leaflet-div-icon {
+	background: #fff;
+	border: 1px solid #666;
+	}
+
+
+/* Tooltip */
+/* Base styles for the element that has a tooltip */
+.leaflet-tooltip {
+	position: absolute;
+	padding: 6px;
+	background-color: #fff;
+	border: 1px solid #fff;
+	border-radius: 3px;
+	color: #222;
+	white-space: nowrap;
+	-webkit-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+	pointer-events: none;
+	box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+	}
+.leaflet-tooltip.leaflet-interactive {
+	cursor: pointer;
+	pointer-events: auto;
+	}
+.leaflet-tooltip-top:before,
+.leaflet-tooltip-bottom:before,
+.leaflet-tooltip-left:before,
+.leaflet-tooltip-right:before {
+	position: absolute;
+	pointer-events: none;
+	border: 6px solid transparent;
+	background: transparent;
+	content: "";
+	}
+
+/* Directions */
+
+.leaflet-tooltip-bottom {
+	margin-top: 6px;
+}
+.leaflet-tooltip-top {
+	margin-top: -6px;
+}
+.leaflet-tooltip-bottom:before,
+.leaflet-tooltip-top:before {
+	left: 50%;
+	margin-left: -6px;
+	}
+.leaflet-tooltip-top:before {
+	bottom: 0;
+	margin-bottom: -12px;
+	border-top-color: #fff;
+	}
+.leaflet-tooltip-bottom:before {
+	top: 0;
+	margin-top: -12px;
+	margin-left: -6px;
+	border-bottom-color: #fff;
+	}
+.leaflet-tooltip-left {
+	margin-left: -6px;
+}
+.leaflet-tooltip-right {
+	margin-left: 6px;
+}
+.leaflet-tooltip-left:before,
+.leaflet-tooltip-right:before {
+	top: 50%;
+	margin-top: -6px;
+	}
+.leaflet-tooltip-left:before {
+	right: 0;
+	margin-right: -12px;
+	border-left-color: #fff;
+	}
+.leaflet-tooltip-right:before {
+	left: 0;
+	margin-left: -12px;
+	border-right-color: #fff;
+	}
+
+/* Printing */
+
+@media print {
+	/* Prevent printers from removing background-images of controls. */
+	.leaflet-control {
+		-webkit-print-color-adjust: exact;
+		print-color-adjust: exact;
+		}
+	}
+</style>
+<style>
+/* Układ: nagłówek z prawdziwymi prążkami interferometrycznymi, pod nim mapa + panel analiz, niżej krótka opowieść.
+   Kolory danych (czerwony = od satelity, niebieski = do satelity, klasy ryzyka) są osobne od akcentu interfejsu. */
+:root {
+  --bg: #f4f6f7; --surface: #ffffff; --surface-2: #eef2f4; --fg: #14212b; --muted: #576672; --line: #d5dde2;
+  --accent: #0b7480; --accent-fg: #ffffff; --sea: #d7e3ea; --road: #7d8a95;
+  --risk-high: #c62a22; --risk-med: #e3871f; --risk-low: #2f8f57; --risk-na: #98a3ab;
+  --away: #b2182b; --toward: #2166ac; --newzone: #7b3294; --relief-filter: none; --shadow: 0 1px 2px rgba(20, 33, 43, .08);
+  --f-display: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
+  --f-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --f-data: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d141a; --surface: #141d25; --surface-2: #1a252e; --fg: #e3eaf0; --muted: #94a3af; --line: #26333d;
+    --accent: #3fbfc9; --accent-fg: #062a2e; --sea: #0a1922; --road: #6b7a86;
+    --risk-high: #ef5a4f; --risk-med: #f2a33f; --risk-low: #4fbf7d; --risk-na: #6f7b85;
+    --away: #e05a63; --toward: #5b9be0; --newzone: #b382dc; --relief-filter: brightness(.55) contrast(1.1); --shadow: none; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0d141a; --surface: #141d25; --surface-2: #1a252e; --fg: #e3eaf0; --muted: #94a3af; --line: #26333d;
+  --accent: #3fbfc9; --accent-fg: #062a2e; --sea: #0a1922; --road: #6b7a86;
+  --risk-high: #ef5a4f; --risk-med: #f2a33f; --risk-low: #4fbf7d; --risk-na: #6f7b85;
+  --away: #e05a63; --toward: #5b9be0; --newzone: #b382dc; --relief-filter: brightness(.55) contrast(1.1); --shadow: none; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--fg); font: 15px/1.55 var(--f-body); margin: 0; }
+.wrap { max-width: 1280px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; letter-spacing: -.01em; }
+h1 { font-size: clamp(2rem, 4.6vw, 3.4rem); line-height: 1.02; font-weight: 700; }
+h2 { font-size: 1.45rem; font-weight: 600; }
+h3 { font-size: 1.05rem; font-weight: 600; }
+p { margin: 0; }
+.eyebrow { font: 500 .72rem/1.2 var(--f-data); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.mono, .num { font-family: var(--f-data); font-variant-numeric: tabular-nums; }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* --- nagłówek */
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-block: 14px; }
+.brand { font: 500 .8rem var(--f-data); color: var(--muted); letter-spacing: .04em; }
+.langs { display: flex; gap: 4px; }
+.langs button { border: 1px solid var(--line); background: var(--surface); padding: 4px 10px; border-radius: 6px; cursor: pointer; font: 500 .78rem var(--f-data); }
+.langs button[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.hero { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 32px; align-items: center; padding-block: 12px 28px; }
+.hero-text { display: grid; gap: 16px; min-width: 0; }
+.lede { font-size: 1.08rem; color: var(--muted); max-width: 60ch; }
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; border-top: 1px solid var(--line); margin-top: 6px; }
+.stat { padding: 12px 14px 4px 0; display: grid; gap: 2px; align-content: start; }
+.stat + .stat { padding-left: 14px; border-left: 1px solid var(--line); }
+.stat b { font: 600 1.6rem/1.1 var(--f-display); font-variant-numeric: tabular-nums; }
+.stat span { font-size: .8rem; color: var(--muted); }
+.fringe-card { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px; box-shadow: var(--shadow); display: grid; gap: 8px; }
+.fringe-card canvas { width: 100%; aspect-ratio: 4 / 3; border-radius: 6px; background: var(--sea); display: block; image-rendering: auto; }
+.fringe-meta { display: flex; justify-content: space-between; gap: 10px; align-items: center; font-size: .78rem; color: var(--muted); }
+.fringe-meta .mono { color: var(--fg); }
+.ghost { border: 1px solid var(--line); background: transparent; border-radius: 6px; padding: 3px 9px; cursor: pointer; font-size: .78rem; }
+.cycle { height: 8px; border-radius: 4px; background: linear-gradient(90deg, hsl(0 75% 52%), hsl(60 75% 52%), hsl(120 75% 52%), hsl(180 75% 52%), hsl(240 75% 52%), hsl(300 75% 52%), hsl(360 75% 52%)); }
+
+/* --- aplikacja */
+.app { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 16px; padding-block: 8px 40px; align-items: start; }
+.mapcol { display: grid; gap: 10px; min-width: 0; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--surface); }
+.seg button { border: 0; background: transparent; padding: 7px 12px; cursor: pointer; font-size: .85rem; border-right: 1px solid var(--line); }
+.seg button:last-child { border-right: 0; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); }
+#map { height: 600px; border-radius: 10px; border: 1px solid var(--line); background: var(--sea); }
+.timebar { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+.play { width: 38px; height: 38px; border-radius: 50%; border: 0; background: var(--accent); color: var(--accent-fg); cursor: pointer; display: grid; place-items: center; }
+.play svg { width: 16px; height: 16px; fill: currentColor; }
+.timebar input[type=range] { width: 100%; accent-color: var(--accent); }
+.datebox { text-align: right; min-width: 9.5rem; }
+.datebox .mono { font-size: .95rem; display: block; }
+.badge { display: inline-block; font: 500 .68rem var(--f-data); letter-spacing: .05em; text-transform: uppercase; padding: 1px 6px; border-radius: 4px; background: var(--surface-2); color: var(--muted); }
+.badge.warn { background: color-mix(in srgb, var(--risk-med) 22%, transparent); color: var(--fg); }
+.legendrow { display: flex; flex-wrap: wrap; gap: 14px 24px; align-items: flex-start; font-size: .8rem; color: var(--muted); }
+.ramp { display: grid; gap: 3px; min-width: 220px; flex: 1 1 220px; max-width: 360px; }
+.ramp .bar { height: 10px; border-radius: 3px; }
+.ramp .ticks { display: flex; justify-content: space-between; font-family: var(--f-data); font-size: .72rem; }
+.layers { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+.layers label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; white-space: nowrap; }
+.layers input { accent-color: var(--accent); }
+.key { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; }
+.key i { display: inline-block; width: 18px; height: 0; border-top: 3px solid; vertical-align: middle; margin-right: 4px; }
+.key i.rail { border-top-style: dashed; }
+.key i.power { border-top-style: dotted; }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); min-width: 0; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); }
+.tabs { display: grid; grid-template-columns: repeat(4, 1fr); border-bottom: 1px solid var(--line); }
+.tabs button { border: 0; background: transparent; padding: 11px 4px; cursor: pointer; font-size: .82rem; font-weight: 500; color: var(--muted); border-bottom: 2px solid transparent; }
+.tabs button[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--accent); }
+.tabpanel { padding: 14px; display: grid; gap: 12px; min-width: 0; }
+.chartbox { position: relative; height: 230px; }
+.note { font-size: .8rem; color: var(--muted); }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; font-size: .85rem; }
+.kv dt { color: var(--muted); }
+.kv dd { margin: 0; font-family: var(--f-data); font-variant-numeric: tabular-nums; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 3px 10px; cursor: pointer; font-size: .78rem; }
+.chips button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.risk { display: inline-block; font: 600 .7rem var(--f-data); padding: 2px 7px; border-radius: 4px; color: #fff; text-transform: uppercase; letter-spacing: .04em; white-space: nowrap; }
+.risk[data-k="wysokie"] { background: var(--risk-high); }
+.risk[data-k="średnie"] { background: var(--risk-med); color: #1c1203; }
+.risk[data-k="niskie"] { background: var(--risk-low); }
+.risk[data-k="brak danych"] { background: var(--risk-na); }
+.objlist { display: grid; gap: 0; max-height: 300px; overflow: auto; border-top: 1px solid var(--line); }
+.objlist button { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; align-items: center; text-align: left; border: 0; border-bottom: 1px solid var(--line); background: transparent; padding: 8px 2px; cursor: pointer; }
+.objlist button:hover { background: var(--surface-2); }
+.objlist .t { min-width: 0; }
+.objlist .t b { display: block; font-weight: 500; font-size: .85rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.objlist .t small { color: var(--muted); font-size: .75rem; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.objlist .d { font: .75rem var(--f-data); color: var(--muted); text-align: right; }
+
+/* popup i kontrolki Leaflet w motywie strony */
+.leaflet-container { font: 13px/1.45 var(--f-body); background: var(--sea); }
+.leaflet-popup-content-wrapper, .leaflet-popup-tip { background: var(--surface); color: var(--fg); box-shadow: 0 4px 16px rgba(0, 0, 0, .25); }
+.leaflet-popup-content { margin: 12px 14px; min-width: 220px; }
+.leaflet-popup-content h3 { font-size: .95rem; margin-bottom: 6px; }
+.leaflet-container a.leaflet-popup-close-button { color: var(--muted); }
+.leaflet-bar a, .leaflet-bar a:hover { background: var(--surface); color: var(--fg); border-bottom-color: var(--line); }
+.leaflet-control-attribution { background: color-mix(in srgb, var(--surface) 80%, transparent) !important; color: var(--muted); font-size: 10px; }
+.leaflet-control-attribution a { color: var(--accent); }
+.relief-img { filter: var(--relief-filter); }
+.leaflet-tooltip.plabel { background: var(--surface); color: var(--fg); border: 1px solid var(--line); box-shadow: none; font: 500 11px var(--f-data); padding: 1px 5px; }
+.leaflet-tooltip.plabel::before { display: none; }
+.leaflet-tooltip.place { background: transparent; border: 0; box-shadow: none; color: var(--fg); font: 600 11px var(--f-display); text-shadow: 0 0 3px var(--bg), 0 0 3px var(--bg); padding: 0; }
+.leaflet-tooltip.place::before { display: none; }
+
+/* --- opowieść */
+.story { border-top: 1px solid var(--line); padding-block: 36px 48px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 36px 48px; }
+.story section { display: grid; gap: 10px; align-content: start; min-width: 0; }
+.story p, .story li { max-width: 64ch; color: var(--fg); }
+.story ul { margin: 0; padding-left: 1.1em; display: grid; gap: 4px; }
+.story .muted { color: var(--muted); }
+.geom { width: 100%; max-width: 420px; height: auto; }
+.geom text { font: 11px var(--f-data); fill: var(--muted); }
+footer { border-top: 1px solid var(--line); padding-block: 20px 36px; font-size: .78rem; color: var(--muted); display: grid; gap: 6px; }
+
+@media (max-width: 1080px) {
+  .app { grid-template-columns: minmax(0, 1fr); }
+  .panel { position: static; }
+}
+@media (max-width: 820px) {
+  .hero { grid-template-columns: minmax(0, 1fr); }
+  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .stat:nth-child(3) { border-left: 0; padding-left: 0; }
+  .story { grid-template-columns: minmax(0, 1fr); }
+  #map { height: 440px; }
+}
+@media (max-width: 480px) {
+  .timebar { grid-template-columns: auto minmax(0, 1fr); }
+  .datebox { grid-column: 1 / -1; text-align: left; }
+  .seg button { padding: 7px 9px; font-size: .8rem; }
+}
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+
+<div class="wrap">
+  <div class="topbar">
+    <span class="brand">NASA Space Apps 2026 · Dancing with the SARs</span>
+    <div class="langs" role="group" aria-label="Language">
+      <button id="lang-pl" type="button" aria-pressed="true">PL</button>
+      <button id="lang-en" type="button" aria-pressed="false">EN</button>
+    </div>
+  </div>
+
+  <header class="hero">
+    <div class="hero-text">
+      <span class="eyebrow" data-i18n="eyebrow"></span>
+      <h1 data-i18n="title"></h1>
+      <p class="lede" data-i18n="lede"></p>
+      <div class="stats" id="stats"></div>
+    </div>
+    <figure class="fringe-card" style="margin:0">
+      <canvas id="fringe" width="480" height="360" aria-label="Prążki interferometryczne osuwiska"></canvas>
+      <div class="cycle" aria-hidden="true"></div>
+      <div class="fringe-meta">
+        <span data-i18n="fringe_caption"></span>
+        <span class="mono" id="fringe-date"></span>
+      </div>
+      <div class="fringe-meta">
+        <span class="note" data-i18n="fringe_note"></span>
+        <button class="ghost" id="fringe-replay" type="button" data-i18n="replay"></button>
+      </div>
+    </figure>
+  </header>
+</div>
+
+<div class="wrap">
+  <div class="app">
+    <div class="mapcol">
+      <div class="toolbar">
+        <div class="seg" role="group" id="modes">
+          <button type="button" data-mode="cum" aria-pressed="true" data-i18n="mode_cum"></button>
+          <button type="button" data-mode="fringe" aria-pressed="false" data-i18n="mode_fringe"></button>
+          <button type="button" data-mode="velocity" aria-pressed="false" data-i18n="mode_vel"></button>
+          <button type="button" data-mode="coherence" aria-pressed="false" data-i18n="mode_coh"></button>
+        </div>
+        <div class="layers" id="layers">
+          <label><input type="checkbox" id="ly-bld" checked> <span data-i18n="ly_bld"></span></label>
+          <label><input type="checkbox" id="ly-crit" checked> <span data-i18n="ly_crit"></span></label>
+          <label><input type="checkbox" id="ly-roads" checked> <span data-i18n="ly_roads"></span></label>
+          <label><input type="checkbox" id="ly-zone" checked> <span data-i18n="ly_zone"></span></label>
+          <label><input type="checkbox" id="ly-prof" checked> <span data-i18n="ly_prof"></span></label>
+          <label id="ly-osm-wrap" hidden><input type="checkbox" id="ly-osm"> <span data-i18n="ly_osm"></span></label>
+        </div>
+      </div>
+      <div id="map" role="region" aria-label="Mapa"></div>
+      <div class="timebar">
+        <button class="play" id="play" type="button" aria-label="Play"><svg viewBox="0 0 16 16" id="play-icon"><path d="M4 2l10 6-10 6z"/></svg></button>
+        <input type="range" id="time" min="0" max="23" step="1" value="23" aria-label="Data">
+        <div class="datebox"><span class="mono" id="date-label"></span><span id="date-badge"></span></div>
+      </div>
+      <div class="legendrow">
+        <div class="ramp"><div class="bar" id="ramp-bar"></div><div class="ticks" id="ramp-ticks"></div><div id="ramp-note"></div></div>
+        <div class="key" id="risk-key"></div>
+      </div>
+    </div>
+
+    <aside class="panel" aria-label="Analizy">
+      <div class="tabs" role="tablist">
+        <button role="tab" type="button" id="tab-point" aria-selected="true" data-i18n="tab_point"></button>
+        <button role="tab" type="button" id="tab-prof" aria-selected="false" data-i18n="tab_prof"></button>
+        <button role="tab" type="button" id="tab-infra" aria-selected="false" data-i18n="tab_infra"></button>
+        <button role="tab" type="button" id="tab-alerts" aria-selected="false" data-i18n="tab_alerts"></button>
+      </div>
+      <div class="tabpanel" id="pn-point">
+        <p class="note" data-i18n="point_help"></p>
+        <div class="chartbox"><canvas id="chart-point"></canvas></div>
+        <dl class="kv" id="point-kv"></dl>
+      </div>
+      <div class="tabpanel" id="pn-prof" hidden>
+        <div class="chips" id="prof-chips"></div>
+        <div class="chartbox"><canvas id="chart-prof"></canvas></div>
+        <p class="note" data-i18n="prof_help"></p>
+      </div>
+      <div class="tabpanel" id="pn-infra" hidden>
+        <h3 data-i18n="bld_head"></h3>
+        <p class="note" id="bld-summary"></p>
+        <dl class="kv" id="bld-kv"></dl>
+        <h3 data-i18n="infra_head"></h3>
+        <p class="note" id="infra-summary"></p>
+        <div class="chartbox" style="height:190px"><canvas id="chart-infra"></canvas></div>
+        <h3 data-i18n="infra_list"></h3>
+        <div class="objlist" id="objlist"></div>
+      </div>
+      <div class="tabpanel" id="pn-alerts" hidden>
+        <p class="note" data-i18n="alerts_help"></p>
+        <div class="chartbox"><canvas id="chart-alerts"></canvas></div>
+        <dl class="kv" id="alerts-kv"></dl>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="story">
+    <section>
+      <span class="eyebrow" data-i18n="s1_eyebrow"></span>
+      <h2 data-i18n="s1_title"></h2>
+      <p data-i18n="s1_p1"></p>
+      <svg class="geom" viewBox="0 0 420 170" role="img" aria-labelledby="geom-title">
+        <title id="geom-title">Geometria pomiaru</title>
+        <path d="M10 140 L130 140 Q200 140 250 112 Q300 86 410 84" fill="none" stroke="var(--muted)" stroke-width="2"/>
+        <path d="M250 112 Q300 86 410 84 L410 140 L10 140" fill="var(--surface-2)" stroke="none"/>
+        <path d="M10 140 L130 140 Q200 140 250 112 Q300 86 410 84" fill="none" stroke="var(--fg)" stroke-width="1.5"/>
+        <rect x="18" y="14" width="34" height="14" rx="2" fill="var(--accent)"/>
+        <rect x="6" y="18" width="10" height="6" fill="var(--accent)"/><rect x="54" y="18" width="10" height="6" fill="var(--accent)"/>
+        <line x1="40" y1="30" x2="196" y2="128" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="5 4"/>
+        <path d="M196 128 l-12 -2 l5 -8 z" fill="var(--accent)"/>
+        <line x1="196" y1="128" x2="166" y2="140" stroke="var(--away)" stroke-width="3"/>
+        <path d="M160 143 l9 -9 l3 8 z" fill="var(--away)"/>
+        <text x="70" y="18" data-i18n="g_sat"></text>
+        <text x="96" y="70" data-i18n="g_los"></text>
+        <text x="206" y="150" data-i18n="g_move"></text>
+        <text x="300" y="76" data-i18n="g_hill"></text>
+      </svg>
+      <p class="muted" data-i18n="s1_p2"></p>
+    </section>
+    <section>
+      <span class="eyebrow" data-i18n="s2_eyebrow"></span>
+      <h2 data-i18n="s2_title"></h2>
+      <p data-i18n="s2_p1"></p>
+      <ul>
+        <li data-i18n="s2_l1"></li>
+        <li data-i18n="s2_l2"></li>
+        <li data-i18n="s2_l3"></li>
+        <li data-i18n="s2_l4"></li>
+      </ul>
+      <p class="muted" data-i18n="s2_p2"></p>
+    </section>
+    <section>
+      <span class="eyebrow" data-i18n="s3_eyebrow"></span>
+      <h2 data-i18n="s3_title"></h2>
+      <p data-i18n="s3_p1"></p>
+      <ul>
+        <li data-i18n="s3_l1"></li>
+        <li data-i18n="s3_l2"></li>
+        <li data-i18n="s3_l3"></li>
+      </ul>
+      <p id="s3-result"></p>
+    </section>
+    <section>
+      <span class="eyebrow" data-i18n="s4_eyebrow"></span>
+      <h2 data-i18n="s4_title"></h2>
+      <p data-i18n="s4_p1"></p>
+      <ul>
+        <li data-i18n="s4_l1"></li>
+        <li data-i18n="s4_l2"></li>
+        <li data-i18n="s4_l3"></li>
+        <li data-i18n="s4_l4"></li>
+      </ul>
+    </section>
+  </div>
+  <footer>
+    <span data-i18n="src"></span>
+    <span data-i18n="src2"></span>
+  </footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+(async function () {
+  "use strict";
+  const $ = (s, el = document) => el.querySelector(s);
+  const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+  const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const pad = (i) => String(i).padStart(2, "0");
+
+  // ---------------------------------------------------------------- teksty PL / EN
+  const T = {
+    pl: {
+      eyebrow: "NISAR · pasmo L · Palos Verdes, Kalifornia",
+      title: "Portuguese Bend w ruchu",
+      lede: "Pół roku pomiarów radaru NISAR nad osuwiskiem Portuguese Bend (listopad 2025 – maj 2026): gdzie grunt się przesuwa, jak szybko, kiedy przyspiesza i które budynki, gazociągi, tory i drogi są zagrożone.",
+      st_cum: "przemieszczenie rdzenia osuwiska (mediana, linia widzenia satelity), do {p} w najszybszej części",
+      st_area: "aktywna strefa osuwiska (ruch szybszy niż 100 mm/rok)",
+      st_bld: "budynków na gruncie o wysokim narażeniu, z czego {z} w samej strefie aktywnej; kolejne {m} o średnim",
+      st_pipes: "z {n} gazo- i rurociągów w aktywnej strefie; najbliższy {d} od jej granicy",
+      fringe_caption: "Prążki interferometryczne",
+      fringe_note: "Pełny cykl barw = {h} mm ruchu w linii widzenia satelity",
+      replay: "Odtwórz",
+      mode_cum: "Przemieszczenie", mode_fringe: "Prążki", mode_vel: "Prędkość", mode_coh: "Jakość danych",
+      ly_bld: "Budynki", ly_crit: "Infrastruktura krytyczna", ly_roads: "Drogi zagrożone", ly_zone: "Strefa aktywna", ly_prof: "Przekroje", ly_osm: "Mapa OSM",
+      legend_cum: "przemieszczenie od {d} [mm]", legend_vel: "prędkość [mm/rok]", legend_coh: "koherencja (0 = szum, 1 = idealnie)",
+      legend_fringe: "jeden prążek = {h} mm", away: "od satelity", toward: "do satelity",
+      static_layer: "warstwa z całego okresu", interp: "zawiera interpolację przerwy", gap_note: "przerwa w danych",
+      tab_point: "Punkt", tab_prof: "Przekroje", tab_infra: "Zagrożenia", tab_alerts: "Alerty",
+      point_help: "Kliknij mapę na półwyspie Palos Verdes, aby zobaczyć przemieszczenie w czasie.",
+      point_outside: "Ten punkt jest poza obszarem z szeregami czasowymi albo nie ma tam wiarygodnych danych (woda, utrata spójności).",
+      kv_total: "przemieszczenie od początku", kv_rate: "średnie tempo", kv_where: "położenie",
+      mm_los: "mm (linia widzenia)", prof_help: "Kolejne linie to kolejne daty (ciemniejsze = wcześniejsze). Pionowe kreski: przecięcia z infrastrukturą o średnim i wysokim ryzyku.",
+      infra_list: "Obiekty krytyczne od najbardziej zagrożonych", bld_head: "Budynki", infra_head: "Infrastruktura liniowa",
+      bld_sum: "Ocena {n} budynków w obszarze: grunt sprawdzony w środku i w czterech punktach obrysu. Na mapie: budynki zagrożone i wszystkie do 500 m od strefy aktywnej.",
+      b_high: "wysokie narażenie", b_med: "średnie narażenie", b_zone: "w strefie aktywnej", b_250: "do 250 m od strefy", b_conf: "ruch potwierdzony w monitoringu",
+      p_btype: "typ budynku", p_area: "powierzchnia", p_vb: "prędkość gruntu (największa w obrysie)", p_disp: "przemieszczenie za okres", p_windows: "okna monitoringu z ruchem", building: "budynek", infra_sum: "Ocena {km} km infrastruktury krytycznej w odcinkach 100 m. Wysokie ryzyko: {hi} km. Żaden gazociąg ani rurociąg nie wchodzi w aktywną strefę.",
+      alerts_help: "Każde okno to 4 kolejne pary (ok. 48 dni) porównane z wcześniejszym zachowaniem tego samego miejsca. Kliknij słupek, aby pokazać alerty z tego okna na mapie.",
+      kv_window: "okno", kv_moving: "istotny ruch", kv_acc: "przyspieszenie", kv_new: "nowa strefa ruchu", kv_slow: "spowolnienie",
+      p_type: "typ", p_class: "ryzyko", p_reason: "powód", p_v: "prędkość (95. percentyl)", p_grad: "ruch zróżnicowany", p_dist: "odległość od strefy aktywnej",
+      p_src: "źródło", p_schem: "Przebieg schematyczny: oceniany w korytarzu ±300 m.", p_len: "długość w tej klasie",
+      types: { "gazociąg": "gazociąg", "rurociąg": "rurociąg", "ropociąg": "ropociąg", "kolej": "kolej", "linia energetyczna": "linia energetyczna", "droga główna": "droga główna", "droga lokalna": "droga lokalna" },
+      classes: { "wysokie": "wysokie", "średnie": "średnie", "niskie": "niskie", "brak danych": "brak danych" },
+      key_pipe: "gazo-/rurociąg", key_rail: "kolej", key_power: "linia energetyczna",
+      s1_eyebrow: "Pomiar", s1_title: "Co widzi NISAR",
+      s1_p1: "Radar NISAR w paśmie L (fala 24 cm) przelatuje nad tym samym miejscem co 12 dni, w dzień i w nocy, przez chmury. Porównując fazę fali z kolejnych przelotów, mierzy zmianę odległości do gruntu z dokładnością do milimetrów. Tu używamy {n} kolejnych par z orbity zstępującej, od {d0} do {d1}, bez przerw w szeregu.",
+      s1_p2: "Satelita patrzy z zachodu pod kątem około 40°. Widzi 77% ruchu pionowego, 60% ruchu wschód–zachód i tylko 20% ruchu północ–południe. Osuwisko zsuwa się w dół i w stronę oceanu, czyli głównie na południe, więc rzeczywisty ruch jest większy niż wartości na mapie.",
+      g_sat: "NISAR", g_los: "linia widzenia", g_move: "ruch osuwiska", g_hill: "stok ku oceanowi",
+      s2_eyebrow: "Metoda", s2_title: "Jak wykrywamy zmiany",
+      s2_p1: "Jak w przypadku leja Bayou Corne, gdzie interferogramy pokazały ruch gruntu co najmniej 30 dni przed zapadnięciem, szukamy zmian w zachowaniu terenu, a nie tylko samego ruchu.",
+      s2_l1: "Korekty: jonosfera (z produktu NISAR), troposfera (z modelu terenu), trend dalekozasięgowy.",
+      s2_l2: "Każde okno 4 kolejnych par (ok. 48 dni) porównujemy z zachowaniem tego samego miejsca w poprzednich 120 dniach.",
+      s2_l3: "Klasy: ruch stały, przyspieszenie, nowa strefa ruchu, spowolnienie. Alert liczy się dopiero po potwierdzeniu w dwóch kolejnych oknach.",
+      s2_l4: "Zapisujemy bazę sezonową (prędkość dla każdego miesiąca okresu), z którą porównamy dane z kolejnych lat.",
+      s2_p2: "Wynik: rdzeń osuwiska poruszał się przez cały okres. Od marca system oznacza nowe strefy ruchu na obrzeżach, a w kwietniu i maju, po porze deszczowej, spowolnienie w części osuwiska.",
+      s3_eyebrow: "Bezpieczeństwo", s3_title: "Budynki i infrastruktura",
+      s3_p1: "Gazociągi (baza OGIM, Southern California Gas) oraz kolej, linie energetyczne i drogi (OpenStreetMap) dzielimy na odcinki 100 m, a dla {b} budynków sprawdzamy grunt pod obrysem. Dla każdego elementu liczymy, jak szybko i jak nierówno porusza się pod nim grunt.",
+      s3_l1: "Rury i tory oceniamy ostrzej niż drogi: najbardziej niszczy je ruch zróżnicowany, który je zgina i rozciąga.",
+      s3_l2: "Najgroźniejsze jest przejście ze stabilnego gruntu na osuwisko, dlatego osobno wykrywamy przecięcia granicy strefy ruchu.",
+      s3_l3: "Gdy przebieg jest przybliżony, oceniamy najgorszy przypadek w korytarzu ±300 m. Budynek oceniamy w pięciu punktach, bo piksel danych (80 m) jest większy niż większość domów.",
+      s3_res: "Wysokie narażenie dotyczy {bh} budynków, z czego {bz} stoi w samej strefie aktywnej, oraz {r} km dróg osiedla Portuguese Bend, w tym Palos Verdes Drive South. Żaden z {n} gazo- i rurociągów nie przecina strefy aktywnej (najbliższy biegnie {d} od jej granicy), ale {g} km gazociągów leży w miejscach silnie zróżnicowanego ruchu na stokach poza nią.",
+      s4_eyebrow: "Uczciwie o danych", s4_title: "Kontrola jakości i ograniczenia",
+      s4_p1: "Pomiar radarowy ma swoje pułapki. Pokazujemy je wprost.",
+      s4_l1: "Analiza obejmuje ciągły szereg od {d0} do {d1}. Scena z 3 czerwca 2026 nie dała się dopasować do sąsiednich (koherencja 0,07 w całej ramce), więc późniejszych danych tu nie używamy.",
+      s4_l2: "Mierzymy ruch w linii widzenia z jednej orbity. Do pełnego obrazu 3D potrzebna jest druga geometria.",
+      s4_l3: "Pół roku obejmuje porę deszczową, więc prędkość zawiera składową sezonową. Progi ryzyka to wartości robocze (z dolną granicą 3σ i 4σ szumu tła); trzeba je uzgodnić z operatorami sieci. Narażenie budynku to ruch gruntu pod nim, nie stan konstrukcji.",
+      s4_l4: "Mamy pół roku ciągłych danych NISAR. Prawdziwa baza sezonowa powstanie z kolejnych lat albo z archiwum Sentinel-1.",
+      src: "Dane: NISAR L2 GUNW (NASA/ISRO, ASF DAAC) · Copernicus DEM GLO-30 (ESA/UE) · © współtwórcy OpenStreetMap (ODbL; drogi, kolej, budynki) · baza OGIM.",
+      src2: "Znak przemieszczenia: dodatni = ruch w stronę satelity, ujemny = od satelity. Wszystkie wartości dotyczą linii widzenia radaru.",
+    },
+    en: {
+      eyebrow: "NISAR · L-band · Palos Verdes, California",
+      title: "Portuguese Bend in motion",
+      lede: "Six months of NISAR radar measurements over the Portuguese Bend landslide (November 2025 – May 2026): where the ground moves, how fast, when it speeds up, and which buildings, gas pipelines, railways and roads are at risk.",
+      st_cum: "displacement of the landslide core (median, satellite line of sight), up to {p} in the fastest part",
+      st_area: "active landslide zone (moving faster than 100 mm/yr)",
+      st_bld: "buildings on ground with high exposure, {z} of them inside the active zone; {m} more with medium exposure",
+      st_pipes: "of {n} gas and other pipelines in the active zone; the closest runs {d} from its edge",
+      fringe_caption: "Interferometric fringes",
+      fringe_note: "One full colour cycle = {h} mm of line-of-sight motion",
+      replay: "Replay",
+      mode_cum: "Displacement", mode_fringe: "Fringes", mode_vel: "Velocity", mode_coh: "Data quality",
+      ly_bld: "Buildings", ly_crit: "Critical infrastructure", ly_roads: "Roads at risk", ly_zone: "Active zone", ly_prof: "Profiles", ly_osm: "OSM map",
+      legend_cum: "displacement since {d} [mm]", legend_vel: "velocity [mm/yr]", legend_coh: "coherence (0 = noise, 1 = perfect)",
+      legend_fringe: "one fringe = {h} mm", away: "away from satellite", toward: "toward satellite",
+      static_layer: "whole-period layer", interp: "includes interpolated gap", gap_note: "data gap",
+      tab_point: "Point", tab_prof: "Profiles", tab_infra: "At risk", tab_alerts: "Alerts",
+      point_help: "Click the map on the Palos Verdes peninsula to see displacement over time.",
+      point_outside: "This point is outside the time-series area or has no reliable data there (water, loss of coherence).",
+      kv_total: "displacement since start", kv_rate: "average rate", kv_where: "location",
+      mm_los: "mm (line of sight)", prof_help: "Each line is one date (darker = earlier). Vertical marks: crossings with medium- and high-risk infrastructure.",
+      infra_list: "Critical assets, most at risk first", bld_head: "Buildings", infra_head: "Linear infrastructure",
+      bld_sum: "{n} buildings assessed: the ground is checked at the centre and at four points of each footprint. The map shows buildings at risk and all buildings within 500 m of the active zone.",
+      b_high: "high exposure", b_med: "medium exposure", b_zone: "inside the active zone", b_250: "within 250 m of the zone", b_conf: "motion confirmed by monitoring",
+      p_btype: "building type", p_area: "footprint area", p_vb: "ground velocity (largest in footprint)", p_disp: "displacement over the period", p_windows: "monitoring windows with motion", building: "building", infra_sum: "{km} km of critical infrastructure assessed in 100 m segments. High risk: {hi} km. No gas or other pipeline enters the active zone.",
+      alerts_help: "Each window is 4 consecutive pairs (about 48 days) compared with the earlier behaviour of the same place. Click a bar to show that window's alerts on the map.",
+      kv_window: "window", kv_moving: "significant motion", kv_acc: "acceleration", kv_new: "new moving zone", kv_slow: "slowdown",
+      p_type: "type", p_class: "risk", p_reason: "reason", p_v: "velocity (95th percentile)", p_grad: "differential motion", p_dist: "distance to active zone",
+      p_src: "source", p_schem: "Schematic route: assessed within a ±300 m corridor.", p_len: "length in this class",
+      types: { "gazociąg": "gas pipeline", "rurociąg": "pipeline", "ropociąg": "oil pipeline", "kolej": "railway", "linia energetyczna": "power line", "droga główna": "main road", "droga lokalna": "local road" },
+      classes: { "wysokie": "high", "średnie": "medium", "niskie": "low", "brak danych": "no data" },
+      key_pipe: "pipeline", key_rail: "railway", key_power: "power line",
+      s1_eyebrow: "Measurement", s1_title: "What NISAR sees",
+      s1_p1: "NISAR's L-band radar (24 cm wavelength) passes over the same spot every 12 days, day and night, through clouds. Comparing the wave phase between passes, it measures changes in the distance to the ground to within millimetres. We use {n} consecutive pairs from the descending orbit, from {d0} to {d1}, with no gaps in the series.",
+      s1_p2: "The satellite looks from the west at about 40°. It sees 77% of vertical motion, 60% of east–west motion and only 20% of north–south motion. The landslide slides down and toward the ocean, mostly south, so the real motion is larger than the values on the map.",
+      g_sat: "NISAR", g_los: "line of sight", g_move: "landslide motion", g_hill: "slope toward ocean",
+      s2_eyebrow: "Method", s2_title: "How we detect change",
+      s2_p1: "As with the Bayou Corne sinkhole, where interferograms showed ground motion at least 30 days before the collapse, we look for changes in how the ground behaves, not just for motion itself.",
+      s2_l1: "Corrections: ionosphere (from the NISAR product), troposphere (from a terrain model), long-wavelength trend.",
+      s2_l2: "Each window of 4 consecutive pairs (about 48 days) is compared with the same place's behaviour over the previous 120 days.",
+      s2_l3: "Classes: steady motion, acceleration, new moving zone, slowdown. An alert counts only when confirmed in two consecutive windows.",
+      s2_l4: "We save a seasonal baseline (velocity for each month of the period) to compare against data from coming years.",
+      s2_p2: "Result: the landslide core moved throughout the period. From March the system flags new moving zones at its margins, and in April and May, after the rainy season, a slowdown in part of the landslide.",
+      s3_eyebrow: "Safety", s3_title: "Buildings and infrastructure",
+      s3_p1: "Gas pipelines (OGIM database, Southern California Gas) plus railways, power lines and roads (OpenStreetMap) are split into 100 m segments, and for {b} buildings we check the ground under the footprint. For each element we compute how fast and how unevenly the ground moves beneath it.",
+      s3_l1: "Pipes and rails are judged more strictly than roads: differential motion that bends and stretches them does the most damage.",
+      s3_l2: "The most dangerous spot is the transition from stable ground onto the landslide, so we detect crossings of the moving-zone boundary separately.",
+      s3_l3: "Where a route is approximate, we assess the worst case within a ±300 m corridor. Each building is checked at five points, because a data pixel (80 m) is larger than most houses.",
+      s3_res: "High exposure applies to {bh} buildings, {bz} of them inside the active zone, and to {r} km of Portuguese Bend neighbourhood roads, including Palos Verdes Drive South. None of the {n} gas and other pipelines crosses the active zone (the closest runs {d} from its edge), but {g} km of gas pipelines lie where the ground moves unevenly on slopes outside it.",
+      s4_eyebrow: "Being upfront about the data", s4_title: "Quality control and limits",
+      s4_p1: "Radar measurements have their pitfalls. We show them openly.",
+      s4_l1: "The analysis covers the continuous series from {d0} to {d1}. The 3 June 2026 scene could not be co-registered with its neighbours (coherence 0.07 across the frame), so later data are not used here.",
+      s4_l2: "We measure line-of-sight motion from one orbit. A full 3D picture needs a second viewing geometry.",
+      s4_l3: "Six months include the rainy season, so velocity contains a seasonal component. Risk thresholds are working values (with a floor of 3σ and 4σ of background noise) to be agreed with network operators. Building exposure means ground motion beneath it, not the condition of the structure.",
+      s4_l4: "We have six months of continuous NISAR data. A true seasonal baseline will come from future years or the Sentinel-1 archive.",
+      src: "Data: NISAR L2 GUNW (NASA/ISRO, ASF DAAC) · Copernicus DEM GLO-30 (ESA/EU) · © OpenStreetMap contributors (ODbL; roads, rail, buildings) · OGIM database.",
+      src2: "Displacement sign: positive = motion toward the satellite, negative = away from it. All values are along the radar line of sight.",
+    },
+  };
+  let LANG = "pl";
+  try { const s = localStorage.getItem("pb-lang"); if (s === "en" || s === "pl") LANG = s; } catch (e) { /* bez pamięci */ }
+  const t = (k, p) => {
+    let s = (T[LANG][k] ?? T.pl[k] ?? k);
+    if (p) for (const [a, b] of Object.entries(p)) s = s.replaceAll(`{${a}}`, b);
+    return s;
+  };
+  const locale = () => (LANG === "pl" ? "pl-PL" : "en-GB");
+  const num = (v, d = 0) => (v < 0 ? "−" : "") + Math.abs(v).toLocaleString(locale(), { maximumFractionDigits: d, minimumFractionDigits: d });
+  const mm = (v) => `${num(v)} mm`;
+  const toDate = (s) => new Date(Date.UTC(+s.slice(0, 4), +s.slice(4, 6) - 1, +s.slice(6, 8)));
+  const fmtDate = (s, o) => toDate(s).toLocaleDateString(locale(), o || { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+
+  // ---------------------------------------------------------------- dane
+  const J = (p) => fetch(p).then((r) => { if (!r.ok) throw new Error(p); return r.json(); });
+  const [meta, profiles, windows, critical, roadsRisk, roadsCtx, zone, alerts, profLines, tsBuf, buildings] = await Promise.all([
+    J("data/meta.json"), J("data/profiles.json"), J("data/monitoring.json"), J("data/critical.geojson"),
+    J("data/roads_risk.geojson"), J("data/roads_context.geojson"), J("data/active_zone.geojson"),
+    J("data/alerts.geojson"), J("data/profiles.geojson"), J("data/timeseries.json"), J("data/buildings_risk.geojson"),
+  ]);
+  const TS = (() => { const b = atob(tsBuf.b64), u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return new Int16Array(u.buffer); })();
+  const E = meta.dates.length;
+  const F = meta.focus;
+  const days = meta.dates.map((d) => (toDate(d) - toDate(meta.dates[0])) / 864e5);
+  const gapIdx = meta.gap_after.length ? meta.gap_after[0] : -1;
+  let cur = E - 1;
+  let mode = "cum";
+
+  // ---------------------------------------------------------------- kolory z tokenów
+  const hex2rgb = (h) => { h = h.replace("#", ""); return [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16)); };
+  const mix = (a, b, f) => { const A = hex2rgb(a), B = hex2rgb(b); return `rgb(${A.map((x, i) => Math.round(x + (B[i] - x) * f)).join(",")})`; };
+  const alpha = (h, a) => { const [r, g, b] = hex2rgb(h); return `rgba(${r},${g},${b},${a})`; };
+  const riskColor = (k) => ({ "wysokie": css("--risk-high"), "średnie": css("--risk-med"), "niskie": css("--risk-low") }[k] || css("--risk-na"));
+  const typeDash = (typ) => (typ === "kolej" ? "8 5" : typ === "linia energetyczna" ? "1.5 5" : null);
+  const isPipe = (typ) => ["gazociąg", "rurociąg", "ropociąg"].includes(typ);
+
+  // ---------------------------------------------------------------- statystyki w nagłówku
+  const B = meta.buildings || { wg_klasy: {}, w_odleglosci_od_strefy_aktywnej: {}, potwierdzone_w_monitoringu: {} };
+  const highRoadKm = (meta.infra["droga główna"]?.wysokie || 0) + (meta.infra["droga lokalna"]?.wysokie || 0);
+  const km = (m) => (m >= 1000 ? `${num(m / 1000, 1)} km` : `${num(m)} m`);
+  function renderStats() {
+    const s = [
+      [`${num(meta.core.cum_median / 10)} cm`, t("st_cum", { p: `${num(meta.core.cum_p01 / 10)} cm` })],
+      [`${num(meta.core.area_km2, 2)} km²`, t("st_area")],
+      [num(B.wg_klasy.wysokie || 0), t("st_bld", { z: num(B.w_aktywnej_strefie || 0), m: num(B.wg_klasy["średnie"] || 0) })],
+      [`0`, t("st_pipes", { n: meta.pipelines.count, d: km(meta.pipelines.min_dist_m) })],
+    ];
+    $("#stats").innerHTML = s.map(([b, x]) => `<div class="stat"><b>${b}</b><span>${x}</span></div>`).join("");
+    $("#s3-result").textContent = t("s3_res", { n: meta.pipelines.count, d: km(meta.pipelines.min_dist_m), r: num(highRoadKm, 1),
+      bh: num(B.wg_klasy.wysokie || 0), bz: num(B.w_aktywnej_strefie || 0), g: num(meta.infra["gazociąg"]?.wysokie || 0, 1) });
+    $("#bld-summary").textContent = t("bld_sum", { n: num(B.liczba_budynkow || 0) });
+    const conf = B.potwierdzone_w_monitoringu || {};
+    $("#bld-kv").innerHTML = [[t("b_high"), num(B.wg_klasy.wysokie || 0)], [t("b_med"), num(B.wg_klasy["średnie"] || 0)],
+      [t("b_zone"), num(B.w_aktywnej_strefie || 0)], [t("b_250"), num(B.w_odleglosci_od_strefy_aktywnej.do_250_m || 0)],
+      [t("b_conf"), num((conf.wysokie || 0) + (conf["średnie"] || 0))]].map(([a, b]) => `<dt>${a}</dt><dd>${b}</dd>`).join("");
+  }
+
+  // ---------------------------------------------------------------- prążki w nagłówku (z prawdziwych danych)
+  const cv = $("#fringe"), cx = cv.getContext("2d");
+  const merc = (lat, lon) => { const p = L.CRS.EPSG3857.project(L.latLng(lat, lon)); return [p.x, p.y]; };
+  const [mx, my] = merc(meta.core.lat, meta.core.lon);
+  const ccol = Math.floor((mx - F.x0) / F.res), crow = Math.floor((F.y1 - my) / F.res);
+  const CW = 64, CH = 48;
+  const c0 = Math.max(0, ccol - CW / 2), r0 = Math.max(0, crow - CH / 2);
+  const small = document.createElement("canvas"); small.width = CW; small.height = CH;
+  const sctx = small.getContext("2d"), img = sctx.createImageData(CW, CH);
+  const hsl = (h, s, l) => { const a = s * Math.min(l, 1 - l); const f = (n) => { const k = (n + h / 30) % 12; return l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)); }; return [f(0) * 255, f(8) * 255, f(4) * 255]; };
+  // wygładzenie (dwa przebiegi okna 3x3, z pominięciem braków) przed zawinięciem fazy - czytelniejsze prążki
+  const crop = new Float32Array(CW * CH), tmp = new Float32Array(CW * CH);
+  function blur(src, dst) {
+    for (let y = 0; y < CH; y++) for (let x = 0; x < CW; x++) {
+      let s = 0, n = 0;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+        const yy = y + dy, xx = x + dx; if (yy < 0 || xx < 0 || yy >= CH || xx >= CW) continue;
+        const v = src[yy * CW + xx]; if (Number.isNaN(v)) continue; s += v; n++;
+      }
+      dst[y * CW + x] = Number.isNaN(src[y * CW + x]) || !n ? NaN : s / n;
+    }
+  }
+  function drawFringe(e) {
+    const H = meta.half_wavelength_mm;
+    for (let y = 0; y < CH; y++) for (let x = 0; x < CW; x++) {
+      const r = r0 + y, c = c0 + x;
+      const v = r < F.h && c < F.w ? TS[(r * F.w + c) * E + e] : -32768;
+      crop[y * CW + x] = v === -32768 ? NaN : v;
+    }
+    blur(crop, tmp); blur(tmp, crop);
+    for (let y = 0; y < CH; y++) for (let x = 0; x < CW; x++) {
+      const o = (y * CW + x) * 4, v = crop[y * CW + x];
+      if (Number.isNaN(v)) { img.data[o + 3] = 0; continue; }
+      const ph = (((v + H / 2) % H) + H) % H / H;  // zero w środku cyklu barw: stabilny teren ma jednolity kolor
+      const [R, G, B] = hsl(ph * 360, 0.78, 0.52);
+      img.data[o] = R; img.data[o + 1] = G; img.data[o + 2] = B; img.data[o + 3] = 255;
+    }
+    sctx.putImageData(img, 0, 0);
+    cx.clearRect(0, 0, cv.width, cv.height);
+    cx.imageSmoothingEnabled = true; cx.imageSmoothingQuality = "high";
+    cx.drawImage(small, 0, 0, cv.width, cv.height);
+    $("#fringe-date").textContent = `${fmtDate(meta.dates[0], { day: "numeric", month: "short", timeZone: "UTC" })} → ${fmtDate(meta.dates[e])}`;
+  }
+  let fringeTimer = null, fringeE = E - 1;
+  function playFringe() {
+    clearInterval(fringeTimer); fringeTimer = null;
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) { fringeE = E - 1; drawFringe(fringeE); return; }
+    fringeE = 0; drawFringe(0);
+    fringeTimer = setInterval(() => { fringeE += 1; drawFringe(fringeE); if (fringeE >= E - 1) { clearInterval(fringeTimer); fringeTimer = null; } }, 260);
+  }
+  const profName = (n) => n.replaceAll("_", " ").replace("os dluga", LANG === "pl" ? "oś wzdłuż" : "long axis").replace("os krotka", LANG === "pl" ? "oś w poprzek" : "cross axis");
+
+  // ---------------------------------------------------------------- mapa
+  const map = L.map("map", { preferCanvas: true, zoomSnap: 0.25, minZoom: 10, maxZoom: 17 });
+  map.attributionControl.setPrefix(false);
+  map.createPane("relief").style.zIndex = 200;
+  map.createPane("data").style.zIndex = 300;
+  L.imageOverlay("data/img/relief.png", meta.relief_bounds, { pane: "relief", className: "relief-img", attribution: "Copernicus DEM" }).addTo(map);
+  const frameUrl = (m, e) => (m === "cum" ? `data/img/cum_${pad(e)}.png` : m === "fringe" ? `data/img/fringe_${pad(e)}.png`
+    : m === "velocity" ? "data/img/velocity.png" : "data/img/coherence.png");
+  const dataLayer = L.imageOverlay(frameUrl("cum", cur), meta.overlay_bounds, { pane: "data", opacity: 0.88, attribution: "NISAR GUNW (NASA/ISRO, ASF)" }).addTo(map);
+  for (let e = 0; e < E; e++) { new Image().src = frameUrl("cum", e); new Image().src = frameUrl("fringe", e); }
+  const zb = L.geoJSON(zone).getBounds();
+  map.fitBounds(L.latLng(meta.core.lat, meta.core.lon).toBounds(7000));  // start: osuwisko i najbliższe otoczenie
+
+  const places = [["Portuguese Bend", 33.739, -118.355], ["Rancho Palos Verdes", 33.762, -118.392], ["San Pedro", 33.736, -118.292],
+    ["Torrance", 33.836, -118.34], ["Wilmington", 33.785, -118.262], ["Point Fermin", 33.707, -118.294]];
+  places.forEach(([n, la, lo]) => L.tooltip({ permanent: true, direction: "center", className: "place", interactive: false })
+    .setLatLng([la, lo]).setContent(n).addTo(map));
+
+  const ctxLayer = L.geoJSON(roadsCtx, { interactive: false, style: () => ({ color: css("--road"), weight: 0.8, opacity: 0.55 }) }).addTo(map);
+  const zoneLayer = L.geoJSON(zone, { interactive: false, style: () => ({ color: css("--fg"), weight: 1.6, dashArray: "4 3", fill: true, fillColor: css("--risk-high"), fillOpacity: 0.06 }) }).addTo(map);
+  const roadStyle = (f) => ({ color: riskColor(f.properties.klasa), weight: f.properties.klasa === "wysokie" ? 3 : 1.3, opacity: f.properties.klasa === "wysokie" ? 0.95 : 0.6 });
+  const roadsLayer = L.geoJSON(roadsRisk, {
+    bubblingMouseEvents: false,
+    style: roadStyle,
+    onEachFeature: (f, l) => l.on("click", (e) => infraPopup(f, e.latlng)),
+  }).addTo(map);
+  const bldStyle = (f) => { const k = f.properties.klasa, risk = k === "wysokie" || k === "średnie";
+    return { color: risk ? css("--fg") : css("--muted"), weight: risk ? 0.6 : 0.3, opacity: risk ? 0.8 : 0.5,
+      fillColor: risk ? riskColor(k) : css("--muted"), fillOpacity: risk ? 0.9 : 0.25 }; };
+  const bldOrder = { "niskie": 0, "brak danych": 0, "średnie": 1, "wysokie": 2 };
+  const bldLayer = L.geoJSON({ ...buildings, features: [...buildings.features].sort((a, b) => bldOrder[a.properties.klasa] - bldOrder[b.properties.klasa]) }, {
+    bubblingMouseEvents: false, style: bldStyle,
+    onEachFeature: (f, l) => l.on("click", (e) => buildingPopup(f, e.latlng)),
+  }).addTo(map);
+  const critOrder = { "niskie": 0, "brak danych": 0, "średnie": 1, "wysokie": 2 };
+  const critSorted = { ...critical, features: [...critical.features].sort((a, b) => critOrder[a.properties.klasa] - critOrder[b.properties.klasa]) };
+  const critLayer = L.geoJSON(critSorted, {
+    bubblingMouseEvents: false,
+    style: (f) => ({ color: riskColor(f.properties.klasa), weight: isPipe(f.properties.typ) ? 3.4 : 2.4, dashArray: typeDash(f.properties.typ), opacity: f.properties.klasa === "niskie" ? 0.8 : 1 }),
+    onEachFeature: (f, l) => l.on("click", (e) => infraPopup(f, e.latlng)),
+  }).addTo(map);
+  const profLabels = L.layerGroup();
+  const profLayer = L.geoJSON(profLines, {
+    interactive: false, style: () => ({ color: css("--fg"), weight: 1.6, dashArray: "6 4" }),
+    onEachFeature: (f, l) => { const c = f.geometry.coordinates[0]; const tip = L.tooltip({ permanent: true, direction: "right", className: "plabel", offset: [4, 0] }).setLatLng([c[1], c[0]]).setContent(profName(f.properties.nazwa)); tip._pname = f.properties.nazwa; profLabels.addLayer(tip); },
+  });
+  profLayer.addTo(map); profLabels.addTo(map);
+  const alertColor = (typ) => (typ === "spowolnienie" ? css("--toward") : typ === "przyspieszenie" ? css("--risk-high") : css("--newzone"));
+  const alertLayer = L.geoJSON(null, { interactive: false, style: (f) => ({ color: alertColor(f.properties.typ), weight: 1.5, fillOpacity: 0.35 }) }).addTo(map);
+
+  // podkład OSM: działa na stronie docelowej; w podglądzie claude.ai kafelki są blokowane, wtedy przełącznik znika
+  const osm = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap", opacity: 0.55 });
+  const probe = new Image();
+  probe.onload = () => { $("#ly-osm-wrap").hidden = false; };
+  probe.src = "https://tile.openstreetmap.org/12/702/1637.png";
+
+  function restyle() {
+    ctxLayer.setStyle(() => ({ color: css("--road"), weight: 0.8, opacity: 0.55 }));
+    bldLayer.setStyle(bldStyle);
+    zoneLayer.setStyle(() => ({ color: css("--fg"), weight: 1.6, dashArray: "4 3", fill: true, fillColor: css("--risk-high"), fillOpacity: 0.06 }));
+    roadsLayer.setStyle(roadStyle);
+    critLayer.setStyle((f) => ({ color: riskColor(f.properties.klasa), weight: isPipe(f.properties.typ) ? 3.4 : 2.4, dashArray: typeDash(f.properties.typ), opacity: f.properties.klasa === "niskie" ? 0.8 : 1 }));
+    profLayer.setStyle(() => ({ color: css("--fg"), weight: 1.6, dashArray: "6 4" }));
+    if (pointMarker) pointMarker.setStyle({ color: css("--bg"), fillColor: css("--accent") });
+  }
+
+  const tog = (id, layer) => $(id).addEventListener("change", (e) => (e.target.checked ? layer.addTo(map) : map.removeLayer(layer)));
+  tog("#ly-bld", bldLayer); tog("#ly-crit", critLayer); tog("#ly-roads", roadsLayer); tog("#ly-zone", zoneLayer); tog("#ly-osm", osm);
+  $("#ly-prof").addEventListener("change", (e) => { if (e.target.checked) { profLayer.addTo(map); profLabels.addTo(map); } else { map.removeLayer(profLayer); map.removeLayer(profLabels); } });
+
+  function infraPopup(f, latlng) {
+    const p = f.properties, typ = T[LANG].types[p.typ] || p.typ;
+    const rows = [[t("p_type"), typ], [t("p_class"), `<span class="risk" data-k="${p.klasa}">${T[LANG].classes[p.klasa] || p.klasa}</span>`]];
+    if (p.powod) rows.push([t("p_reason"), p.powod]);
+    if (p.v != null) rows.push([t("p_v"), `${num(p.v)} mm/${LANG === "pl" ? "rok" : "yr"}`]);
+    if (p.gradient != null) rows.push([t("p_grad"), `${num(p.gradient)} mm/100 m/${LANG === "pl" ? "rok" : "yr"}`]);
+    if (p.odl_m != null && !Number.isNaN(p.odl_m)) rows.push([t("p_dist"), km(p.odl_m)]);
+    rows.push([t("p_len"), `${num(p.km, 2)} km`], [t("p_src"), p.zrodlo || ""]);
+    const title = p.nazwa && !/^osm_/.test(p.nazwa) ? p.nazwa : typ;
+    L.popup({ maxWidth: 320 }).setLatLng(latlng).setContent(
+      `<h3>${title}</h3>${p.operator ? `<div class="note">${p.operator}</div>` : ""}<dl class="kv">${rows.map(([a, b]) => `<dt>${a}</dt><dd>${b}</dd>`).join("")}</dl>${p.schem ? `<p class="note" style="margin-top:6px">${t("p_schem")}</p>` : ""}`
+    ).openOn(map);
+  }
+
+  function buildingPopup(f, latlng) {
+    const p = f.properties, yr = LANG === "pl" ? "rok" : "yr";
+    const rows = [[t("p_btype"), p.typ_budynku && p.typ_budynku !== "budynek" ? p.typ_budynku : t("building")],
+      [t("p_class"), `<span class="risk" data-k="${p.klasa}">${T[LANG].classes[p.klasa] || p.klasa}</span>`]];
+    if (p.powod) rows.push([t("p_reason"), p.powod]);
+    if (p.v != null) rows.push([t("p_vb"), `${num(p.v)} mm/${yr}`]);
+    if (p.przem_mm != null) rows.push([t("p_disp"), mm(p.przem_mm)]);
+    if (p.gradient != null) rows.push([t("p_grad"), `${num(p.gradient)} mm/100 m/${yr}`]);
+    if (p.odl_m != null) rows.push([t("p_dist"), p.odl_m === 0 ? t("b_zone") : km(p.odl_m)]);
+    if (p.okna_ruch != null) rows.push([t("p_windows"), `${p.okna_ruch} / ${windows.length}`]);
+    if (p.pow_m2 != null) rows.push([t("p_area"), `${num(p.pow_m2)} m²`]);
+    L.popup({ maxWidth: 320 }).setLatLng(latlng).setContent(
+      `<h3>${p.nazwa || t("building")}</h3><dl class="kv">${rows.map(([a, b]) => `<dt>${a}</dt><dd>${b}</dd>`).join("")}</dl>`
+    ).openOn(map);
+  }
+
+  // ---------------------------------------------------------------- legenda
+  function renderLegend() {
+    const S = meta.scale_mm;
+    const rdbu = `linear-gradient(90deg, ${["#67001f", "#b2182b", "#d6604d", "#f4a582", "#fddbc7", "#f7f7f7", "#d1e5f0", "#92c5de", "#4393c3", "#2166ac", "#053061"].join(",")})`;
+    let bar = rdbu, ticks = [], note = "";
+    if (mode === "cum" || mode === "velocity") {
+      const u = mode === "cum" ? "mm" : (LANG === "pl" ? "mm/rok" : "mm/yr");
+      ticks = [`≤ −${S}`, "0", `≥ +${S} ${u}`];
+      note = `${mode === "cum" ? t("legend_cum", { d: fmtDate(meta.dates[0]) }) : t("legend_vel")} · ← ${t("away")} | ${t("toward")} →`;
+    } else if (mode === "fringe") {
+      bar = getComputedStyle($(".cycle")).backgroundImage;
+      ticks = [`−${num(meta.half_wavelength_mm / 2)}`, "0", `+${num(meta.half_wavelength_mm / 2)} mm`];
+      note = t("legend_fringe", { h: num(meta.half_wavelength_mm, 1) });
+    } else {
+      bar = "linear-gradient(90deg, #000, #fff)"; ticks = ["0", "0,5", "1"]; note = t("legend_coh");
+    }
+    $("#ramp-bar").style.background = bar;
+    $("#ramp-ticks").innerHTML = ticks.map((x) => `<span>${x}</span>`).join("");
+    $("#ramp-note").textContent = note;
+    $("#risk-key").innerHTML = ["wysokie", "średnie", "niskie", "brak danych"].map((k) => `<span><i style="border-color:${riskColor(k)}"></i>${T[LANG].classes[k]}</span>`).join("")
+      + `<span><i style="border-color:var(--muted)"></i>${t("key_pipe")}</span><span><i class="rail" style="border-color:var(--muted)"></i>${t("key_rail")}</span><span><i class="power" style="border-color:var(--muted)"></i>${t("key_power")}</span>`;
+  }
+
+  // ---------------------------------------------------------------- czas
+  const timeIn = $("#time");
+  timeIn.max = E - 1; timeIn.value = cur;
+  function setEpoch(e) {
+    cur = e; timeIn.value = e;
+    if (mode === "cum" || mode === "fringe") dataLayer.setUrl(frameUrl(mode, e));
+    $("#date-label").textContent = fmtDate(meta.dates[e]);
+    const b = $("#date-badge");
+    if (mode === "velocity" || mode === "coherence") { b.className = "badge"; b.textContent = t("static_layer"); }
+    else if (gapIdx >= 0 && e > gapIdx) { b.className = "badge warn"; b.textContent = t("interp"); }
+    else { b.className = ""; b.textContent = ""; }
+    if (pointChart) pointChart.update("none");
+    if (profChart) updateProfile();
+  }
+  timeIn.addEventListener("input", (e) => { stopPlay(); setEpoch(+e.target.value); });
+  let playTimer = null;
+  const playIcon = '<path d="M4 2l10 6-10 6z"/>', pauseIcon = '<path d="M3 2h4v12H3zM9 2h4v12H9z"/>';
+  function stopPlay() { clearInterval(playTimer); playTimer = null; $("#play-icon").innerHTML = playIcon; }
+  $("#play").addEventListener("click", () => {
+    if (playTimer) return stopPlay();
+    if (mode !== "cum" && mode !== "fringe") setMode("cum");
+    if (cur >= E - 1) setEpoch(0);
+    $("#play-icon").innerHTML = pauseIcon;
+    playTimer = setInterval(() => { if (cur >= E - 1) return stopPlay(); setEpoch(cur + 1); }, 550);
+  });
+  function setMode(m) {
+    mode = m;
+    $$("#modes button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.mode === m)));
+    dataLayer.setUrl(frameUrl(m, cur));
+    renderLegend(); setEpoch(cur);
+  }
+  $$("#modes button").forEach((b) => b.addEventListener("click", () => setMode(b.dataset.mode)));
+
+  // ---------------------------------------------------------------- wykresy
+  Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
+  Chart.defaults.font.size = 11;
+  const monthTicks = (() => { const out = [], s = toDate(meta.dates[0]); for (let d = new Date(Date.UTC(s.getUTCFullYear(), s.getUTCMonth() + 1, 1)); d <= toDate(meta.dates[E - 1]); d.setUTCMonth(d.getUTCMonth() + 1)) out.push((d - s) / 864e5); return out; })();
+  const monthLabel = (v) => new Date(toDate(meta.dates[0]).getTime() + v * 864e5).toLocaleDateString(locale(), { month: "short", timeZone: "UTC" });
+  const axisColors = () => ({ grid: alpha(css("--muted"), 0.18), text: css("--muted") });
+  const cursorPlugin = { id: "cursor", afterDatasetsDraw(ch, args, o) {
+    if (!o.on) return; const x = ch.scales.x.getPixelForValue(days[cur]); const { top, bottom } = ch.chartArea;
+    const g = ch.ctx; g.save(); g.strokeStyle = css("--accent"); g.globalAlpha = .6; g.setLineDash([3, 3]); g.beginPath(); g.moveTo(x, top); g.lineTo(x, bottom); g.stroke(); g.restore();
+  } };
+  const gapPlugin = { id: "gapband", beforeDatasetsDraw(ch, args, o) {
+    if (!o.on || gapIdx < 0) return; const x0 = ch.scales.x.getPixelForValue(days[gapIdx]), x1 = ch.scales.x.getPixelForValue(days[gapIdx + 1]);
+    const { top, bottom } = ch.chartArea; const g = ch.ctx; g.save(); g.fillStyle = alpha(css("--muted"), 0.14); g.fillRect(x0, top, x1 - x0, bottom - top); g.restore();
+  } };
+  let pointChart = null, profChart = null, infraChart = null, alertChart = null, pointMarker = null, pointSeries = null;
+
+  function seriesAt(latlng) {
+    const p = L.CRS.EPSG3857.project(latlng);
+    const c = Math.floor((p.x - F.x0) / F.res), r = Math.floor((F.y1 - p.y) / F.res);
+    if (c < 0 || r < 0 || c >= F.w || r >= F.h) return null;
+    const o = (r * F.w + c) * E, s = [];
+    for (let e = 0; e < E; e++) { const v = TS[o + e]; if (v === -32768) return null; s.push(v); }
+    return s;
+  }
+  function selectPoint(latlng, switchTab) {
+    const s = seriesAt(latlng);
+    if (!pointMarker) pointMarker = L.circleMarker(latlng, { radius: 7, weight: 2, color: css("--bg"), fillColor: css("--accent"), fillOpacity: 1, interactive: false }).addTo(map);
+    pointMarker.setLatLng(latlng);
+    pointSeries = s;
+    if (switchTab) showTab("point");
+    if (!s) { $("#point-kv").innerHTML = `<dt></dt><dd style="font-family:inherit">${t("point_outside")}</dd>`; pointChart.data.datasets[0].data = []; pointChart.update(); return; }
+    pointChart.data.datasets[0].data = s.map((v, i) => ({ x: days[i], y: v }));
+    pointChart.update();
+    const tc = days.map((d) => d / 365.25), tm = tc.reduce((a, b) => a + b) / E, sm = s.reduce((a, b) => a + b) / E;
+    const rate = tc.reduce((a, x, i) => a + (x - tm) * (s[i] - sm), 0) / tc.reduce((a, x) => a + (x - tm) ** 2, 0);
+    $("#point-kv").innerHTML = [[t("kv_total"), `${mm(s[E - 1])}`], [t("kv_rate"), `${num(rate)} mm/${LANG === "pl" ? "rok" : "yr"}`],
+      [t("kv_where"), `${latlng.lat.toFixed(4)}°, ${latlng.lng.toFixed(4)}°`]].map(([a, b]) => `<dt>${a}</dt><dd>${b}</dd>`).join("");
+  }
+  function makePointChart() {
+    const ac = axisColors();
+    pointChart = new Chart($("#chart-point"), {
+      type: "line", plugins: [cursorPlugin, gapPlugin],
+      data: { datasets: [{ data: [], borderColor: css("--accent"), backgroundColor: alpha(css("--accent"), 0.12), fill: "origin", pointRadius: 2.5, pointBackgroundColor: css("--accent"), borderWidth: 2, tension: 0,
+        segment: { borderDash: (c) => (c.p0DataIndex === gapIdx ? [5, 4] : undefined) } }] },
+      options: { animation: false, parsing: false, maintainAspectRatio: false,
+        scales: { x: { type: "linear", min: 0, max: days[E - 1], afterBuildTicks: (a) => { a.ticks = monthTicks.map((v) => ({ value: v })); }, ticks: { callback: monthLabel, color: ac.text, maxRotation: 0 }, grid: { color: ac.grid } },
+          y: { title: { display: true, text: t("mm_los"), color: ac.text }, ticks: { color: ac.text }, grid: { color: ac.grid } } },
+        plugins: { legend: { display: false }, cursor: { on: true }, gapband: { on: true },
+          tooltip: { callbacks: { title: (it) => fmtDate(meta.dates[it[0].dataIndex]), label: (it) => mm(it.parsed.y) } } } },
+    });
+  }
+
+  let profSel = 0;
+  const crossPlugin = { id: "cross", afterDatasetsDraw(ch) {
+    const pr = profiles[profSel]; if (!pr) return; const g = ch.ctx, { top, bottom } = ch.chartArea; g.save();
+    pr.crossings.forEach((c) => { const x = ch.scales.x.getPixelForValue(c.odleglosc_m); g.strokeStyle = riskColor(c.klasa); g.lineWidth = 1.5; g.beginPath(); g.moveTo(x, top); g.lineTo(x, bottom); g.stroke();
+      g.save(); g.translate(x + 3, top + 4); g.rotate(Math.PI / 2); g.fillStyle = css("--muted"); g.font = `10px ${css("--f-data")}`; g.fillText(String(c.obiekt).slice(0, 26), 0, 0); g.restore(); });
+    g.restore();
+  } };
+  function updateProfile() {
+    const pr = profiles[profSel], acc = css("--accent"), mu = css("--muted");
+    profChart.data.datasets = pr.values_mm.map((vals, e) => ({
+      data: vals.map((v, i) => ({ x: pr.distance_m[i], y: v })), hidden: e > cur, spanGaps: false, pointRadius: 0, tension: 0,
+      borderWidth: e === cur ? 2.4 : 1, borderColor: e === cur ? acc : mix(mu, acc, e / Math.max(cur, 1) * 0.6), borderDash: gapIdx >= 0 && e > gapIdx ? [4, 3] : undefined,
+    }));
+    profChart.update("none");
+  }
+  function makeProfChart() {
+    const ac = axisColors();
+    profChart = new Chart($("#chart-prof"), { type: "line", plugins: [crossPlugin], data: { datasets: [] },
+      options: { animation: false, parsing: false, maintainAspectRatio: false,
+        scales: { x: { type: "linear", title: { display: true, text: LANG === "pl" ? "odległość wzdłuż przekroju [m]" : "distance along profile [m]", color: ac.text }, ticks: { color: ac.text }, grid: { color: ac.grid } },
+          y: { title: { display: true, text: t("mm_los"), color: ac.text }, ticks: { color: ac.text }, grid: { color: ac.grid } } },
+        plugins: { legend: { display: false }, tooltip: { enabled: false } } } });
+    updateProfile();
+  }
+  function renderProfChips() {
+    $("#prof-chips").innerHTML = profiles.map((p, i) => `<button type="button" aria-pressed="${i === profSel}" data-i="${i}">${profName(p.name)}</button>`).join("");
+    profLabels.eachLayer((tip) => tip.setContent(profName(tip._pname)));
+    $$("#prof-chips button").forEach((b) => b.addEventListener("click", () => { profSel = +b.dataset.i; renderProfChips(); updateProfile(); }));
+  }
+
+  const critTypes = ["gazociąg", "rurociąg", "kolej", "linia energetyczna"].filter((k) => meta.infra[k]);
+  function makeInfraChart() {
+    const ac = axisColors(), classes = ["wysokie", "średnie", "niskie", "brak danych"];
+    if (infraChart) infraChart.destroy();
+    infraChart = new Chart($("#chart-infra"), { type: "bar",
+      data: { labels: critTypes.map((k) => T[LANG].types[k]), datasets: classes.map((c) => ({ label: T[LANG].classes[c], data: critTypes.map((k) => meta.infra[k][c] || 0), backgroundColor: riskColor(c), borderWidth: 0 })) },
+      options: { indexAxis: "y", animation: false, maintainAspectRatio: false,
+        scales: { x: { stacked: true, title: { display: true, text: "km", color: ac.text }, ticks: { color: ac.text }, grid: { color: ac.grid } }, y: { stacked: true, ticks: { color: ac.text }, grid: { display: false } } },
+        plugins: { legend: { position: "bottom", labels: { color: ac.text, boxWidth: 10 } }, tooltip: { callbacks: { label: (it) => `${it.dataset.label}: ${num(it.parsed.x, 1)} km` } } } } });
+    const tot = critTypes.reduce((a, k) => a + Object.values(meta.infra[k]).reduce((x, y) => x + y, 0), 0);
+    const hi = critTypes.reduce((a, k) => a + (meta.infra[k].wysokie || 0), 0);
+    $("#infra-summary").textContent = t("infra_sum", { km: num(tot), hi: num(hi, 2) });
+  }
+  function renderObjList() {
+    const rank = { "wysokie": 0, "średnie": 1, "niskie": 2, "brak danych": 3 };
+    const items = critical.features.filter((f) => f.properties.klasa !== "niskie" && f.properties.klasa !== "brak danych")
+      .concat(critical.features.filter((f) => isPipe(f.properties.typ) && f.properties.klasa === "niskie"))
+      .sort((a, b) => rank[a.properties.klasa] - rank[b.properties.klasa] || (b.properties.km - a.properties.km));
+    const seen = new Set(), list = [];
+    for (const f of items) { const k = f.properties.obiekt_id + f.properties.klasa; if (!seen.has(k)) { seen.add(k); list.push(f); } if (list.length >= 40) break; }
+    $("#objlist").innerHTML = list.map((f, i) => { const p = f.properties, typ = T[LANG].types[p.typ] || p.typ;
+      const name = p.nazwa && !/^osm_/.test(p.nazwa) ? p.nazwa : typ;
+      return `<button type="button" data-i="${i}"><span class="risk" data-k="${p.klasa}">${T[LANG].classes[p.klasa]}</span><span class="t"><b>${name}</b><small>${typ} · ${p.powod || ""}</small></span><span class="d">${num(p.km, 2)} km${p.odl_m != null ? `<br>↔ ${km(p.odl_m)}` : ""}</span></button>`; }).join("");
+    $$("#objlist button").forEach((b) => b.addEventListener("click", () => { const f = list[+b.dataset.i]; const lyr = L.geoJSON(f); map.fitBounds(lyr.getBounds().pad(0.6)); infraPopup(f, lyr.getBounds().getCenter()); }));
+  }
+
+  let winSel = windows.length - 1;
+  const winLabel = (w) => fmtDate(w.data, { day: "numeric", month: "short", timeZone: "UTC" });
+  function showAlerts() {
+    const w = windows[winSel];
+    alertLayer.clearLayers();
+    alertLayer.addData({ type: "FeatureCollection", features: alerts.features.filter((f) => f.properties.okno === w.okno) });
+    $("#alerts-kv").innerHTML = [[t("kv_window"), w.okno.split("-").map((d) => fmtDate(d)).join(" → ")], [t("kv_moving"), `${num(w.ruch_km2, 2)} km²`],
+      [t("kv_acc"), `${num(w["przyspieszenie"], 2)} km²`], [t("kv_new"), `${num(w["nowa strefa ruchu"], 2)} km²`], [t("kv_slow"), `${num(w["spowolnienie"], 2)} km²`]]
+      .map(([a, b]) => `<dt>${a}</dt><dd>${b}</dd>`).join("");
+    if (alertChart) { alertChart.data.datasets.forEach((d) => { d.backgroundColor = d.data.map((_, i) => alpha(d._c, i === winSel ? 1 : 0.45)); }); alertChart.update("none"); }
+  }
+  function makeAlertChart() {
+    const ac = axisColors();
+    const defs = [["przyspieszenie", alertColor("przyspieszenie"), "kv_acc"], ["nowa strefa ruchu", alertColor("nowa strefa ruchu"), "kv_new"], ["spowolnienie", alertColor("spowolnienie"), "kv_slow"]];
+    if (alertChart) alertChart.destroy();
+    alertChart = new Chart($("#chart-alerts"), { type: "bar",
+      data: { labels: windows.map(winLabel), datasets: defs.map(([k, c, lab]) => ({ label: t(lab), data: windows.map((w) => w[k]), _c: c, backgroundColor: windows.map(() => c), borderWidth: 0 })) },
+      options: { animation: false, maintainAspectRatio: false,
+        onClick: (ev, els) => { if (!els.length) return; winSel = els[0].index; showAlerts(); const end = windows[winSel].data.replaceAll("-", ""); const e = meta.dates.indexOf(end); if (e >= 0) setEpoch(e); },
+        scales: { x: { stacked: true, ticks: { color: ac.text, maxRotation: 60 }, grid: { display: false } }, y: { stacked: true, title: { display: true, text: "km²", color: ac.text }, ticks: { color: ac.text }, grid: { color: ac.grid } } },
+        plugins: { legend: { position: "bottom", labels: { color: ac.text, boxWidth: 10 } } } } });
+    showAlerts();
+  }
+
+  // ---------------------------------------------------------------- zakładki
+  const tabs = { point: "#pn-point", prof: "#pn-prof", infra: "#pn-infra", alerts: "#pn-alerts" };
+  function showTab(k) {
+    Object.entries(tabs).forEach(([n, sel]) => { $(sel).hidden = n !== k; $(`#tab-${n}`).setAttribute("aria-selected", String(n === k)); });
+    if (k === "alerts") { alertLayer.addTo(map); } else { map.removeLayer(alertLayer); }
+    [pointChart, profChart, infraChart, alertChart].forEach((c) => c && c.resize());
+  }
+  Object.keys(tabs).forEach((k) => $(`#tab-${k}`).addEventListener("click", () => showTab(k)));
+
+  // ---------------------------------------------------------------- język i motyw
+  function applyLang() {
+    document.documentElement.lang = LANG;
+    document.title = t("title");
+    const P = { h: num(meta.half_wavelength_mm, 1), n: num(E - 1), d0: fmtDate(meta.dates[0]), d1: fmtDate(meta.dates[E - 1]),
+      b: num(B.liczba_budynkow || 0) };
+    $$("[data-i18n]").forEach((el) => { el.textContent = t(el.dataset.i18n, P); });
+    $("#lang-pl").setAttribute("aria-pressed", String(LANG === "pl")); $("#lang-en").setAttribute("aria-pressed", String(LANG === "en"));
+    renderStats(); renderLegend(); setEpoch(cur); renderProfChips(); renderObjList();
+    rebuildCharts();
+    drawFringe(fringeE);
+  }
+  function rebuildCharts() {
+    [pointChart, profChart].forEach((c) => c && c.destroy());
+    makePointChart(); makeProfChart(); makeInfraChart(); makeAlertChart();
+    if (pointMarker) selectPoint(pointMarker.getLatLng(), false);
+  }
+  ["pl", "en"].forEach((l) => $(`#lang-${l}`).addEventListener("click", () => { LANG = l; try { localStorage.setItem("pb-lang", l); } catch (e) { /* bez pamięci */ } applyLang(); }));
+  const onTheme = () => { restyle(); renderLegend(); rebuildCharts(); };
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", onTheme);
+  new MutationObserver(onTheme).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+
+  // ---------------------------------------------------------------- start
+  map.on("click", (e) => selectPoint(e.latlng, true));
+  $("#fringe-replay").addEventListener("click", playFringe);
+  applyLang();
+  selectPoint(L.latLng(meta.core.lat, meta.core.lon), false);
+  playFringe();
+})().catch((err) => {
+  const p = document.createElement("p");
+  p.className = "wrap note";
+  p.textContent = "Nie udało się wczytać danych strony (" + err.message + "). Sprawdź, czy folder data/ leży obok index.html i czy strona jest otwierana przez serwer (nie jako plik).";
+  document.body.prepend(p);
+});
+</script>
+
+</body>
+</html>

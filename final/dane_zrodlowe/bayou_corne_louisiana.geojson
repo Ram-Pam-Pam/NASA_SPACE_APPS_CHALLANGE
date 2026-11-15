@@ -1,0 +1,55 @@
+{
+  "type": "FeatureCollection",
+  "name": "bayou_corne_louisiana",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "bayou_corne_louisiana",
+      "properties": {
+        "name": "Bayou Corne Sinkhole",
+        "center_lon_lat": [
+          -91.1438291,
+          30.010535
+        ],
+        "window_width_km_approx": 5.0,
+        "window_height_km_approx": 5.0,
+        "area_km2_approx": 25.0,
+        "mission": "UAVSAR (historical 2012 case; not NISAR)",
+        "target_products": [
+          "InSAR Pair",
+          "SLC Stack"
+        ],
+        "source": "https://www.openstreetmap.org/",
+        "note": "Starter search window for the historical precursor analysis. Confirm archived UAVSAR acquisitions and products before analysis.",
+        "caveat": "This is a rectangular discovery/analysis window, not an official landslide boundary, hazard zone, or confirmation of data coverage."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -91.1697638635467,
+              29.988077220625225
+            ],
+            [
+              -91.1178943364533,
+              29.988077220625225
+            ],
+            [
+              -91.1178943364533,
+              30.032992779374776
+            ],
+            [
+              -91.1697638635467,
+              30.032992779374776
+            ],
+            [
+              -91.1697638635467,
+              29.988077220625225
+            ]
+          ]
+        ]
+      }
+    }
+  ]
+}

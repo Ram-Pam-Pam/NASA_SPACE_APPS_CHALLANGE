@@ -1,0 +1,100 @@
+{
+ "aoi": "bayou_corne_louisiana",
+ "name": "Bayou Corne Sinkhole",
+ "kind": "scene3d",
+ "built": "2026-11-14",
+ "bbox": [
+  -91.1697638635467,
+  29.988077220625225,
+  -91.1178943364533,
+  30.032992779374776
+ ],
+ "size_m": [
+  5000.0,
+  4965.0
+ ],
+ "ground": {
+  "file": "ground.jpg",
+  "source": "USGS NAIP Plus (USDA aerial photo)",
+  "date": "2023-05-04",
+  "resolution_m": 0.3
+ },
+ "terrain": {
+  "file": "terrain.bin",
+  "width": 769,
+  "height": 769,
+  "min_m": 0.0,
+  "max_m": 3.21,
+  "layout": "uint16[width*height], rows north -> south; height = min_m + value / 65535 * (max_m - min_m)",
+  "default_exaggeration": 30,
+  "exaggerations": [
+   1,
+   5,
+   15,
+   30
+  ],
+  "sea_level_m": null,
+  "carved_water": [
+   "river",
+   "river",
+   "river",
+   "river",
+   "Bayou Corne Sinkhole"
+  ],
+  "source": "USGS 3DEP (lidar)"
+ },
+ "trees": {
+  "file": "trees.bin",
+  "count": 122670,
+  "spacing_m": 13.0,
+  "layout": "uint16 x[n], y[n] (0..65535 = west..east, north..south); uint8 height_dm[n], r[n], g[n], b[n], kind[n] (0 round crown, 1 conical)"
+ },
+ "buildings_bin": null,
+ "insar": null,
+ "risk_colors": null,
+ "layers": {
+  "roads": {
+   "file": "roads.geojson",
+   "count": 53
+  },
+  "rail": {
+   "file": "rail.geojson",
+   "count": 0
+  },
+  "water": {
+   "file": "water.geojson",
+   "count": 14
+  },
+  "pipelines": {
+   "file": "pipelines.geojson",
+   "count": 21
+  },
+  "areas": {
+   "file": "areas.geojson",
+   "count": 2
+  },
+  "places": {
+   "file": "places.geojson",
+   "count": 16
+  },
+  "buildings": {
+   "file": "buildings.geojson",
+   "count": 59
+  },
+  "hazards": {
+   "file": "hazards.geojson",
+   "count": 0
+  },
+  "forest": {
+   "file": "forest.geojson",
+   "count": 20
+  }
+ },
+ "sources": [
+  "OpenStreetMap (ODbL), stan na 2026-11-14",
+  "Overture Maps 2026-10-21.0 (budynki: OSM + Microsoft ML Buildings)",
+  "USGS NAIP Plus (USDA aerial photo), 2023-05-04",
+  "ESA WorldCover 10 m 2021 (CC BY 4.0)",
+  "USGS 3DEP (wysokości terenu z lidaru)"
+ ]
+}

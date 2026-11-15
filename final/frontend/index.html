@@ -1,0 +1,1042 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Corridor Watch</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23C8F169'/%3E%3Cpath d='M4 21h9l3-3 3 3h9' fill='none' stroke='%230B0C0E' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+/* ------------------------------------------------------------------ tokens
+   One dark theme: background #0B0C0E, panels #15171A, borders/separators #2B2E33,
+   secondary text #A2A6AC, primary text #F2F3F0, interface accent lime #C8F169
+   (active date, focus, selection, brand only — never used for data).
+   Data colours (InSAR ramp, anomaly types, alert levels) are not defined here on purpose:
+   they live with the data logic and keep their meaning. */
+:root {
+  color-scheme: dark;
+  --page: #0B0C0E; --surface: #15171A; --text: #F2F3F0; --text-2: #A2A6AC; --muted: #A2A6AC;
+  --grid: #2B2E33; --axis: #2B2E33; --border: #2B2E33; --wash: rgba(242,243,240,0.06);
+  --accent: #C8F169; --accent-ink: #0B0C0E;
+  --s1: #C8F169; --s2: #eb6834; --alert: #d03b3b; --alert-wash: rgba(208,59,59,0.14);
+  --nav: #15171A; --nav-2: #0B0C0E; --nav-line: #2B2E33; --nav-text: #F2F3F0; --nav-muted: #A2A6AC; --nav-accent: #C8F169;
+  --font: "Inter", "Manrope", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --shadow: 0 1px 2px rgba(0,0,0,.5), 0 4px 14px rgba(0,0,0,.4);
+  --label: 600 11.5px/1.3 var(--font);   /* small uppercase section labels */
+}
+
+/* -------------------------------------------------------------------- base */
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+/* App layout: compact header + time bar, below them the map (dominant) with a narrow side panel. No page scroll on wide screens. */
+html, body { height: 100%; }
+body { margin: 0; background: var(--page); color: var(--text); font: 14px/1.5 var(--font); -webkit-font-smoothing: antialiased;
+  display: flex; flex-direction: column; overflow: hidden; }
+[hidden] { display: none !important; }
+button, select, input { font: inherit; }
+button { background: var(--surface); color: var(--text); border: 1px solid var(--axis); border-radius: 8px; padding: 6px 12px; cursor: pointer; transition: background .15s, border-color .15s, color .15s; }
+button:hover { background: var(--wash); }
+button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+select { background: var(--page); color: var(--text); border: 1px solid var(--axis); border-radius: 8px; padding: 7px 10px; max-width: 100%; cursor: pointer; transition: border-color .15s; }
+select:hover { border-color: #4a4e55; }
+input[type="range"], input[type="checkbox"] { accent-color: var(--accent); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.small { font-size: 12.5px; color: var(--text-2); }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
+
+/* ------------------------------------------------------------------ header
+   Product name, the case study (AOI) being shown, and the AOI switcher — one compact row. */
+.topbar { flex: none; position: relative; z-index: 1200; background: var(--surface); }
+.bar { display: flex; gap: 8px 18px; align-items: center; flex-wrap: wrap; min-height: 52px; padding: 8px 20px; background: var(--nav); color: var(--nav-text); box-shadow: inset 0 -1px 0 var(--nav-line); }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 15.5px; letter-spacing: -.01em; white-space: nowrap; }
+.brand svg { width: 26px; height: 26px; flex: none; }
+.bar h1 { display: flex; align-items: baseline; gap: 10px; margin: 0; padding-left: 18px; border-left: 1px solid var(--nav-line); font-size: 15px; font-weight: 600; line-height: 1.3; letter-spacing: -.005em; }
+.bar h1::before { content: "Obszar analizy"; font: var(--label); letter-spacing: .07em; text-transform: uppercase; color: var(--nav-muted); white-space: nowrap; }
+.bar h1:empty { display: none; }
+.bar .sp { flex: 1; }
+.loc { display: flex; align-items: center; gap: 10px; min-width: 0; font: var(--label); letter-spacing: .07em; text-transform: uppercase; color: var(--nav-muted); }
+.loc select { min-width: 0; padding: 6px 10px; background: var(--nav-2); color: var(--nav-text); border-color: var(--nav-line); font: 500 13.5px/1.4 var(--font); letter-spacing: 0; text-transform: none; }
+.loc select:hover { border-color: var(--nav-accent); }
+.seg { display: inline-flex; border: 1px solid var(--nav-line); border-radius: 8px; overflow: hidden; background: var(--nav-2); }
+.seg button { border: 0; border-radius: 0; padding: 6px 12px; border-right: 1px solid var(--nav-line); background: transparent; color: var(--nav-text); font-size: 13.5px; }
+.seg button:hover { background: var(--wash); }
+.seg button:last-child { border-right: 0; }
+.seg button[aria-pressed="true"] { background: var(--nav-accent); color: var(--accent-ink); font-weight: 600; }
+
+/* ---------------------------------------------------------------- time bar
+   Label, previous / selected date / next, latest, play, then a quiet track of measurement dates. */
+#timeline { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; padding: 8px 20px; background: var(--surface); border-bottom: 1px solid var(--grid); }
+.tl-title { font: var(--label); letter-spacing: .07em; text-transform: uppercase; color: var(--text-2); white-space: nowrap; margin-right: 2px; }
+.tl-step { display: inline-flex; align-items: center; gap: 2px; padding: 2px; background: var(--page); border: 1px solid var(--grid); border-radius: 10px; }
+.tl-date { min-width: 122px; padding: 0 6px; font-size: 16.5px; font-weight: 700; letter-spacing: -.01em; color: var(--text); text-align: center; white-space: nowrap; font-variant-numeric: tabular-nums; }
+#timeline button { display: grid; place-items: center; padding: 0; }
+#timeline button svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.tl-nav { width: 32px; height: 32px; border: 0; border-radius: 8px; background: transparent; color: var(--text); }
+.tl-nav:hover:not(:disabled) { background: var(--surface); color: var(--accent); }
+.tl-nav:disabled { color: #4a4e55; cursor: default; background: transparent; }
+.tl-round { width: 38px; height: 38px; border-radius: 10px; border: 1px solid var(--grid); background: var(--page); color: var(--text); }
+.tl-round:hover { border-color: #4a4e55; color: var(--accent); background: var(--page); }
+#timeline #play { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+#timeline #play:hover { background: color-mix(in srgb, var(--accent) 86%, #000); color: var(--accent-ink); }
+#timeline #play svg { fill: currentColor; stroke: none; }
+#tl { position: relative; flex: 1 1 380px; height: 40px; margin: 0 24px 0 30px; cursor: pointer; touch-action: none; user-select: none; }
+.tl-band { position: absolute; left: -14px; right: -14px; top: 10px; height: 4px; border-radius: 2px; background: var(--grid); }
+.tl-stop { position: absolute; top: 12px; width: 6px; height: 6px; border-radius: 50%; background: #6b7078; transform: translate(-50%, -50%); }
+/* The selected date: an accent dot that glides between measurements instead of jumping */
+.tl-thumb { position: absolute; top: 12px; width: 16px; height: 16px; border-radius: 50%; background: var(--accent); border: 3px solid var(--surface); transform: translate(-50%, -50%);
+  box-shadow: 0 0 0 1.5px var(--accent); transition: left .35s cubic-bezier(.4, 0, .2, 1); pointer-events: none; }
+.tl-lab { position: absolute; top: 21px; transform: translateX(-50%); font-size: 12px; font-weight: 500; color: var(--text-2); white-space: nowrap; font-variant-numeric: tabular-nums; transition: color .2s; }
+.tl-lab.on { color: var(--accent); font-weight: 600; }
+.tl-lab.first { transform: translateX(-10px); }
+.tl-lab.last { transform: translateX(calc(-100% + 10px)); }
+@media (prefers-reduced-motion: reduce) { .tl-thumb { transition: none; } }
+
+/* --------------------------------------------------------------- workspace
+   The map takes almost all of the screen; a narrow panel on the right holds the read-out, options and limitations. */
+#app { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 288px; grid-template-rows: minmax(0, 1fr); }
+.mapwrap { position: relative; min-width: 0; min-height: 0; }
+#map { position: absolute; inset: 0; background: var(--page); z-index: 0; }
+.leaflet-container { font-family: var(--font); }
+.leaflet-image-layer.pix { image-rendering: pixelated; }
+/* Raster frames cross-fade when the date changes (keep Leaflet's zoom animation on the same element) */
+.leaflet-image-layer.fade { transition: opacity .65s ease; }
+.leaflet-zoom-anim .leaflet-image-layer.fade { transition: transform .25s cubic-bezier(0, 0, .25, 1), opacity .65s ease; }
+@media (prefers-reduced-motion: reduce) { .leaflet-image-layer.fade { transition: none; } }
+
+/* Leaflet controls, restyled to match the rest of the UI */
+.leaflet-container .leaflet-bar { border: 1px solid var(--grid); border-radius: 8px; box-shadow: var(--shadow); overflow: hidden; }
+.leaflet-container .leaflet-bar a { width: 32px; height: 32px; line-height: 32px; background: var(--surface); color: var(--text); border-bottom-color: var(--grid); }
+.leaflet-container .leaflet-bar a:hover { background: var(--page); color: var(--accent); }
+.leaflet-container .leaflet-bar a.leaflet-disabled { background: var(--surface); color: #4a4e55; }
+.leaflet-container .leaflet-control-layers { border: 1px solid var(--grid); border-radius: 8px; box-shadow: var(--shadow); background: var(--surface); color: var(--text); }
+.leaflet-container .leaflet-control-layers-toggle { width: 34px; height: 34px; background-size: 20px 20px; filter: invert(.92); }
+.leaflet-container .leaflet-control-layers-expanded { padding: 8px 12px; font-size: 13.5px; line-height: 1.7; }
+.leaflet-container .leaflet-control-layers label { cursor: pointer; }
+.leaflet-container .leaflet-control-scale-line { border-color: var(--text-2); border-radius: 0 0 3px 3px; padding: 1px 6px; font-size: 11px; color: var(--text); background: rgba(21,23,26,.85); }
+.leaflet-container .leaflet-control-attribution { background: rgba(21,23,26,.85); color: var(--text-2); }
+.leaflet-container .leaflet-control-attribution a { color: var(--text); }
+
+/* Anomaly markers: small, flat dots in the anomaly type's existing colour with a thin white ring.
+   The marker SVG is generated by the map script as a teardrop pin with an icon; here it is shown as
+   just the round head (clip-path), scaled down and moved so the dot sits exactly on the point of
+   strongest movement (the pin's tip). Only the visible dot is clickable/hoverable. */
+.leaflet-marks-pane .leaflet-marker-icon.leaflet-interactive { pointer-events: none; }
+.pin { display: block; width: 36px; height: 44px; transform-origin: 18px 43px; cursor: pointer;
+  filter: drop-shadow(0 0 1.5px rgba(0,0,0,.7)); animation: pin-in .35s ease-out both; transition: transform .15s ease; }
+.pin svg { display: block; width: 100%; height: 100%; pointer-events: auto; overflow: hidden;
+  clip-path: circle(15px at 18px 18px); transform: translateY(25px) scale(.46); transform-origin: 18px 18px; }
+.pin svg g { display: none; }
+.pin:hover { transform: scale(1.35); }
+@keyframes pin-in { from { transform: scale(.2); opacity: 0; } to { transform: none; opacity: 1; } }
+/* Type badges (legend, tooltip, popup): the same plain dot as on the map */
+.badge { display: inline-block; flex: none; width: 11px; height: 11px; border-radius: 50%; vertical-align: 0; box-shadow: 0 0 0 1.5px rgba(242,243,240,.9); }
+.badge svg { display: block; width: 100%; height: 100%; }
+.badge svg g { display: none; }
+@media (prefers-reduced-motion: reduce) { .pin { animation: none; } }
+
+/* Point popup (click on the map): plain-language summary of ground movement at one spot */
+.leaflet-popup-content-wrapper { border-radius: 12px; box-shadow: 0 0 0 1px var(--border), 0 8px 26px rgba(0,0,0,.5); }
+.leaflet-popup-content { font: 14px/1.45 var(--font); margin: 12px 14px; }
+.leaflet-container a.leaflet-popup-close-button { top: 6px; right: 6px; width: 26px; height: 26px; font-size: 20px; line-height: 24px; color: var(--text-2); border-radius: 6px; }
+.leaflet-container a.leaflet-popup-close-button:hover { color: var(--text); background: var(--wash); }
+.cw-pop .leaflet-popup-content-wrapper, .cw-pop .leaflet-popup-tip { background: var(--surface); color: var(--text); }
+.cw-pop .leaflet-popup-content { margin: 16px 18px 14px; }
+.pp-chip { display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: .01em; padding: 3px 10px; border-radius: 999px; color: #fff; }
+.pp-chip.calm { background: #5b6b7d; } .pp-chip.small { background: var(--s2); } .pp-chip.big { background: var(--alert); } .pp-chip.none { background: #5b6b7d; }
+.pp-head { font-size: 18.5px; font-weight: 700; line-height: 1.25; letter-spacing: -.01em; margin: 8px 0 3px; }
+.pp-sub { color: var(--text-2); font-size: 13.5px; line-height: 1.45; }
+.pp-sec { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--grid); font-size: 13.5px; line-height: 1.45; }
+.pp-sec h4 { margin: 0; font: var(--label); letter-spacing: .07em; text-transform: uppercase; color: var(--text-2); }
+.pp-row { display: flex; justify-content: space-between; gap: 12px; }
+.pp-row + .pp-row { margin-top: 4px; }
+.pp-row span:first-child { color: var(--text-2); }
+.pp-row b { font-weight: 600; text-align: right; }
+.pp-hint { color: var(--text-2); font-size: 12.5px; margin-top: 3px; }
+.pp-zone { background: var(--alert-wash); border-top: 0; border-radius: 8px; padding: 9px 11px; }
+.pp-zone .badge, .pp-sec .badge { margin: 0 2px; }
+.obj-assessment { margin-top: 10px; padding: 11px 12px; border: 1px solid var(--border); border-radius: 9px; background: var(--wash); }
+.obj-assessment h4 { margin: 0 0 5px; font: var(--label); letter-spacing: .06em; text-transform: uppercase; color: var(--text-2); }
+.obj-assessment strong { display: block; font-size: 16px; }
+.obj-assessment p { margin: 5px 0 0; }
+.obj-assessment .pp-hint { margin-top: 7px; }
+.obj-assessment.high { border-color: #c62a22; }
+.obj-assessment.medium { border-color: #e3871f; }
+.obj-assessment.low { border-color: #2f8f57; }
+.obj-assessment.missing { border-color: #98a3ab; }
+.obj-details { margin-top: 10px; color: var(--text-2); font-size: 12.5px; }
+.obj-details summary { cursor: pointer; color: var(--text); }
+.obj-details .pp-sec { margin-top: 7px; }
+.obj-details p { margin: 8px 0 0; }
+/* The chart's "selected date" dot stays blue: the popup text calls it "niebieska kropka" */
+.pp-spark { display: block; width: 100%; height: auto; margin-top: 4px; overflow: visible; --accent: #2563eb; }
+.pp-spark text { font-size: 10.5px; fill: var(--text-2); font-variant-numeric: tabular-nums; }
+.pp-foot { margin-top: 10px; font-size: 12px; line-height: 1.4; color: var(--text-2); }
+
+/* -------------------------------------------------------------- map legend
+   Small collapsible card pinned to the bottom-right corner of the map (above scale and attribution),
+   away from the zoom and layer controls. */
+.legend-box { position: absolute; right: 10px; bottom: 46px; z-index: 1000; width: 300px; max-width: calc(100% - 20px);
+  background: rgba(21,23,26,.94); border: 1px solid var(--grid); border-radius: 10px; box-shadow: var(--shadow); backdrop-filter: blur(6px); }
+.legend-box > summary { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 12px; cursor: pointer; list-style: none; border-radius: 10px;
+  font: var(--label); letter-spacing: .07em; text-transform: uppercase; color: var(--text); }
+.legend-box > summary::-webkit-details-marker { display: none; }
+.legend-box > summary::after { content: ""; width: 7px; height: 7px; border-right: 1.75px solid var(--text-2); border-bottom: 1.75px solid var(--text-2); transform: translateY(2px) rotate(-135deg); transition: transform .2s; }
+.legend-box:not([open]) > summary::after { transform: translateY(-2px) rotate(45deg); }
+.legend-box > summary:hover { color: var(--accent); }
+.legend-box:not([open]) { width: auto; }
+.legend-body { padding: 2px 12px 12px; display: grid; gap: 12px; }
+.lg-h { margin: 0 0 6px; font: var(--label); letter-spacing: .07em; text-transform: uppercase; color: var(--text-2); }
+.scale { width: 100%; }
+.legend-bar { display: block; width: 100%; height: 10px; border-radius: 5px; box-shadow: inset 0 0 0 1px rgba(242,243,240,.10); }
+.legend-ticks { display: flex; justify-content: space-between; gap: 8px; margin-top: 5px; font-size: 12px; font-weight: 500; color: var(--text); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.legend-body .small { display: block; margin-top: 4px; }
+.legend-body .small:empty { display: none; }
+/* Anomaly types: a dot and the name; the one-line explanation is in the hover title */
+.keys { display: flex; flex-wrap: wrap; gap: 6px 16px; }
+.keys > span { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; color: var(--text); }
+.keys > span[title] { cursor: help; }
+.sym-keys svg { flex: none; display: block; }
+.lg-note { margin: 0; padding-top: 10px; border-top: 1px solid var(--grid); font-size: 12.5px; line-height: 1.45; color: var(--text-2); }
+
+/* -------------------------------------------------------------- side panel
+   Value under the cursor, map options, limitations. */
+.under { display: flex; flex-direction: column; min-height: 0; overflow-y: auto; padding: 0 18px 18px; background: var(--surface); border-left: 1px solid var(--grid); font-size: 13.5px; }
+.sec { padding: 16px 0; border-bottom: 1px solid var(--grid); }
+.sec h2 { margin: 0 0 10px; font: var(--label); letter-spacing: .07em; text-transform: uppercase; color: var(--text-2); }
+#readout { min-height: 44px; padding: 10px 12px; background: var(--page); border: 1px solid var(--grid); border-radius: 8px; color: var(--text-2); font-variant-numeric: tabular-nums; }
+#readout b { margin-right: 4px; color: var(--text); font-size: 17px; font-weight: 700; letter-spacing: -.01em; }
+.hint { margin: 10px 0 0; font-size: 12.5px; color: var(--text-2); }
+/* Map options: an accordion that opens in place (it never overlaps the map) */
+details.adv { border-bottom: 1px solid var(--grid); }
+details.adv summary { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 0; font-size: 13.5px; font-weight: 600; cursor: pointer; list-style: none; border-radius: 6px; }
+details.adv summary::-webkit-details-marker { display: none; }
+details.adv summary::after { content: ""; width: 8px; height: 8px; margin-right: 4px; border-right: 2px solid var(--text-2); border-bottom: 2px solid var(--text-2); transform: translateY(-2px) rotate(45deg); transition: transform .2s; }
+details.adv[open] summary::after { transform: translateY(2px) rotate(-135deg); }
+details.adv summary:hover { color: var(--accent); }
+details.adv .pop { display: grid; gap: 13px; padding: 0 0 18px; }
+details.adv .pop label { display: grid; gap: 5px; font-size: 12.5px; font-weight: 500; color: var(--text-2); }
+details.adv .pop label select, details.adv .pop label input[type="range"] { width: 100%; }
+details.adv .pop label select { color: var(--text); font-size: 13.5px; }
+details.adv .pop label.row { display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: var(--text); cursor: pointer; }
+details.adv .pop label.row input { width: 16px; height: 16px; margin: 0; }
+/* Measurement limits: visible, calm, not fine print */
+.note { margin: 16px 0 0; padding: 12px 13px; font-size: 12.5px; line-height: 1.5; color: var(--text-2); background: var(--page); border: 1px solid var(--grid); border-radius: 8px; }
+.note b { display: block; margin-bottom: 3px; font-size: 13px; font-weight: 600; color: var(--text); }
+
+/* Hover tooltip (anomalies, timeline) */
+#tip { position: fixed; z-index: 3000; pointer-events: none; display: none; max-width: 270px; padding: 8px 11px; background: var(--nav); color: var(--nav-text); border-radius: 8px;
+  box-shadow: 0 0 0 1px var(--nav-line), 0 6px 20px rgba(0,0,0,.5); font-size: 12.5px; line-height: 1.45; font-variant-numeric: tabular-nums; }
+#tip b { font-weight: 700; color: var(--text); }
+#tip .badge { margin: 0 2px; }
+#status { flex: 1; display: grid; place-items: center; padding: 40px 20px; text-align: center; color: var(--text-2); font-size: 15px; font-weight: 500; }
+
+/* -------------------------------------------------------------- responsive */
+@media (max-width: 1180px) {
+  #app { grid-template-columns: minmax(0, 1fr) 264px; }
+  .under { padding: 0 14px 14px; }
+}
+/* Narrow screens: the page scrolls; map first with a usable height, then the (collapsible) legend and
+   the panel stacked below it — nothing floats over the map. */
+@media (max-width: 900px) {
+  html, body { height: auto; }
+  body { min-height: 100vh; overflow: visible; }
+  #app { display: block; flex: none; }
+  .mapwrap { display: flex; flex-direction: column; }
+  #map { position: relative; inset: auto; height: 62vh; min-height: 340px; }
+  .legend-box { position: static; width: auto; max-width: none; margin: 10px 16px 0; background: var(--surface); box-shadow: none; backdrop-filter: none; }
+  .legend-box:not([open]) { width: auto; }
+  .under { display: grid; grid-template-columns: 1fr 1fr; column-gap: 24px; overflow: visible; border-left: 0; padding: 0 16px 20px; background: transparent; }
+  .under details.adv, .under .note { grid-column: 1 / -1; }
+}
+@media (max-width: 640px) {
+  .bar { padding: 8px 14px; gap: 6px 12px; }
+  .bar h1 { flex-basis: 100%; order: 1; flex-wrap: wrap; row-gap: 0; padding-left: 0; border-left: 0; }
+  .loc { flex: 1 1 100%; order: 2; }
+  .loc select { flex: 1; }
+  #timeline { padding: 8px 14px; }
+  .tl-title { flex-basis: 100%; }
+  #tl { flex-basis: 100%; margin: 0 14px; }
+  .legend-box { margin: 10px 14px 0; }
+  .under { display: flex; padding: 0 14px 18px; }
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="bar">
+    <div class="brand">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#C8F169"/><path d="M4 12c4-5 8 3 12-1s8 3 12-1" fill="none" stroke="#2B2E33" stroke-width="2.2" stroke-linecap="round"/><path d="M4 21h9l3-3 3 3h9" fill="none" stroke="#0B0C0E" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Corridor Watch</span>
+    </div>
+    <h1 id="title"></h1>
+    <div id="periodWrap"><div class="seg" id="period" role="group" aria-label="Okres obserwacji"></div></div>
+    <span class="sp"></span>
+    <label class="loc" id="locWrap">Lokalizacja
+      <select id="loc" aria-label="Lokalizacja"></select>
+    </label>
+  </div>
+  <div id="timeline" hidden>
+    <span class="tl-title">Data pomiaru</span>
+    <div class="tl-step">
+      <button id="prev" class="tl-nav" aria-label="Poprzedni pomiar" title="Poprzedni pomiar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 6l-6 6 6 6"/></svg></button>
+      <span class="tl-date" id="tlDate"></span>
+      <button id="next" class="tl-nav" aria-label="Następny pomiar" title="Następny pomiar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
+    </div>
+    <button id="latest" class="tl-round" aria-label="Najnowszy pomiar" title="Najnowszy pomiar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 6l6 6-6 6M17 6v12"/></svg></button>
+    <button id="play" class="tl-round" aria-label="Odtwórz" title="Odtwórz"></button>
+    <div id="tl" role="slider" tabindex="0" aria-label="Oś czasu pomiarów: kliknij lub przeciągnij, żeby zmienić datę"></div>
+  </div>
+</header>
+
+<div id="status">Wczytywanie danych…</div>
+
+<main id="app" hidden>
+  <div class="mapwrap">
+    <div id="map" aria-label="Mapa zmian terenu"></div>
+    <details class="legend-box" id="legendBox" open>
+      <summary>Legenda</summary>
+      <div class="legend-body">
+        <div>
+          <p class="lg-h">Skala kolorów</p>
+          <div class="scale" id="legend"></div>
+          <span class="small" id="tlNote"></span>
+        </div>
+        <div>
+          <p class="lg-h">Typy anomalii</p>
+          <div class="keys" id="keys"></div>
+        </div>
+        <div id="symWrap" hidden>
+          <p class="lg-h">Obiekty (model uproszczony)</p>
+          <div class="keys sym-keys" id="symKeys"></div>
+        </div>
+        <div id="riskWrap" hidden>
+          <p class="lg-h">Zagrożenie obiektów</p>
+          <div class="keys" id="riskKeys"></div>
+        </div>
+        <p class="lg-note">Miejsca bez koloru to brak pomiaru, a nie brak ruchu.</p>
+      </div>
+    </details>
+  </div>
+  <aside class="under" aria-label="Odczyt i opcje mapy">
+    <section class="sec">
+      <h2>Wartość pod kursorem</h2>
+      <div id="readout">Najedź na mapę.</div>
+      <p class="hint">Kliknij mapę lub znacznik, żeby zobaczyć szczegóły miejsca.</p>
+    </section>
+    <details class="adv" id="adv">
+      <summary>Warstwy i opcje mapy</summary>
+      <div class="pop">
+        <label>Co pokazuje mapa
+          <select id="mode"><option value="cum">Zmiana terenu [mm]</option><option value="fringe">Prążki interferometryczne</option><option value="vel">Tempo ruchu [mm/rok]</option><option value="conf">Pewność pomiaru</option></select>
+        </label>
+        <label>Krycie warstwy<input id="opacity" type="range" min="0.2" max="1" step="0.05" value="0.9"></label>
+        <label class="row"><input type="checkbox" id="showZones" checked> Anomalie</label>
+        <label class="row"><input type="checkbox" id="showPipes" checked> Rurociągi i gazociągi</label>
+        <label class="row"><input type="checkbox" id="showCritical"> Zagrożona kolej i linie energetyczne</label>
+        <label class="row"><input type="checkbox" id="showRoads"> Zagrożone drogi</label>
+        <label class="row"><input type="checkbox" id="showBuildings"> Zagrożone budynki</label>
+        <label class="row"><input type="checkbox" id="showRelief"> Rzeźba terenu</label>
+        <p class="lg-h" style="margin:6px 0 0">Model uproszczony</p>
+        <label class="row"><input type="checkbox" id="showBld3d" checked> Budynki (bryły)</label>
+        <label class="row"><input type="checkbox" id="showRail3d" checked> Tory kolejowe</label>
+        <label class="row"><input type="checkbox" id="showPower3d" checked> Linie energetyczne</label>
+      </div>
+    </details>
+    <p class="note" role="note"><b>Ograniczenia pomiaru</b>Satelita patrzy na Ziemię z ukosa, więc prawdziwy ruch może być większy. Prototyp badawczy, nie do decyzji operacyjnych.</p>
+  </aside>
+</main>
+
+<div id="tip"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+(async function () {
+  const $ = (id) => document.getElementById(id);
+  const fmt = (v, d = 0) => v == null || !isFinite(v) ? 'brak' : v.toLocaleString('pl-PL', { minimumFractionDigits: d, maximumFractionDigits: d }).replace('-', '−');
+  const sgn = (v, d = 0) => (v > 0 ? '+' : '') + fmt(v, d);
+  const dISO = (d) => `${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6, 8)}`;
+  const dPL = (d) => `${d.slice(6, 8)}.${d.slice(4, 6)}.${d.slice(0, 4)}`;
+  const dTime = (d) => Date.UTC(+d.slice(0, 4), +d.slice(4, 6) - 1, +d.slice(6, 8));
+  const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const fail = (msg) => { $('status').textContent = msg; };
+
+  // ------------------------------------------------- locations and their data
+  // Data comes from ready-made folders prepared by the analysis team (PNG frames, GeoJSON layers,
+  // meta.json). The backend lists them at /api/v1/datasets and serves the files as static content.
+  // The location registry (/api/v1/locations) is optional: it adds metadata (region, hazard, view)
+  // and lists locations that have no data yet ("wkrótce").
+  const API = window.CW_API || '/api/v1';  // override with window.CW_API when the API runs elsewhere
+  const getJSON = async (url) => {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+  };
+  let SETS;
+  try { SETS = await getJSON(`${API}/datasets`); }
+  catch (err) { return fail(`Nie udało się połączyć z serwerem (${err.message}). Czy backend jest uruchomiony?`); }
+  let REG = [];
+  try { REG = await getJSON(`${API}/locations`); } catch (err) { /* registry is optional */ }
+  // 3D models (kind "scene3d") live in view3d.html and replace this page: a location that has a model
+  // opens there, and with no location in the address the site opens the first model. This page only
+  // shows locations without a model. The old 2D analysis of a replaced location stays reachable with
+  // "?2d" in the address (index.html?2d#<id>).
+  const SCENES = SETS.filter((d) => d.kind === 'scene3d');
+  const wanted = decodeURIComponent(location.hash.slice(1));
+  const keep2d = new URLSearchParams(location.search).has('2d');
+  const scene = keep2d ? null : wanted ? SCENES.find((d) => d.id === wanted) : SCENES.find((d) => d.ready !== false) || SCENES[0];
+  if (scene) { location.replace(`view3d.html#${encodeURIComponent(scene.id)}`); return; }
+  // kind "analysis" = data for the click panel of view3d.html only (no map of its own)
+  SETS = SETS.filter((d) => d.kind !== 'scene3d' && d.kind !== 'analysis' && (keep2d || !SCENES.some((sc) => sc.id === d.id)));
+  const LOCS = SETS.map((d) => ({ ...(REG.find((r) => r.id === d.id) || {}), id: d.id, name: (REG.find((r) => r.id === d.id) || {}).name || d.name, base: d.base_url, ready: true }))
+    .concat(REG.filter((r) => !SETS.some((d) => d.id === r.id)).map((r) => ({ ...r, ready: false })));
+  const ready = LOCS.filter((l) => l.ready);
+  $('loc').innerHTML = SCENES.map((d) => `<option value="3d:${esc(d.id)}">${esc(d.name)} · ${d.ready === false ? 'w przygotowaniu' : 'model 3D'}</option>`).join('') + LOCS.map((l) => `<option value="${esc(l.id)}" ${l.ready ? '' : 'disabled'}>${esc(l.name)}${l.region ? ', ' + esc(l.region) : ''}${l.ready ? '' : ' (wkrótce)'}</option>`).join('');
+  if (!ready.length) return fail('Brak przygotowanych danych. Umieść folder z danymi dla frontendu (…/data/meta.json) w katalogu „Dane”.');
+  const LOC = ready.find((l) => l.id === decodeURIComponent(location.hash.slice(1))) || ready[0];
+  $('loc').value = LOC.id;
+  $('loc').addEventListener('change', (e) => {
+    if (e.target.value.startsWith('3d:')) { location.href = `view3d.html#${encodeURIComponent(e.target.value.slice(3))}`; return; }
+    location.href = `index.html${keep2d ? '?2d' : ''}#${encodeURIComponent(e.target.value)}`;
+  });
+  window.addEventListener('hashchange', () => location.reload());  // a change after "#" alone does not reload
+
+  const BASE = LOC.base;
+  let META, TSRAW, ACTIVE, ALERTS, MONITORING;
+  try {
+    [META, TSRAW, ACTIVE, ALERTS, MONITORING] = await Promise.all(
+      ['meta.json', 'timeseries.json', 'active_zone.geojson', 'alerts.geojson', 'monitoring.json'].map((f) => getJSON(BASE + f)));
+  } catch (err) { return fail(`Nie udało się wczytać danych lokalizacji ${LOC.name}: ${err.message}`); }
+
+  // Per-pixel displacement series [mm since the first date] on the "focus" grid (EPSG:3857)
+  const F = META.focus, E = F.epochs, ND = TSRAW.nodata;
+  const TS = new Int16Array(Uint8Array.from(atob(TSRAW.b64), (c) => c.charCodeAt(0)).buffer);
+  $('status').hidden = true; $('app').hidden = false; $('timeline').hidden = false;
+
+  const dates = META.dates, times = dates.map(dTime), T0 = 0, T1 = dates.length - 1;
+  const state = { t: T1, mode: 'cum', opacity: 0.9, timer: null };
+  // Smallest change we treat as real movement: 3 x background noise of the velocity
+  // (mm/yr, from meta.json) converted to displacement over the analysis period.
+  const THR = Math.round(3 * META.noise_mm_yr * META.period.days / 365.25);
+  const SCALE = META.scale_mm;  // colour scale limit of the PNG frames (+-SCALE)
+
+  const project = (ll) => L.CRS.EPSG3857.project(L.latLng(ll));
+  function pixelOf(latlng) {
+    const p = project(latlng), col = Math.floor((p.x - F.x0) / F.res), row = Math.floor((F.y1 - p.y) / F.res);
+    return col < 0 || row < 0 || col >= F.w || row >= F.h ? -1 : row * F.w + col;
+  }
+  const valueAt = (i, t = state.t) => { const v = TS[i * E + t]; return v === ND ? null : v; };
+
+  // ---------------------------------------------------------- anomaly types
+  // Anomalies in this data set: the active landslide zone (one polygon, always shown) and the
+  // change-detection alerts (shown on the date their monitoring window ends).
+  const TYPES = {
+    landslide: { name: 'Osuwisko', color: '#d9480f', desc: 'Aktywna strefa osuwiska: fragment zbocza zsuwa się w dół.',
+      icon: '<path d="M3 20V9l18 11z" fill="#fff" stroke="none"/><path d="M7.5 3.5l9 6M14.9 5.9l1.6 3.6-3.9.4"/>' },
+    accel: { name: 'Przyspieszenie', color: '#c2255c', desc: 'Grunt, który już się ruszał, zaczął ruszać się szybciej.',
+      icon: '<path d="M4 18l6-6 4 4 6-9"/><path d="M15 7h5v5"/>' },
+    newzone: { name: 'Nowa strefa ruchu', color: '#862e9c', desc: 'Ruch pojawił się tam, gdzie wcześniej grunt był stabilny.',
+      icon: '<path d="M12 5v9M12 18.5v.5"/>' },
+    slowdown: { name: 'Spowolnienie', color: '#1864ab', desc: 'Ruch gruntu wyraźnie zwolnił.',
+      icon: '<path d="M4 7l6 6 4-4 6 9"/><path d="M15 18h5v-5"/>' },
+  };
+  const ALERT_TYPES = { 'przyspieszenie': 'accel', 'nowa strefa ruchu': 'newzone', 'spowolnienie': 'slowdown' };
+  const iconG = (T) => `<g fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">${T.icon}</g>`;
+  // Map pin (teardrop) with the type's icon; the tip points at the anomaly
+  const pinSVG = (type) => { const T = TYPES[type]; return `<svg viewBox="0 0 36 44" aria-hidden="true"><path d="M18 42.5S4.5 28.5 4.5 18a13.5 13.5 0 0 1 27 0c0 10.5-13.5 24.5-13.5 24.5z" fill="${T.color}" stroke="#fff" stroke-width="2.5"/><g transform="translate(8 8) scale(.8333)">${iconG(T)}</g></svg>`; };
+  // Round badge with the same icon, for the legend, tooltips and popups
+  const badge = (type) => { const T = TYPES[type]; return `<span class="badge"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="${T.color}"/><g transform="translate(4 4) scale(.6667)">${iconG(T)}</g></svg></span>`; };
+  const amount = (mm) => (Math.abs(mm) >= 10 ? `${fmt(Math.abs(mm) / 10, 1)} cm` : `${fmt(Math.abs(mm))} mm`);
+  function centroid(geometry) {
+    const ring = geometry.type === 'Polygon' ? geometry.coordinates[0] : geometry.coordinates[0][0];
+    const sum = ring.reduce((a, c) => [a[0] + c[0], a[1] + c[1]], [0, 0]);
+    return [sum[1] / ring.length, sum[0] / ring.length];  // [lat, lon]
+  }
+  const corePx = pixelOf(L.latLng(META.core.lat, META.core.lon));
+  const ANOMALIES = ACTIVE.features.map((f, k) => ({
+    id: `zone${k}`, type: 'landslide', geometry: f.geometry, latlon: [META.core.lat, META.core.lon], date: null,
+    line: () => { const v = corePx < 0 ? null : valueAt(corePx); return `Powierzchnia ${fmt(f.properties.pow_km2, 1)} km²${v === null ? '' : ` · ruch w jądrze: <b>${amount(v)}</b>`}`; },
+    inside: `Ten punkt leży w aktywnej strefie osuwiska (${fmt(f.properties.pow_km2, 1)} km², ruch szybszy niż 100 mm na rok). Warto sprawdzić na miejscu.`,
+  })).concat(ALERTS.features.filter((f) => ALERT_TYPES[f.properties.typ]).map((f, k) => {
+    const p = f.properties, win = p.okno.split('-').map(dPL).join(' – ');
+    return { id: `alert${k}`, type: ALERT_TYPES[p.typ], geometry: f.geometry, latlon: centroid(f.geometry), date: p.data,
+      line: () => `Tempo w tym oknie: <b>${sgn(p.v_mm_rok)} mm/rok</b>`,
+      inside: `Monitoring zmian wykrył tu: ${p.typ} (${sgn(p.v_mm_rok)} mm/rok w oknie ${win}). Warto sprawdzić na miejscu.` };
+  }));
+  const anomalies = () => ANOMALIES.filter((a) => a.date === null || a.date === dISO(dates[state.t]));
+
+  // --------------------------------------------------------------- header
+  $('title').textContent = `${LOC.name}${LOC.region ? ', ' + LOC.region : ''}`;
+  $('periodWrap').hidden = true;  // this data set has a single observation period
+
+  // ------------------------------------------------------------------ map
+  const map = L.map('map', { zoomSnap: 0.25, maxZoom: 19 });
+  map.createPane('labels').style.zIndex = 410; map.getPane('labels').style.pointerEvents = 'none';
+  const esri = (name, opts) => L.tileLayer(`https://server.arcgisonline.com/ArcGIS/rest/services/${name}/MapServer/tile/{z}/{y}/{x}`, Object.assign({ maxNativeZoom: 16, maxZoom: 19, attribution: 'Esri, HERE, Garmin, © OpenStreetMap' }, opts));
+  const dark = L.layerGroup([esri('Canvas/World_Dark_Gray_Base'), esri('Canvas/World_Dark_Gray_Reference', { pane: 'labels' })]).addTo(map);
+  const light = L.layerGroup([esri('Canvas/World_Light_Gray_Base'), esri('Canvas/World_Light_Gray_Reference', { pane: 'labels' })]);
+  const imagery = esri('World_Imagery', { maxNativeZoom: 18, attribution: 'Esri World Imagery' });
+  L.control.layers({ 'Mapa ciemna': dark, 'Mapa jasna': light, 'Zdjęcia satelitarne': imagery }, null, { position: 'topright' }).addTo(map);
+  L.control.scale({ imperial: false, position: 'bottomright' }).addTo(map);
+  map.attributionControl.addAttribution((META.sources || ['NISAR (NASA/ISRO, ASF DAAC)']).map(esc).join(' · '));
+
+  // Lock the map to this case study: no panning away and no zooming out past the study area.
+  const view = LOC.view || F.bounds;
+  const caseArea = L.latLngBounds(META.overlay_bounds).extend(L.latLngBounds(view));
+  map.setMaxBounds(caseArea.pad(0.25));
+  map.options.maxBoundsViscosity = 1.0;  // hard edge instead of rubber-banding
+  const updateMinZoom = () => map.setMinZoom(Math.max(0, map.getBoundsZoom(caseArea) - 0.5));
+  updateMinZoom();
+  map.on('resize', updateMinZoom);
+  map.fitBounds(view);
+  map.createPane('relief').style.zIndex = 250;
+  map.createPane('bld').style.zIndex = 421; map.getPane('bld').style.pointerEvents = 'none';
+  map.createPane('sym').style.zIndex = 423;
+  map.createPane('infra').style.zIndex = 425;
+  map.createPane('zones').style.zIndex = 430;
+  map.createPane('marks').style.zIndex = 620;
+
+  // ---------------------------------------------------------------- raster
+  // Pre-rendered PNG frames (EPSG:3857) from the data folder. Two stacked image overlays give a
+  // cross-fade between dates: the new frame fades in on top, then the old one is hidden.
+  const pad2 = (n) => String(n).padStart(2, '0');
+  const MODES = {
+    cum: { url: (t) => `img/cum_${pad2(t)}.png`, perDate: true },
+    fringe: { url: (t) => `img/fringe_${pad2(t)}.png`, perDate: true },
+    vel: { url: () => 'img/velocity.png', perDate: false },
+    conf: { url: () => 'img/confidence.png', perDate: false },
+  };
+  const ANIM_MS = 650;
+  const mkFrame = () => L.imageOverlay(BASE + MODES.cum.url(state.t), META.overlay_bounds, { className: 'pix fade', opacity: 0 }).addTo(map);
+  const frames = [mkFrame(), mkFrame()];
+  let front = 0, shownUrl = null, swapToken = 0;
+  function renderRaster() {
+    const url = BASE + MODES[state.mode].url(state.t);
+    if (url === shownUrl) { frames[front].setOpacity(state.opacity); return; }
+    const back = 1 - front, old = front, my = ++swapToken;
+    const swap = () => {
+      if (my !== swapToken) return;  // a newer frame was requested meanwhile
+      frames[back].setZIndex(2); frames[old].setZIndex(1);
+      frames[back].setOpacity(state.opacity);
+      front = back; shownUrl = url;
+      setTimeout(() => { if (my === swapToken) frames[old].setOpacity(0); }, ANIM_MS);
+    };
+    const el = frames[back].getElement();
+    if (frames[back]._url === url && el && el.complete) swap();
+    else { frames[back].once('load', swap); frames[back].setUrl(url); }
+  }
+  dates.forEach((_, t) => { new Image().src = BASE + MODES.cum.url(t); });  // preload for smooth playback
+
+  // Measurement confidence per pixel, read from confidence.png (green = full series, orange = part of pairs)
+  let CONF = null;
+  (function () {
+    const im = new Image();
+    im.onload = () => {
+      try {
+        const c = document.createElement('canvas'); c.width = im.naturalWidth; c.height = im.naturalHeight;
+        const x = c.getContext('2d'); x.drawImage(im, 0, 0);
+        CONF = { w: c.width, h: c.height, d: x.getImageData(0, 0, c.width, c.height).data };
+      } catch (err) { CONF = null; }
+    };
+    im.src = BASE + MODES.conf.url();
+  })();
+  function confidenceAt(latlng) {
+    if (!CONF) return null;
+    const p = project(latlng), sw = project(META.overlay_bounds[0]), ne = project(META.overlay_bounds[1]);
+    const col = Math.floor((p.x - sw.x) / (ne.x - sw.x) * CONF.w), row = Math.floor((ne.y - p.y) / (ne.y - sw.y) * CONF.h);
+    if (col < 0 || row < 0 || col >= CONF.w || row >= CONF.h) return null;
+    const o = (row * CONF.w + col) * 4;
+    if (CONF.d[o + 3] < 10) return null;
+    return CONF.d[o + 1] > CONF.d[o] ? ['wysoka', '●●●', ''] : ['średnia', '●●○', 'W tym miejscu część pomiarów wypadła (np. przez roślinność), więc liczba jest mniej pewna.'];
+  }
+
+  const RDBU = ['#67001f', '#b2182b', '#d6604d', '#f4a582', '#fddbc7', '#f7f7f7', '#d1e5f0', '#92c5de', '#4393c3', '#2166ac', '#053061'];
+  const HSV = ['#ff0000', '#ffff00', '#00ff00', '#00ffff', '#0000ff', '#ff00ff', '#ff0000'];
+  function renderLegend() {
+    const bar = (colors) => `<span class="legend-bar" style="background:linear-gradient(90deg, ${colors.join(',')})"></span>`;
+    const m = state.mode;
+    $('legend').innerHTML =
+      m === 'cum' ? `${bar(RDBU)}<div class="legend-ticks"><span>−${SCALE} mm · osuwanie</span><span>wypiętrzanie · +${SCALE} mm</span></div>`
+      : m === 'vel' ? `${bar(RDBU)}<div class="legend-ticks"><span>−${SCALE} mm/rok · osuwanie</span><span>wypiętrzanie · +${SCALE} mm/rok</span></div>`
+      : m === 'fringe' ? `${bar(HSV)}<div class="legend-ticks"><span>jeden pełny cykl barw = ${fmt(META.half_wavelength_mm)} mm ruchu</span></div>`
+      : `<div class="keys"><span><span class="badge" style="background:#2f8f57"></span>pełny szereg pomiarów</span><span><span class="badge" style="background:#e3871f"></span>część pomiarów</span></div>`;
+    // One legend entry per anomaly type that occurs in this case study (hover = explanation)
+    const present = Object.keys(TYPES).filter((k) => ANOMALIES.some((a) => a.type === k));
+    $('keys').innerHTML = present.map((k) => `<span title="${esc(TYPES[k].desc)}">${badge(k)}${TYPES[k].name}</span>`).join('');
+  }
+
+  // -------------------------------------------------------------- vectors
+  const tip = $('tip');
+  function showTip(html, ev) {
+    tip.innerHTML = html; tip.style.display = 'block';
+    tip.style.left = Math.min(window.innerWidth - tip.offsetWidth - 8, ev.clientX + 14) + 'px';
+    tip.style.top = Math.max(8, ev.clientY - tip.offsetHeight - 12) + 'px';
+  }
+  const hideTip = () => { tip.style.display = 'none'; };
+  const zoneLayer = L.layerGroup().addTo(map);
+  const pointMarker = L.circleMarker([0, 0], { pane: 'marks', radius: 7, color: '#0b0b0b', weight: 2, fillColor: '#fff', fillOpacity: 1, interactive: false });
+
+  // Anomalies are only rebuilt when the visible set changes, so pins that are already on the
+  // map stay put and only newly detected ones "drop in" while the timeline plays.
+  let zonesKey = null;
+  function renderZones() {
+    const zs = anomalies(), key = zs.map((z) => z.id).join();
+    if (key === zonesKey) return;
+    zonesKey = key;
+    zoneLayer.clearLayers();
+    zs.forEach((z) => {
+      const T = TYPES[z.type];
+      L.geoJSON(z.geometry, { pane: 'zones', interactive: false, style: { color: '#fff', weight: 4, opacity: 0.9, fill: false } }).addTo(zoneLayer);
+      const shape = L.geoJSON(z.geometry, { pane: 'zones', style: { color: T.color, weight: 2.2, fillColor: T.color, fillOpacity: 0.12 } }).addTo(zoneLayer);
+      const marker = L.marker(z.latlon, { pane: 'marks', riseOnHover: true, keyboard: true, title: T.name,
+        icon: L.divIcon({ className: '', iconSize: [36, 44], iconAnchor: [18, 43], html: `<span class="pin">${pinSVG(z.type)}</span>` }) }).addTo(zoneLayer);
+      marker.on('click', (e) => { L.DomEvent.stopPropagation(e); hideTip(); selectPoint(L.latLng(z.latlon)); });
+      shape.on('click', (e) => { L.DomEvent.stopPropagation(e); selectPoint(e.latlng); });
+      [shape, marker].forEach((l) => {
+        l.on('mousemove', (e) => showTip(`<div style="display:flex;gap:6px;align-items:center">${badge(z.type)}<b>${T.name}</b></div>${T.desc}<br>${z.line()} · kliknij po szczegóły`, e.originalEvent));
+        l.on('mouseout', hideTip);
+      });
+    });
+  }
+
+  // Objects at risk (pipelines, rail, power lines, roads, buildings). Each layer is fetched the
+  // first time it is switched on. Colours = risk class, taken from the data (meta.risk_colors).
+  const RISK = META.risk_colors || {};
+  const risky = (f) => f.properties.klasa === 'wysokie' || f.properties.klasa === 'średnie';
+  const PIPE_TYPES = ['gazociąg', 'rurociąg', 'ropociąg'];
+  const INFRA = {
+    showPipes: { file: 'pipelines.geojson', filter: () => true },
+    showCritical: { file: 'critical.geojson', filter: (f) => risky(f) && !PIPE_TYPES.includes(f.properties.typ) },
+    showRoads: { file: 'roads_risk.geojson', filter: risky },
+    showBuildings: { file: 'buildings_risk.geojson', filter: risky, canvas: true },
+  };
+  function infraTip(p) {
+    const what = p.typ || p.typ_budynku || 'obiekt', name = p.nazwa || p.operator || '';
+    return `<b>${esc(what)}${name ? ' · ' + esc(name) : ''}</b><br>Zagrożenie: <b>${esc(p.klasa)}</b>${p.powod ? '<br>' + esc(p.powod) : ''}`;
+  }
+  function objectAssessment(p, latlng) {
+    const level = p.klasa || 'brak danych';
+    const levelText = {
+      wysokie: ['Wysoki sygnał ruchu gruntu', 'Warto sprawdzić to miejsce w pierwszej kolejności.'],
+      'średnie': ['Wykryto ruch gruntu', 'Warto to miejsce sprawdzić i obserwować.'],
+      niskie: ['Brak wyraźnego sygnału ruchu', 'W tych pomiarach ruch nie przekroczył przyjętych progów.'],
+      'brak danych': ['Nie da się ocenić', 'Radar nie zebrał tu wiarygodnych danych.'],
+    }[level] || ['Brak wyniku oceny', 'Nie mamy klasyfikacji dla tego obiektu.'];
+    const kind = p.typ || ({
+      house: 'budynek mieszkalny', apartments: 'budynek wielorodzinny', residential: 'budynek mieszkalny',
+      industrial: 'budynek przemysłowy', retail: 'sklep lub lokal usługowy', commercial: 'budynek usługowy',
+      school: 'szkoła', warehouse: 'magazyn', garage: 'garaż', government: 'budynek publiczny',
+    }[p.typ_budynku] || (p.typ_budynku ? 'budynek' : 'obiekt'));
+    const name = p.nazwa || p.operator || kind;
+    const isBuilding = Boolean(p.typ_budynku);
+    const rows = [];
+    if (p.powod) rows.push(['Uzasadnienie klasy', esc(p.powod)]);
+    if (p.v != null) rows.push(['Tempo mierzone przez radar', `${sgn(p.v, 1)} mm/rok`]);
+    if (p.przem_mm != null) rows.push(['Zmiana w badanym okresie', `${sgn(p.przem_mm, 1)} mm`]);
+    if (p.gradient != null) rows.push(['Różnica ruchu na 100 m', `${fmt(p.gradient, 1)} mm/rok`]);
+    if (p.okna_ruch != null) rows.push(['Liczba okresów z ruchem', `${p.okna_ruch}${Array.isArray(MONITORING) ? ` / ${MONITORING.length}` : ''}`]);
+    if (p.pewnosc) rows.push(['Pewność danych', esc(p.pewnosc)]);
+    if (p.odl_m != null && isFinite(p.odl_m)) rows.push(['Odległość od aktywnej strefy', `${fmt(p.odl_m)} m`]);
+    if (p.km != null) rows.push(['Długość ocenianego odcinka', `${fmt(p.km, 2)} km`]);
+    if (p.dlugosc_m != null) rows.push(['Długość ocenianego odcinka', `${fmt(p.dlugosc_m)} m`]);
+    if (p.pow_m2 != null) rows.push(['Powierzchnia budynku', `${fmt(p.pow_m2)} m²`]);
+    const motion = p.v == null ? '' : `Radar wykrył ruch gruntu ${isBuilding ? 'pod tym budynkiem' : 'przy tym obiekcie'}: około ${fmt(Math.abs(p.v) / 10, 1)} cm/rok ${p.v < 0 ? 'od' : 'w stronę'} satelity.`;
+    const period = META.period?.start && META.period?.end
+      ? `${dPL(META.period.start)}–${dPL(META.period.end)}${META.period.days ? ` (${META.period.days} dni)` : ''}`
+      : META.period?.days ? `${META.period.days} dni` : '';
+    const detail = rows.length
+      ? `<div class="pp-sec">${rows.map(([label, value]) => `<div class="pp-row"><span>${label}</span><b>${value}</b></div>`).join('')}</div>`
+      : '';
+    const html = `<div class="pp-head">${esc(name)}</div><div class="pp-sub">${esc(kind)}</div>
+      <div class="obj-assessment ${({ wysokie: 'high', 'średnie': 'medium', niskie: 'low', 'brak danych': 'missing' })[level] || 'missing'}">
+        <h4>Wynik pomiaru · sygnał do sprawdzenia</h4><strong>${esc(levelText[0])}</strong>
+        <p>${esc(levelText[1])}</p>
+        ${motion ? `<p class="pp-hint">${esc(motion)}</p>` : ''}
+      </div>
+      <div class="pp-hint">${level === 'niskie' ? 'Brak sygnału nie gwarantuje, że grunt jest stabilny.' : level === 'brak danych' ? 'Brak pomiaru nie oznacza braku ruchu.' : 'To sygnał do weryfikacji, nie informacja o uszkodzeniu obiektu.'}</div>
+      <details class="obj-details"><summary>Szczegóły i ograniczenia pomiaru</summary>
+        ${period ? `<div class="pp-hint">Badany okres: ${esc(period)}. Tempo na rok jest przeliczeniem z tego okresu.</div>` : ''}
+        ${detail}
+        <p>Radar mierzy ruch ukośnie, w swoją stronę patrzenia. Nie pokazuje sam z siebie pełnego kierunku ani tego, czy obiekt jest uszkodzony. Krótki okres pomiarów może obejmować sezonowe zmiany gruntu.</p>
+      </details>`;
+    hideTip();
+    L.popup({ maxWidth: 360, className: 'cw-pop' }).setLatLng(latlng).setContent(html).openOn(map);
+  }
+  function infraLayer(spec) {
+    const group = L.layerGroup();
+    getJSON(BASE + spec.file).then((gj) => {
+      const features = gj.features.filter(spec.filter), renderer = spec.canvas ? L.canvas({ pane: 'infra' }) : undefined;
+      const lines = features.filter((f) => f.geometry.type.includes('LineString'));
+      if (lines.length) L.geoJSON(lines, { pane: 'infra', interactive: false, style: { color: '#fff', weight: 6, opacity: 0.85 } }).addTo(group);
+      L.geoJSON(features, { pane: 'infra', renderer,
+        style: (f) => { const k = f.properties.klasa, hot = risky(f); return { color: RISK[k] || '#98a3ab', weight: hot ? 3.5 : 2, opacity: hot ? 1 : 0.75, dashArray: k === 'brak danych' ? '5 5' : null, fillColor: RISK[k] || '#98a3ab', fillOpacity: 0.55 }; },
+        onEachFeature: (f, l) => {
+          l.on('mousemove', (e) => showTip(infraTip(f.properties), e.originalEvent));
+          l.on('mouseout', hideTip);
+          l.on('click', (e) => { L.DomEvent.stopPropagation(e); objectAssessment(f.properties, e.latlng); });
+        },
+      }).addTo(group);
+    }).catch(() => { /* layer file missing in this data set: the toggle simply shows nothing */ });
+    return group;
+  }
+  const infraLayers = {};
+  function renderRiskLegend() {
+    const on = Object.keys(INFRA).some((id) => $(id).checked);
+    $('riskWrap').hidden = !on;
+    $('riskKeys').innerHTML = Object.entries(RISK).map(([k, c]) => `<span><span class="badge" style="background:${esc(c)}"></span>${esc(k)}</span>`).join('');
+  }
+  function toggleInfra(id) {
+    if ($(id).checked) (infraLayers[id] = infraLayers[id] || infraLayer(INFRA[id])).addTo(map);
+    else if (infraLayers[id]) infraLayers[id].remove();
+    renderRiskLegend();
+  }
+  const relief = L.imageOverlay(BASE + 'img/relief.png', META.relief_bounds || META.overlay_bounds, { pane: 'relief', opacity: 0.6, attribution: 'Copernicus DEM' });
+
+  // ------------------------------------------- simplified 3D model of the area
+  // Context objects drawn as simple, recognisable shapes (built by backend/scripts/build_symbols.py):
+  // buildings = extruded oriented rectangles, rail = sleepers + two rails, power = wire + pylons.
+  // Buildings that the analysis marked as at risk get the risk colour on the roof.
+  const BLD_FLAT_ZOOM = 14, BLD_3D_ZOOM = 15.5, PYLON_ZOOM = 14;
+  const shade = (hex, f) => '#' + [1, 3, 5].map((i) => Math.round(parseInt(hex.slice(i, i + 2), 16) * f).toString(16).padStart(2, '0')).join('');
+  const ROOF = ['#e4ddd2', '#cfd7e2', '#dacfe6', '#bcc4cb', '#a9adb2', '#eadcbc'];
+  const RISK_ROOF = [null, null, RISK['średnie'] || '#e3871f', RISK['wysokie'] || '#c62a22'];
+
+  const BuildingLayer = L.Layer.extend({
+    onAdd(m) {
+      this._c = L.DomUtil.create('canvas', '', m.getPane('bld'));
+      this._c.style.pointerEvents = 'none';
+      m.on('moveend zoomend resize', this._draw, this);
+      m.on('zoomstart', this._hide, this);
+      if (!this._data) this._load().then(() => this._map && this._draw()); else this._draw();
+    },
+    onRemove(m) {
+      m.off('moveend zoomend resize', this._draw, this);
+      m.off('zoomstart', this._hide, this);
+      this._c.remove();
+    },
+    async _load() {
+      try {
+        const head = await getJSON(BASE + 'buildings_3d.json');
+        const res = await fetch(BASE + 'buildings_3d.bin');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const buf = await res.arrayBuffer(), n = head.count, [lon0, lat0, lon1, lat1] = head.bbox;
+        const u16 = new Uint16Array(buf, 0, 4 * n), u8 = new Uint8Array(buf, 8 * n, 2 * n);
+        const lon = new Float64Array(n), lat = new Float64Array(n);
+        for (let i = 0; i < n; i++) { lon[i] = lon0 + (u16[i] / 65535) * (lon1 - lon0); lat[i] = lat0 + (u16[n + i] / 65535) * (lat1 - lat0); }
+        this._data = { n, lon, lat, hl: u16.subarray(2 * n, 3 * n), hw: u16.subarray(3 * n, 4 * n), ang: u8.subarray(0, n), meta: u8.subarray(n, 2 * n),
+          height: head.classes.map((c) => c.h) };
+      } catch (err) { this._data = { n: 0 }; /* no building model in this data set */ }
+    },
+    _hide() { this._c.style.display = 'none'; },
+    _draw() {
+      const m = this._map, d = this._data, c = this._c;
+      if (!m || !d) return;
+      const size = m.getSize(), dpr = window.devicePixelRatio || 1, z = m.getZoom();
+      c.width = size.x * dpr; c.height = size.y * dpr; c.style.width = size.x + 'px'; c.style.height = size.y + 'px';
+      L.DomUtil.setPosition(c, m.containerPointToLayerPoint([0, 0]));
+      c.style.display = '';
+      const ctx = c.getContext('2d');
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      if (!d.n || z < BLD_FLAT_ZOOM) return;
+      const b = m.getBounds().pad(0.05), W = b.getWest(), E = b.getEast(), S = b.getSouth(), N = b.getNorth();
+      const pxPerM = (256 * 2 ** z) / (40075016.686 * Math.cos((m.getCenter().lat * Math.PI) / 180));
+      const lift = z >= BLD_3D_ZOOM ? pxPerM * Math.min(1, (z - BLD_3D_ZOOM + 0.5) / 1.5) : 0;  // extrusion grows in smoothly
+      const vis = [];
+      for (let i = 0; i < d.n; i++) if (d.lon[i] >= W && d.lon[i] <= E && d.lat[i] >= S && d.lat[i] <= N) vis.push(i);
+      const pts = vis.map((i) => m.latLngToContainerPoint([d.lat[i], d.lon[i]]));
+      const order = vis.map((_, k) => k).sort((a, b2) => pts[a].y - pts[b2].y);  // north first, so nearer blocks overlap
+      ctx.globalAlpha = 0.92;
+      ctx.lineJoin = 'round';
+      const ox = 0.35, oy = -0.94;  // oblique view: roofs shift up and slightly right
+      for (const k of order) {
+        const i = vis[k], p = pts[k], meta = d.meta[i], cls = meta & 15, risk = meta >> 4;
+        const a = (d.ang[i] / 255) * Math.PI, l = (d.hl[i] / 10) * pxPerM, w = (d.hw[i] / 10) * pxPerM;
+        const ux = Math.cos(a) * l, uy = -Math.sin(a) * l, vx = -Math.sin(a) * w, vy = -Math.cos(a) * w;
+        const cx = [p.x + ux + vx, p.x - ux + vx, p.x - ux - vx, p.x + ux - vx], cy = [p.y + uy + vy, p.y - uy + vy, p.y - uy - vy, p.y + uy - vy];
+        const roof = RISK_ROOF[risk] || ROOF[cls] || ROOF[0];
+        const h = (d.height[cls] || 6) * lift, hx = ox * h, hy = oy * h;
+        if (h > 0.6) {
+          for (let e = 0; e < 4; e++) {  // only walls facing the viewer (outward normal against the lift)
+            const f = (e + 1) % 4, nx = (cx[e] + cx[f]) / 2 - p.x, ny = (cy[e] + cy[f]) / 2 - p.y;
+            if (nx * hx + ny * hy >= 0) continue;
+            ctx.fillStyle = shade(roof, nx > 0 ? 0.72 : 0.56);
+            ctx.beginPath(); ctx.moveTo(cx[e], cy[e]); ctx.lineTo(cx[f], cy[f]); ctx.lineTo(cx[f] + hx, cy[f] + hy); ctx.lineTo(cx[e] + hx, cy[e] + hy); ctx.closePath(); ctx.fill();
+          }
+        }
+        ctx.fillStyle = roof;
+        ctx.beginPath(); ctx.moveTo(cx[0] + hx, cy[0] + hy);
+        for (let e = 1; e < 4; e++) ctx.lineTo(cx[e] + hx, cy[e] + hy);
+        ctx.closePath(); ctx.fill();
+        if (h > 0.6) { ctx.strokeStyle = shade(roof, 0.45); ctx.lineWidth = 0.6; ctx.stroke(); }
+      }
+    },
+  });
+
+  // Rail: from close up two steel rails on sleepers; from far away the classic map symbol.
+  const RAIL_KIND = { main: 'główne', yard: 'bocznica / stacja', light: 'tramwaj / lekka kolej', disused: 'nieczynne' };
+  function railStyle(z, k, part, p) {
+    const minor = k === 'yard' ? 0.75 : k === 'light' ? 0.85 : 1, dim = k === 'disused' || p.tunnel ? 0.45 : 1;
+    if (z < 14.5) {
+      const w = (z < 13 ? 3 : 4) * minor;
+      return { casing: { opacity: p.bridge ? 0.9 * dim : 0, weight: w + 4, color: '#f3f1ec' },
+        sleepers: { opacity: 0 },
+        rails: { opacity: dim, weight: w, color: '#e9e6df', dashArray: null, lineCap: 'butt' },
+        gap: { opacity: dim, weight: w - 2, color: '#2d2a27', dashArray: '6 6', lineCap: 'butt' } }[part];
+    }
+    const s = Math.min(2.4, 1 + (z - 14.5) * 0.55) * minor;
+    return { casing: { opacity: p.bridge ? 0.9 * dim : 0, weight: 13 * s, color: '#f3f1ec', lineCap: 'butt' },
+      sleepers: { opacity: dim, weight: 9 * s, color: '#8a6f52', dashArray: `${1.6 * s} ${3.6 * s}`, lineCap: 'butt' },
+      rails: { opacity: dim, weight: 5 * s, color: k === 'light' ? '#c9d9ee' : '#d8dde2', dashArray: k === 'disused' ? `${6 * s} ${4 * s}` : null, lineCap: 'butt' },
+      gap: { opacity: dim, weight: 2.6 * s, color: '#5b4a3a', dashArray: null, lineCap: 'butt' } }[part];
+  }
+  function railLayer() {
+    const group = L.layerGroup(), parts = {};
+    getJSON(BASE + 'rail_3d.geojson').then((gj) => {
+      ['casing', 'sleepers', 'rails', 'gap'].forEach((part) => {
+        parts[part] = L.geoJSON(gj, { pane: 'sym', interactive: part === 'rails', style: (f) => railStyle(map.getZoom(), f.properties.k, part, f.properties),
+          onEachFeature: part !== 'rails' ? undefined : (f, l) => {
+            const p = f.properties;
+            l.on('mousemove', (e) => showTip(`<b>Tory kolejowe · ${esc(RAIL_KIND[p.k] || p.k)}</b>${p.name ? '<br>' + esc(p.name) : ''}${p.bridge ? '<br>most' : ''}${p.tunnel ? '<br>tunel' : ''}`, e.originalEvent));
+            l.on('mouseout', hideTip);
+          } }).addTo(group);
+      });
+    }).catch(() => { /* no rail model in this data set */ });
+    group.restyle = () => Object.entries(parts).forEach(([part, layer]) => layer.setStyle((f) => railStyle(map.getZoom(), f.properties.k, part, f.properties)));
+    return group;
+  }
+
+  // Power: thin wire + small lattice pylons at the towers (only when zoomed in, they would clutter otherwise).
+  const PYLON_SVG = '<svg viewBox="0 0 14 20" width="14" height="20"><path d="M7 1L3 19M7 1l4 18M2 6h10M3.6 12h6.8M4.5 8l4.8 7M9.5 8l-4.8 7" stroke="#1b1d20" stroke-width="3" stroke-linecap="round" fill="none"/><path d="M7 1L3 19M7 1l4 18M2 6h10M3.6 12h6.8M4.5 8l4.8 7M9.5 8l-4.8 7" stroke="#ffd04a" stroke-width="1.3" stroke-linecap="round" fill="none"/></svg>';
+  const pylonIcon = L.divIcon({ className: '', iconSize: [14, 20], iconAnchor: [7, 6], html: PYLON_SVG });
+  function powerLayer() {
+    const group = L.layerGroup(), pylons = L.layerGroup();
+    getJSON(BASE + 'power_3d.geojson').then((gj) => {
+      const lines = gj.features.filter((f) => f.properties.k !== 'pylon');
+      L.geoJSON(lines, { pane: 'sym', interactive: false, style: { color: '#1b1d20', weight: 4, opacity: 0.55 } }).addTo(group);
+      L.geoJSON(lines, { pane: 'sym',
+        style: (f) => ({ color: '#ffd04a', weight: f.properties.k === 'station' ? 1 : 1.8, opacity: 0.95, dashArray: f.properties.k === 'cable' ? '4 5' : null }),
+        onEachFeature: (f, l) => {
+          const p = f.properties, what = p.k === 'cable' ? 'Kabel podziemny' : p.k === 'station' ? 'Stacja elektroenergetyczna' : 'Linia napowietrzna';
+          l.on('mousemove', (e) => showTip(`<b>${what}${p.kv ? ' · ' + p.kv + ' kV' : ''}</b>${p.name || p.operator ? '<br>' + esc(p.name || p.operator) : ''}`, e.originalEvent));
+          l.on('mouseout', hideTip);
+        } }).addTo(group);
+      gj.features.filter((f) => f.properties.k === 'pylon').forEach((f) => {
+        L.marker([f.geometry.coordinates[1], f.geometry.coordinates[0]], { icon: pylonIcon, pane: 'sym', interactive: false, keyboard: false }).addTo(pylons);
+      });
+      group.restyle();
+    }).catch(() => { /* no power model in this data set */ });
+    group.restyle = () => { if (map.getZoom() >= PYLON_ZOOM) group.addLayer(pylons); else group.removeLayer(pylons); };
+    return group;
+  }
+
+  const SYM = {
+    showBld3d: { make: () => new BuildingLayer(), key: '<svg width="18" height="16" viewBox="0 0 18 16"><path d="M2 7h9v8H2z" fill="#a7a29a"/><path d="M11 7l4-5v8l-4 5z" fill="#7f7a73"/><path d="M2 7l4-5h9l-4 5z" fill="#e4ddd2"/></svg>Budynek (kolor dachu = zagrożenie)' },
+    showRail3d: { make: railLayer, key: '<svg width="26" height="12" viewBox="0 0 26 12"><path d="M0 6h26" stroke="#8a6f52" stroke-width="11" stroke-dasharray="2 3.5"/><path d="M0 6h26" stroke="#d8dde2" stroke-width="6"/><path d="M0 6h26" stroke="#5b4a3a" stroke-width="3"/></svg>Tory' },
+    showPower3d: { make: powerLayer, key: `<span style="display:inline-flex;align-items:center"><svg width="16" height="8" viewBox="0 0 16 8"><path d="M0 4h16" stroke="#ffd04a" stroke-width="1.8"/></svg>${PYLON_SVG}</span>Linia energetyczna i słup` },
+  };
+  const symLayers = {};
+  function toggleSym(id) {
+    if ($(id).checked) (symLayers[id] = symLayers[id] || SYM[id].make()).addTo(map);
+    else if (symLayers[id]) symLayers[id].remove();
+    const on = Object.keys(SYM).filter((k) => $(k).checked);
+    $('symWrap').hidden = !on.length;
+    $('symKeys').innerHTML = on.map((k) => `<span>${SYM[k].key}</span>`).join('');
+  }
+  map.on('zoomend', () => Object.values(symLayers).forEach((l) => l.restyle && map.hasLayer(l) && l.restyle()));
+
+  // ------------------------------------------------------------- timeline
+  const MONTHS = ['sty', 'lut', 'mar', 'kwi', 'maj', 'cze', 'lip', 'sie', 'wrz', 'paź', 'lis', 'gru'];
+  const dShort = (d) => `${+d.slice(6, 8)} ${MONTHS[+d.slice(4, 6) - 1]}`;
+  const dLong = (d) => `${dShort(d)} ${d.slice(0, 4)}`;
+  const seriesIdx = () => dates.map((_, i) => i);
+  // Position of a measurement on the track, 0..1, proportional to time
+  const tlFrac = (i) => (times[T1] > times[T0] ? (times[i] - times[T0]) / (times[T1] - times[T0]) : 0.5);
+  const ICON_PLAY = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg>';
+  const ICON_PAUSE = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"/></svg>';
+  function setPlayIcon(playing) {
+    const label = playing ? 'Zatrzymaj' : 'Odtwórz';
+    $('play').innerHTML = playing ? ICON_PAUSE : ICON_PLAY; $('play').title = label; $('play').setAttribute('aria-label', label);
+  }
+  // Track structure (dots + labels + thumb) is built once per resize; changing the date
+  // only moves the thumb, which slides there with a CSS transition.
+  function buildTimeline() {
+    // Thin out date labels so they never overlap: roughly one label per 85 px of track width
+    const idx = seriesIdx(), room = Math.max(2, Math.floor(($('tl').clientWidth || 600) / 85)), every = Math.ceil(idx.length / room);
+    $('tl').innerHTML = '<div class="tl-band"></div>' + idx.map((i, j) => {
+      const left = `left:${(tlFrac(i) * 100).toFixed(2)}%`;
+      const newYear = j === 0 || dates[i].slice(0, 4) !== dates[idx[j - 1]].slice(0, 4);
+      return `<span class="tl-stop" style="${left}"></span>`
+        + (j % every === 0 ? `<span class="tl-lab${j === 0 ? ' first' : j === idx.length - 1 ? ' last' : ''}" data-i="${i}" style="${left}">${newYear ? dLong(dates[i]) : dShort(dates[i])}</span>` : '');
+    }).join('') + '<span class="tl-thumb" id="tlThumb"></span>';
+    renderTimeline();
+  }
+  function renderTimeline() {
+    $('tlThumb').style.left = `${(tlFrac(state.t) * 100).toFixed(2)}%`;
+    $('tl').querySelectorAll('.tl-lab').forEach((l) => l.classList.toggle('on', +l.dataset.i === state.t));
+    $('tl').setAttribute('aria-valuetext', dLong(dates[state.t]));
+  }
+  // Click or drag anywhere on the track to jump to the nearest measurement (listeners live
+  // on the track element itself, which survives re-rendering of its children).
+  (function () {
+    const track = $('tl'); let drag = false;
+    const pick = (ev) => {
+      const r = track.getBoundingClientRect(), f = (ev.clientX - r.left) / r.width;
+      return seriesIdx().reduce((best, i) => (Math.abs(tlFrac(i) - f) < Math.abs(tlFrac(best) - f) ? i : best));
+    };
+    const go = (ev) => { const i = pick(ev); if (i !== state.t) { stop(); setDate(i); } };
+    const hint = (ev) => {
+      const i = pick(ev), win = MONITORING.find((w) => w.data === dates[i]);
+      showTip(`<b>${dLong(dates[i])}</b>${win ? `<br>Teren w ruchu: ${fmt(win.ruch_km2, 1)} km² (okno ${win.okno.split('-').map(dPL).join(' – ')})` : ''}`, ev);
+    };
+    track.addEventListener('pointerdown', (ev) => { drag = true; track.setPointerCapture(ev.pointerId); go(ev); hint(ev); ev.preventDefault(); });
+    track.addEventListener('pointermove', (ev) => { if (drag) go(ev); hint(ev); });
+    ['pointerup', 'pointercancel'].forEach((n) => track.addEventListener(n, () => { drag = false; }));
+    track.addEventListener('pointerleave', () => { if (!drag) hideTip(); });
+    track.addEventListener('keydown', (ev) => {
+      if (ev.key === 'ArrowLeft') { stop(); setDate(state.t - 1); ev.preventDefault(); }
+      if (ev.key === 'ArrowRight') { stop(); setDate(state.t + 1); ev.preventDefault(); }
+    });
+  })();
+
+  // ------------------------------------------------------- point popup
+  // Written for people who don't know GIS/InSAR: plain words, cm instead of LOS jargon,
+  // a verdict chip, a mini chart of this spot over time and a confidence level.
+  const pointPopup = L.popup({ className: 'cw-pop', minWidth: 280, maxWidth: 300, autoPanPadding: [20, 20] });
+  pointPopup.on('remove', () => { pointMarker.remove(); pointPopup.latlng = null; });
+  const coordText = (ll) => `${fmt(Math.abs(ll.lat), 4)}° ${ll.lat >= 0 ? 'N' : 'S'}, ${fmt(Math.abs(ll.lng), 4)}° ${ll.lng >= 0 ? 'E' : 'W'}`;
+  function inRing(x, y, ring) {
+    let inside = false;
+    for (let a = 0, b = ring.length - 1; a < ring.length; b = a++) {
+      const [xa, ya] = ring[a], [xb, yb] = ring[b];
+      if ((ya > y) !== (yb > y) && x < (xb - xa) * (y - ya) / (yb - ya) + xa) inside = !inside;
+    }
+    return inside;
+  }
+  function inGeometry(g, ll) {
+    const polys = g.type === 'Polygon' ? [g.coordinates] : g.type === 'MultiPolygon' ? g.coordinates : [];
+    return polys.some((p) => inRing(ll.lng, ll.lat, p[0]) && !p.slice(1).some((hole) => inRing(ll.lng, ll.lat, hole)));
+  }
+  // Small chart: how this spot moved on every measurement date, relative to the first date
+  function sparkline(i) {
+    const idx = seriesIdx(), vals = idx.map((t) => valueAt(i, t)), ok = vals.filter((v) => v !== null);
+    if (ok.length < 2) return '';
+    const W = 268, H = 66, L0 = 4, R0 = 4, T0y = 6, B0 = 16;
+    let lo = Math.min(-THR, ...ok), hi = Math.max(THR, ...ok); const pad = (hi - lo) * 0.08; lo -= pad; hi += pad;
+    const x = (j) => L0 + j / (idx.length - 1) * (W - L0 - R0), y = (v) => T0y + (hi - v) / (hi - lo) * (H - T0y - B0);
+    let d = '', pen = false;
+    vals.forEach((v, j) => { if (v === null) { pen = false; return; } d += `${pen ? 'L' : 'M'}${x(j).toFixed(1)} ${y(v).toFixed(1)}`; pen = true; });
+    const cur = idx.indexOf(state.t), curV = vals[cur];
+    return `<svg class="pp-spark" viewBox="0 0 ${W} ${H}" aria-hidden="true">
+      <rect x="${L0}" y="${y(THR)}" width="${W - L0 - R0}" height="${y(-THR) - y(THR)}" fill="var(--wash)" rx="3"/>
+      <line x1="${L0}" x2="${W - R0}" y1="${y(0)}" y2="${y(0)}" stroke="var(--axis)" stroke-dasharray="3 3"/>
+      <path d="${d}" fill="none" stroke="var(--text-2)" stroke-width="1.8" stroke-linejoin="round"/>
+      ${vals.map((v, j) => (v === null || j === cur ? '' : `<circle cx="${x(j)}" cy="${y(v)}" r="2.3" fill="var(--text-2)"/>`)).join('')}
+      ${curV === null ? '' : `<circle cx="${x(cur)}" cy="${y(curV)}" r="5" fill="var(--accent)" stroke="var(--surface)" stroke-width="2"/>`}
+      <text x="${L0}" y="${H - 3}">${dShort(dates[idx[0]])}</text>
+      <text x="${W - R0}" y="${H - 3}" text-anchor="end">${dShort(dates[idx[idx.length - 1]])}</text>
+    </svg>`;
+  }
+  function pointHTML(latlng) {
+    const foot = (extra = '') => `<div class="pp-foot">${extra}${coordText(latlng)}</div>`;
+    const i = pixelOf(latlng);
+    if (i < 0) {
+      return L.latLngBounds(META.overlay_bounds).contains(latlng)
+        ? `<span class="pp-chip none">Bez odczytu</span><div class="pp-head">Tu mapa pokazuje tylko kolor</div>
+          <div class="pp-sub">Dokładne wartości i historię punktu mamy dla środkowej części obszaru analizy. Kliknij bliżej osuwiska.</div>${foot()}`
+        : `<span class="pp-chip none">Poza obszarem</span><div class="pp-head">Brak danych</div>
+          <div class="pp-sub">Ten punkt leży poza obszarem, który przeanalizowaliśmy. Kliknij w kolorowej części mapy.</div>${foot()}`;
+    }
+    const v = valueAt(i);
+    if (v === null) return `<span class="pp-chip none">Brak pomiaru</span><div class="pp-head">Satelita nic tu nie zmierzył</div>
+      <div class="pp-sub">Zwykle dzieje się tak nad wodą, w gęstym lesie albo w miejscach zasłoniętych przez strome zbocza. To nie znaczy, że teren jest stabilny – po prostu nie wiemy.</div>${foot()}`;
+
+    const a = Math.abs(v), d0 = dates[T0], d1 = dates[state.t];
+    const days = Math.round((times[state.t] - times[T0]) / 864e5);
+    const [level, chip] = a < THR ? ['calm', 'Stabilnie'] : a < 3 * THR ? ['small', 'Wyraźny ruch'] : ['big', 'Duży ruch'];
+    let head, sub;
+    if (state.t === T0) { head = 'Data początkowa'; sub = 'Od tej daty liczymy zmianę. Wybierz późniejszą datę na osi czasu, żeby zobaczyć, o ile ruszył się grunt.'; }
+    else if (level === 'calm') { head = 'Teren stabilny'; sub = `Zmiana (${sgn(v)} mm) jest mniejsza niż błąd pomiaru (±${fmt(THR)} mm), więc traktujemy ją jak brak ruchu.`; }
+    else if (v < 0) { head = `Grunt obniżył się o ${amount(v)}`; sub = 'Teren osiada albo zsuwa się po zboczu (np. osuwisko).'; }
+    else { head = `Grunt podniósł się o ${amount(v)}`; sub = 'Teren się wypiętrza – bywa tak np. u podnóża osuwiska, gdzie spychana ziemia się spiętrza.'; }
+
+    const rows = [];
+    if (state.t !== T0) rows.push(`<div class="pp-row"><span>Okres</span><b>${d0.slice(0, 4) === d1.slice(0, 4) ? dShort(d0) : dLong(d0)} → ${dLong(d1)} (${days} dni)</b></div>`);
+    if (level !== 'calm' && days >= 20) { const rate = a / days * 365.25; rows.push(`<div class="pp-row"><span>Tempo</span><b>ok. ${rate >= 100 ? fmt(rate / 10) + ' cm' : amount(rate)} na rok</b></div>`); }
+    const conf = confidenceAt(latlng);
+    if (conf) rows.push(`<div class="pp-row"><span>Pewność pomiaru</span><b>${conf[1]} ${conf[0]}</b></div>`);
+
+    const zone = anomalies().find((z) => inGeometry(z.geometry, latlng));
+    let zoneHTML = '';
+    if (zone) {
+      const T = TYPES[zone.type];
+      zoneHTML = `<div class="pp-sec pp-zone" style="background:color-mix(in srgb, ${T.color} 13%, transparent)"><div style="display:flex;gap:7px;align-items:center;margin-bottom:2px">${badge(zone.type)}<b>${T.name}</b></div>${zone.inside}</div>`;
+    } else {
+      const near = anomalies().map((z) => [z, map.distance(latlng, z.latlon)]).sort((p, q) => p[1] - q[1])[0];
+      if (near && near[1] < 2000) {
+        zoneHTML = `<div class="pp-sec" style="display:flex;gap:7px;align-items:center">${badge(near[0].type)}<span>Najbliższa anomalia: <b>${TYPES[near[0].type].name.toLowerCase()}</b>, ok. ${near[1] < 1000 ? fmt(Math.round(near[1] / 10) * 10) + ' m' : fmt(near[1] / 1000, 1) + ' km'} stąd.</span></div>`;
+      }
+    }
+
+    return `<span class="pp-chip ${level}">${chip}</span>
+      <div class="pp-head">${head}</div><div class="pp-sub">${sub}</div>
+      ${zoneHTML}
+      ${rows.length ? `<div class="pp-sec">${rows.join('')}${conf && conf[2] ? `<div class="pp-hint">${conf[2]}</div>` : ''}</div>` : ''}
+      <div class="pp-sec"><h4>Historia tego miejsca</h4><div class="pp-hint" style="margin:0">w dół = grunt opada · niebieska kropka = wybrana data</div>${sparkline(i)}</div>
+      ${foot('Satelita patrzy z ukosa, więc prawdziwy ruch może być większy. ')}`;
+  }
+  function selectPoint(latlng) {
+    pointMarker.setLatLng(latlng).addTo(map);
+    pointPopup.latlng = latlng;
+    pointPopup.setLatLng(latlng).setContent(pointHTML(latlng)).openOn(map);
+  }
+  // Keep an open popup in sync when the date changes (arrows, timeline, playback)
+  const refreshPointPopup = () => { if (pointPopup.latlng && map.hasLayer(pointPopup)) pointPopup.setContent(pointHTML(pointPopup.latlng)); };
+
+  // ------------------------------------------------------------------ date
+  function setDate(t) {
+    state.t = Math.max(T0, Math.min(T1, t));
+    $('tlDate').textContent = dLong(dates[state.t]);
+    $('prev').disabled = state.t <= T0; $('next').disabled = state.t >= T1;
+    $('tlNote').textContent = !MODES[state.mode].perDate ? 'ta warstwa obejmuje cały okres i nie zależy od wybranej daty'
+      : state.t === T0 ? 'początek okresu: zmiana = 0' : `zmiana od ${dPL(dates[T0])}`;
+    renderRaster(); renderTimeline(); renderZones(); refreshPointPopup();
+  }
+  function stop() { clearInterval(state.timer); state.timer = null; setPlayIcon(false); }
+
+  // --------------------------------------------------------------- wiring
+  $('play').addEventListener('click', () => {
+    if (state.timer) return stop();
+    if (state.t >= T1) setDate(T0);
+    setPlayIcon(true);
+    // A step every 950 ms: the 650 ms cross-fade finishes and the frame holds briefly before the next one
+    state.timer = setInterval(() => { if (state.t >= T1) return stop(); setDate(state.t + 1); }, 950);
+  });
+  $('latest').addEventListener('click', () => { stop(); setDate(T1); });
+  $('prev').addEventListener('click', () => { stop(); setDate(state.t - 1); });
+  $('next').addEventListener('click', () => { stop(); setDate(state.t + 1); });
+  $('mode').addEventListener('change', (e) => { state.mode = e.target.value; renderLegend(); setDate(state.t); });
+  $('opacity').addEventListener('input', (e) => { state.opacity = +e.target.value; frames[front].setOpacity(state.opacity); });
+  $('showZones').addEventListener('change', (e) => (e.target.checked ? zoneLayer.addTo(map) : zoneLayer.remove()));
+  $('showRelief').addEventListener('change', (e) => (e.target.checked ? relief.addTo(map) : relief.remove()));
+  Object.keys(INFRA).forEach((id) => { $(id).addEventListener('change', () => toggleInfra(id)); toggleInfra(id); });
+  Object.keys(SYM).forEach((id) => { $(id).addEventListener('change', () => toggleSym(id)); toggleSym(id); });
+  document.addEventListener('click', (e) => { if (!$('adv').contains(e.target)) $('adv').open = false; });
+  map.on('click', (e) => selectPoint(e.latlng));
+  map.on('mousemove', (e) => {
+    const i = pixelOf(e.latlng), v = i < 0 ? null : valueAt(i);
+    $('readout').innerHTML = i < 0 ? 'Dokładny odczyt jest dostępny bliżej osuwiska.' : v === null ? 'Brak pomiaru w tym miejscu.'
+      : `<b>${sgn(v, 0)} mm</b> ${Math.abs(v) < THR ? 'bez istotnej zmiany' : v < 0 ? 'osuwanie lub osiadanie' : 'wypiętrzanie'}`;
+  });
+  map.on('mouseout', () => { $('readout').textContent = 'Najedź na mapę.'; });
+
+  window.addEventListener('resize', () => { hideTip(); buildTimeline(); });
+
+  // ---------------------------------------------------------------- start
+  setPlayIcon(false); renderLegend(); buildTimeline(); setDate(state.t);
+})();
+</script>
+</body>
+</html>
