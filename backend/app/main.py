@@ -13,7 +13,11 @@ app = FastAPI(
     title=settings.name,
     version=settings.version,
     debug=settings.debug,
-    description="Ruch gruntu z radaru satelitarnego (InSAR) przy infrastrukturze liniowej.",
+    description=(
+        "Ruch gruntu z radaru satelitarnego (InSAR) przy infrastrukturze liniowej.\n\n"
+        "SI disclosure: the code of this API, the web page and the data-processing scripts was written "
+        "with the help of SI tools (Anthropic Claude). Measurement data are real sources, not SI-generated."
+    ),
 )
 
 # Allow a frontend running on a different port to call this API from a browser

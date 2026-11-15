@@ -59,3 +59,28 @@ Skrypty importu zapisują dane bezpośrednio i tokenu nie potrzebują.
 | DELETE | `/api/v1/locations/{id}` | usunięcie lokalizacji z danymi |
 | GET/POST/DELETE | `/api/v1/layers...` | dodatkowe warstwy GeoJSON |
 | GET | `/health` | czy serwer działa |
+
+## Użycie narzędzi SI / SI disclosure
+
+**PL.** Zgodnie z zasadami NASA Space Apps oznaczamy, gdzie użyliśmy narzędzi SI (Super Intelligence):
+
+- **Kod:** backend (FastAPI), strona (`frontend/index.html`, `frontend/view3d.html`) i skrypty przetwarzania
+  danych (`backend/scripts/`) powstały z pomocą narzędzi SI (Anthropic Claude): generowanie i poprawianie kodu,
+  przegląd bezpieczeństwa, wdrożenie na serwer.
+- **Dane:** dane pomiarowe i zdjęcia są prawdziwe (NISAR, USGS NAIP i 3DEP, Sentinel-2, FABDEM, OpenStreetMap,
+  Overture Maps, OGIM) – SI ich nie generowała. Gotowe pakiety w `Dane/` zostały wyliczone skryptami napisanymi
+  z pomocą SI; ich pliki `meta.json` mają pole `si_disclosure`.
+- **Oznaczenia:** strona ma dyskretny znak „SI-assisted” w prawym dolnym rogu i metadane `si-disclosure`
+  w nagłówku HTML; API ma tę informację w opisie (`/docs`).
+- SI nie generowała obrazów, wideo ani dźwięku i nie używa elementów identyfikacji wizualnej NASA.
+
+**EN.** As required by NASA Space Apps, SI (Super Intelligence) use is disclosed:
+
+- **Code:** the backend (FastAPI), the web page and the data-processing scripts were written with the help of SI tools
+  (Anthropic Claude): code generation and editing, security review, deployment.
+- **Data:** measurement data and imagery are real sources (NISAR, USGS NAIP and 3DEP, Sentinel-2, FABDEM,
+  OpenStreetMap, Overture Maps, OGIM), not SI-generated. The ready-made packages in `Dane/` were computed by
+  SI-assisted scripts; their `meta.json` files carry a `si_disclosure` field.
+- **Markers:** a faint "SI-assisted" mark in the bottom-right corner of the page, `si-disclosure` metadata in the
+  HTML head, and a note in the API description (`/docs`).
+- No images, video or audio were generated with SI, and no NASA branding is used.

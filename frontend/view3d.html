@@ -3,6 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- SI disclosure (NASA Space Apps): code of this page, the backend and the data-processing scripts
+     was written with the help of SI tools (Anthropic Claude). Measurements and imagery are real source data. -->
+<meta name="si-disclosure" content="SI-assisted: code and data-processing scripts written with SI tools (Anthropic Claude). Measurement data and imagery are real sources (NISAR, NAIP, Sentinel-2, OSM), not SI-generated.">
 <title>Corridor Watch · model 3D</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23C8F169'/%3E%3Cpath d='M4 21h9l3-3 3 3h9' fill='none' stroke='%230B0C0E' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -128,6 +131,7 @@ body.flat .bar h1::before { content: "Widok 2D"; }
 #compass svg { width: 40px; height: 40px; }
 #hint { left: 50%; top: 14px; transform: translateX(-50%); padding: 7px 14px; font-size: 12.5px; color: var(--text-2); white-space: nowrap; pointer-events: none; transition: opacity .6s; }
 #src { position: absolute; left: 14px; bottom: 10px; z-index: 9; max-width: calc(100% - 200px); font-size: 11px; line-height: 1.4; color: rgba(162,166,172,.85); pointer-events: none; }
+#siMark { position: fixed; right: 16px; bottom: 2px; z-index: 8; font: 500 9px/1.2 var(--font); letter-spacing: .02em; color: rgba(162,166,172,.38); pointer-events: none; user-select: none; white-space: nowrap; }
 /* Verification signal for a clicked object (results of the InSAR analysis) */
 #verify { right: 14px; top: 80px; width: 340px; max-height: calc(100% - 200px); overflow: auto; padding: 14px 16px 14px; z-index: 12; }
 body.flat #verify { top: 14px; max-height: calc(100% - 120px); }
@@ -274,6 +278,7 @@ body.flat #verify { top: 14px; max-height: calc(100% - 120px); }
   <div id="src"></div>
 </div>
 <div id="tip"></div>
+<div id="siMark" title="SI-assisted: code and data-processing scripts written with SI tools (Anthropic Claude)">SI-assisted · code built with Claude</div>
 
 <script type="module">
 import * as THREE from 'three';
