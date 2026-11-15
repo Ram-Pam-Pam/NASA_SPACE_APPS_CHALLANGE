@@ -386,8 +386,10 @@ details.adv .pop label.row input { width: 16px; height: 16px; margin: 0; }
   $('loc').value = LOC.id;
   $('loc').addEventListener('change', (e) => {
     if (e.target.value.startsWith('3d:')) { location.href = `view3d.html#${encodeURIComponent(e.target.value.slice(3))}`; return; }
-    location.hash = e.target.value; location.reload();
+    location.href = `index.html${keep2d ? '?2d' : ''}#${encodeURIComponent(e.target.value)}`;
   });
+  window.addEventListener('hashchange', () => location.reload());  // a change after "#" alone does not reload
+
   const BASE = LOC.base;
   let META, TSRAW, ACTIVE, ALERTS, MONITORING;
   try {

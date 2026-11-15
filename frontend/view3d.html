@@ -36,8 +36,37 @@ input[type="checkbox"] { accent-color: var(--accent); width: 16px; height: 16px;
 .bar h1 { display: flex; align-items: baseline; gap: 10px; margin: 0; padding-left: 18px; border-left: 1px solid var(--border); font-size: 15px; font-weight: 600; line-height: 1.3; }
 .bar h1::before { content: "Model 3D"; font: var(--label); letter-spacing: .07em; text-transform: uppercase; color: var(--text-2); white-space: nowrap; }
 .bar h1:empty { display: none; }
+body.flat .bar h1::before { content: "Widok 2D"; }
 .bar .sp { flex: 1; }
+/* 2D / 3D switch in the header: the same location as a map with the analysis results or as a 3D model */
+.dims { display: inline-flex; flex: none; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--page); }
+.dims button { border: 0; border-radius: 0; padding: 6px 14px; background: transparent; color: var(--text); font-size: 13px; font-weight: 600; letter-spacing: .02em; }
+.dims button + button { border-left: 1px solid var(--border); }
+.dims button:hover { background: var(--wash); }
+.dims button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); cursor: default; }
+
 .loc { display: flex; align-items: center; gap: 10px; min-width: 0; font: var(--label); letter-spacing: .07em; text-transform: uppercase; color: var(--text-2); }
+
+/* Timeline of ground motion (2D view only): play it to see how the ground changed between the measurements. */
+#timeline { flex: none; display: flex; align-items: center; gap: 10px 14px; flex-wrap: wrap; padding: 8px 20px; background: var(--surface); box-shadow: inset 0 -1px 0 var(--border); position: relative; z-index: 15; }
+.tl-title { font: var(--label); letter-spacing: .07em; text-transform: uppercase; color: var(--text-2); white-space: nowrap; }
+.tl-step { display: inline-flex; align-items: center; gap: 2px; padding: 2px; border: 1px solid var(--border); border-radius: 10px; background: var(--page); }
+.tl-step button, .tl-round { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; background: transparent; }
+.tl-round { border: 1px solid var(--border); border-radius: 50%; background: var(--page); }
+#tlPlay { width: 38px; height: 38px; background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.tl-step svg, .tl-round svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+#tlPlay svg { fill: currentColor; stroke: none; }
+.tl-date { min-width: 104px; text-align: center; font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }
+#tlTrack { position: relative; flex: 1 1 320px; min-width: 220px; height: 38px; cursor: pointer; touch-action: none; }
+#tlTrack::before { content: ""; position: absolute; left: 0; right: 0; top: 13px; height: 4px; border-radius: 2px; background: var(--border); }
+#tlFill { position: absolute; left: 0; top: 13px; height: 4px; border-radius: 2px; background: var(--accent); }
+.tl-tick { position: absolute; top: 11px; width: 8px; height: 8px; margin-left: -4px; border-radius: 50%; background: #5b6068; }
+.tl-tick.on { background: var(--accent); }
+.tl-lbl { position: absolute; top: 22px; transform: translateX(-50%); font-size: 11.5px; color: var(--text-2); white-space: nowrap; }
+#tlKnob { position: absolute; top: 7px; width: 16px; height: 16px; margin-left: -8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 4px rgba(200,241,105,.25); }
+.tl-key { display: flex; align-items: center; gap: 12px; font-size: 12.5px; color: var(--text-2); }
+.tl-key b { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+@media (max-width: 720px) { .tl-key { flex-basis: 100%; } }
 
 #stage { position: relative; flex: 1; min-height: 0; background: radial-gradient(ellipse at 50% 35%, #1d2733 0%, #0e1218 60%, #0B0C0E 100%); }
 #stage canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
@@ -51,6 +80,16 @@ input[type="checkbox"] { accent-color: var(--accent); width: 16px; height: 16px;
 .lbl.area { color: #ffc266; }
 .lbl.biz { font-weight: 500; font-size: 11.5px; color: #e6e8ea; }
 .lbl.hazard { padding: 3px 9px; border-radius: 999px; background: rgba(255,107,74,.92); color: #1a0b06; text-shadow: none; font-size: 12.5px; box-shadow: var(--shadow); }
+/* Main anomalies of the timeline (2D view): a numbered dot with a pulsing ring, red = sinking, blue = rising */
+#marks { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 4; }
+.amark { position: absolute; left: 0; top: 0; width: 0; height: 0; pointer-events: auto; cursor: pointer; transition: opacity .4s; }
+.amark .dot { position: absolute; left: -13px; top: -13px; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--c); color: #fff; font: 700 13px/1 var(--font); border: 2px solid #fff; box-shadow: 0 1px 6px rgba(0,0,0,.55); }
+.amark .ring { pointer-events: none; position: absolute; left: -13px; top: -13px; width: 26px; height: 26px; border-radius: 50%; border: 3px solid var(--c); animation: apulse 1.8s ease-out infinite; }
+.amark .ring + .ring { animation-delay: .9s; }
+.amark.off { opacity: 0; pointer-events: none; }
+@keyframes apulse { from { transform: scale(1); opacity: .9; } to { transform: scale(3.4); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .amark .ring { animation: none; opacity: .5; transform: scale(1.6); } }
 .lbl.road { padding: 1px 6px; border-radius: 4px; background: #f2f3f0; color: #15171A; text-shadow: none; font-size: 11px; font-weight: 700; }
 
 .panel { position: absolute; z-index: 10; background: rgba(21,23,26,.9); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow); backdrop-filter: blur(8px); }
@@ -107,14 +146,31 @@ input[type="checkbox"] { accent-color: var(--accent); width: 16px; height: 16px;
   </div>
   <h1 id="title"></h1>
   <span class="sp"></span>
+  <div class="dims" id="dims" role="group" aria-label="Rodzaj widoku" hidden>
+    <button id="dim2" aria-pressed="false" title="Widok z góry: płaska mapa tego samego modelu">2D</button>
+    <button id="dim3" aria-pressed="false" title="Model 3D terenu i infrastruktury">3D</button>
+  </div>
   <label class="loc">Lokalizacja
     <select id="loc" aria-label="Lokalizacja"></select>
   </label>
 </header>
 
+<div id="timeline" hidden>
+  <span class="tl-title" id="tlTitle">Zmiana terenu</span>
+  <div class="tl-step">
+    <button id="tlPrev" title="Poprzedni pomiar" aria-label="Poprzedni pomiar"><svg viewBox="0 0 24 24"><path d="M14.5 6l-6 6 6 6"/></svg></button>
+    <span class="tl-date" id="tlDate"></span>
+    <button id="tlNext" title="Następny pomiar" aria-label="Następny pomiar"><svg viewBox="0 0 24 24"><path d="M9.5 6l6 6-6 6"/></svg></button>
+  </div>
+  <button class="tl-round" id="tlPlay" title="Odtwórz zmiany w czasie" aria-label="Odtwórz"></button>
+  <div id="tlTrack" role="slider" tabindex="0" aria-label="Data pomiaru"><div id="tlFill"></div><div id="tlKnob"></div></div>
+  <div class="tl-key"><span title="Teren przesunął się od satelity: osiada albo osuwa się po zboczu"><b style="background:rgb(214,39,40)"></b>osiadanie / osuwanie</span><span title="Teren przesunął się w stronę satelity: podnosi się"><b style="background:rgb(31,104,196)"></b>wypiętrzanie</span><span id="tlAno" hidden><b style="background:#fff;border-radius:50%;box-shadow:0 0 0 2px rgb(214,39,40)"></b>główne anomalie</span><span id="tlThr"></span></div>
+</div>
+
 <div id="stage">
   <div id="status">Wczytywanie modelu 3D…</div>
   <div id="labels"></div>
+  <div id="marks"></div>
 
   <details class="panel" id="layers" open hidden>
     <summary>Warstwy modelu</summary>
@@ -181,8 +237,11 @@ if (!LOC) { fail('Brak modelu 3D. Zbuduj go skryptem backend/scripts/build_scene
 $('loc').value = `scene3d:${LOC.id}`;
 $('loc').addEventListener('change', (e) => {
   const [kind, id] = e.target.value.split(/:(.*)/);
-  if (kind === 'scene3d') { location.hash = id; location.reload(); } else location.href = `index.html#${encodeURIComponent(id)}`;
+  // another model keeps the current 2D/3D mode; an address that differs only after "#" does not reload
+  // the page by itself, the hashchange listener below does that
+  location.href = kind === 'scene3d' ? `view3d.html${FLAT ? '?view=2d' : ''}#${encodeURIComponent(id)}` : `index.html#${encodeURIComponent(id)}`;
 });
+window.addEventListener('hashchange', () => location.reload());
 const BASE = LOC.base_url;
 let META;
 try { META = await getJSON(BASE + 'meta.json'); }
@@ -202,6 +261,11 @@ if (T) {
 }
 const T_STEP = terrainGrid ? (T.max_m - T.min_m) / 65535 : 0;
 let EXAG = terrainGrid ? T.default_exaggeration || 1 : 1;
+// 2D = the same model seen straight from above and flattened: no relief, flat roofs and crowns, no
+// curtains, north up, pan instead of rotate. Everything else (layers, names, legend) stays the same.
+let FLAT = new URLSearchParams(location.search).get('view') === '2d';
+let exag3d = EXAG;
+if (FLAT) EXAG = 0;
 
 // ---------------------------------------------------------------- geometry
 // Local frame in metres: X east, Y up, Z south; the AOI centre is the origin.
@@ -210,12 +274,15 @@ const R = Math.max(SX, SZ);
 const BIG = R > 12000;                 // city-scale scene: lighter detail, merged and instanced geometry
 const K = Math.max(1, R / 5000);       // symbols (pipes, outlines, label heights) grow with the scene so they stay visible
 const toXZ = ([lon, lat]) => [((lon - W_LON) / (E_LON - W_LON) - 0.5) * SX, (0.5 - (lat - S_LAT) / (N_LAT - S_LAT)) * SZ];
-/** Real height in metres above the lowest point of the area (bilinear on the terrain grid). */
+/** Real height in metres above the lowest point of the area. */
 function elevAt(x, z) {
   if (!terrainGrid) return 0;
   const gx = Math.min(Math.max((x / SX + 0.5) * (T.width - 1), 0), T.width - 1.001), gz = Math.min(Math.max((z / SZ + 0.5) * (T.height - 1), 0), T.height - 1.001);
   const x0 = Math.floor(gx), z0 = Math.floor(gz), fx = gx - x0, fz = gz - z0, i = z0 * T.width + x0, g = terrainGrid;
-  return ((g[i] * (1 - fx) + g[i + 1] * fx) * (1 - fz) + (g[i + T.width] * (1 - fx) + g[i + T.width + 1] * fx) * fz) * T_STEP;
+  // the same two triangles per cell as the terrain mesh (THREE.PlaneGeometry splits a cell along b-d),
+  // so anything placed with this lies exactly on the visible surface
+  const a = g[i], d = g[i + 1], b = g[i + T.width], c = g[i + T.width + 1];
+  return (fx + fz <= 1 ? a + (d - a) * fx + (b - a) * fz : c + (b - c) * (1 - fx) + (d - c) * (1 - fz)) * T_STEP;
 }
 const H = (x, z) => elevAt(x, z) * EXAG;  // height in the model
 const STEP = BIG ? 30 : 10;  // spacing of extra points; about one terrain cell
@@ -402,9 +469,9 @@ if (terrainGrid) {
 const ground = new THREE.Mesh(groundGeo, new THREE.MeshBasicMaterial({ ...(photo ? { map: photo } : { color: 0x4f6b3c }), vertexColors: !!terrainGrid }));
 terrain.add(ground);
 function shadeTerrain() {
-  terrain.scale.y = EXAG;
+  terrain.scale.y = Math.max(EXAG, 1e-4);
   if (!terrainGrid) return;
-  const col = groundGeo.attributes.color, g = terrainGrid, dx = SX / (GW - 1), dz = SZ / (GH - 1), k = T_STEP * EXAG;
+  const col = groundGeo.attributes.color, g = terrainGrid, dx = SX / (GW - 1), dz = SZ / (GH - 1), k = T_STEP * (FLAT ? exag3d : EXAG);
   const L = sun.position.clone().normalize();
   for (let r = 0; r < GH; r++) {
     const rn = Math.max(r - 1, 0), rs = Math.min(r + 1, GH - 1);
@@ -423,43 +490,57 @@ const slab = new THREE.Mesh(new THREE.BoxGeometry(SX, R * 0.012, SZ), new THREE.
 slab.position.y = -R * 0.006 - 0.05;
 scene.add(slab);
 
-/** How solid the sea sheet is: clear along the shore (the photo shows surf, kelp and harbour basins there)
- *  and nearly opaque in open water, where the aerial photo is only a patchwork of flight strips and sun glint. */
-let seaAlphaTex = null;
-function seaAlpha() {
-  if (seaAlphaTex) return seaAlphaTex;
-  const level = (T.sea_level_m - T.min_m) / T_STEP + 0.3 / T_STEP, n = GW * GH, reach = Math.max(2, Math.round(350 / (SX / (GW - 1))));
-  let land = new Float32Array(n), tmp = new Float32Array(n);
+/** The sea sheet's colour and opacity as one texture (one texel per terrain cell).
+ *  Opacity: see-through along the shore, where the photo shows surf, kelp and harbour basins, and fully
+ *  solid from a few hundred metres out, where the aerial photo is only a patchwork of flight strips with
+ *  visible seams and sun glint. Colour: lighter near the coast, deeper blue offshore, with a faint slow
+ *  variation so the open water does not look like flat paint. */
+let seaTex = null;
+function seaTexture() {
+  if (seaTex) return seaTex;
+  const cell = SX / (GW - 1), level = (T.sea_level_m - T.min_m) / T_STEP + 0.3 / T_STEP, n = GW * GH;
+  const land = new Float32Array(n);
   for (let i = 0; i < n; i++) land[i] = terrainGrid[i] > level ? 1 : 0;
-  const blur = (src, dst, step, count, lines) => {  // running mean along rows (step 1) or columns (step GW)
-    for (let l = 0; l < lines; l++) {
-      const base = step === 1 ? l * GW : l;
-      let sum = 0;
-      for (let k = -reach; k <= reach; k++) sum += src[base + Math.min(count - 1, Math.max(0, k)) * step];
-      for (let k = 0; k < count; k++) {
-        dst[base + k * step] = sum / (2 * reach + 1);
-        sum += src[base + Math.min(count - 1, k + reach + 1) * step] - src[base + Math.max(0, k - reach) * step];
+  const blurred = (src, metres) => {  // two passes of a running mean along rows and columns ~ a soft gaussian
+    const reach = Math.max(1, Math.round(metres / cell)), a = Float32Array.from(src), tmp = new Float32Array(n);
+    const run = (from, to, step, count, lines) => {
+      for (let l = 0; l < lines; l++) {
+        const base = step === 1 ? l * GW : l;
+        let sum = 0;
+        for (let k = -reach; k <= reach; k++) sum += from[base + Math.min(count - 1, Math.max(0, k)) * step];
+        for (let k = 0; k < count; k++) {
+          to[base + k * step] = sum / (2 * reach + 1);
+          sum += from[base + Math.min(count - 1, k + reach + 1) * step] - from[base + Math.max(0, k - reach) * step];
+        }
       }
-    }
+    };
+    for (let pass = 0; pass < 2; pass++) { run(a, tmp, 1, GW, GH); run(tmp, a, GW, GH, GW); }
+    return a;
   };
-  for (let pass = 0; pass < 2; pass++) { blur(land, tmp, 1, GW, GH); blur(tmp, land, GW, GH, GW); }
+  const near = blurred(land, 160), coast = blurred(land, 1500);
+  const deep = new THREE.Color(0x2a6587), shallow = new THREE.Color(0x4a92ad), c = new THREE.Color();
   const px = new Uint8Array(n * 4);
-  for (let r = 0; r < GH; r++) for (let c = 0; c < GW; c++) {
-    const near = Math.min(1, land[r * GW + c] * 2.2);  // 0 in open water, 1 at the shoreline and on land
-    const a = Math.round(255 * (0.3 + 0.65 * (1 - near) ** 1.5)), j = ((GH - 1 - r) * GW + c) * 4;  // texture rows run south -> north
-    px[j] = px[j + 1] = px[j + 2] = px[j + 3] = a;
+  for (let r = 0; r < GH; r++) for (let col = 0; col < GW; col++) {
+    const i = r * GW + col, j = ((GH - 1 - r) * GW + col) * 4;  // texture rows run south -> north
+    const x = col * cell, z = r * cell;
+    const ripple = 0.035 * (Math.sin(x * 0.0021 + z * 0.0013) + Math.sin(x * -0.0009 + z * 0.0027 + 1.7)) / 2;  // slow, faint swell
+    c.copy(deep).lerp(shallow, Math.min(1, coast[i] * 3.5)).multiplyScalar(1 + ripple);
+    const u = THREE.MathUtils.smoothstep(near[i], 0.05, 0.45);  // 1 at the waterline, 0 from ~150-250 m offshore
+    px[j] = Math.round(255 * c.r); px[j + 1] = Math.round(255 * c.g); px[j + 2] = Math.round(255 * c.b);
+    px[j + 3] = terrainGrid[i] > level ? 0 : Math.round(255 * (1 - 0.78 * u));
   }
-  seaAlphaTex = new THREE.DataTexture(px, GW, GH, THREE.RGBAFormat);
-  seaAlphaTex.magFilter = seaAlphaTex.minFilter = THREE.LinearFilter;
-  seaAlphaTex.needsUpdate = true;
-  return seaAlphaTex;
+  seaTex = new THREE.DataTexture(px, GW, GH, THREE.RGBAFormat);
+  seaTex.colorSpace = THREE.SRGBColorSpace;
+  seaTex.magFilter = THREE.LinearFilter; seaTex.minFilter = THREE.LinearFilter;
+  seaTex.needsUpdate = true;
+  return seaTex;
 }
 
 const tipRow = (k, v) => (v || v === 0 ? `<br><span class="k">${k}:</span> ${esc(v)}` : '');
 const layerFile = (name) => (META.layers?.[name]?.count ? getJSON(BASE + META.layers[name].file).then((g) => g.features).catch(() => []) : Promise.resolve([]));
 const binFile = (info) => (info?.count ? fetch(BASE + info.file).then((r) => (r.ok ? r.arrayBuffer() : null)).catch(() => null) : null);
-const [roads, rail, water, pipes, areas, places, buildings, hazards, treeBuf, bldBuf] = await Promise.all([
-  ...['roads', 'rail', 'water', 'pipelines', 'areas', 'places', 'buildings', 'hazards'].map(layerFile), binFile(META.trees), binFile(META.buildings_bin),
+const [roads, rail, water, pipes, areas, places, buildings, hazards, power, treeBuf, bldBuf] = await Promise.all([
+  ...['roads', 'rail', 'water', 'pipelines', 'areas', 'places', 'buildings', 'hazards', 'power'].map(layerFile), binFile(META.trees), binFile(META.buildings_bin),
 ]);
 
 const labels = [];
@@ -472,6 +553,99 @@ const centre = (ring) => { const p = ring.map(toXZ); return [p.reduce((s, q) => 
 const spots = [];  // named places for the "go to" buttons
 const pipeKinds = new Map();
 
+// ------------------------------------------------------------ hazard zones
+/** Smooth a closed ring by corner cutting (Chaikin): the pixel staircase of a raster-derived zone
+ *  becomes a soft curve. Display only - the zone data itself is not changed. */
+function chaikin(pts, iterations = 3) {
+  for (let k = 0; k < iterations; k++) {
+    const out = [];
+    for (let i = 0; i < pts.length; i++) {
+      const p = pts[i], q = pts[(i + 1) % pts.length];
+      out.push([0.75 * p[0] + 0.25 * q[0], 0.75 * p[1] + 0.25 * q[1]], [0.25 * p[0] + 0.75 * q[0], 0.25 * p[1] + 0.75 * q[1]]);
+    }
+    pts = out;
+  }
+  return pts;
+}
+const HAZ_EDGE = new THREE.Color(0xff4a2a), HAZ_CORE = new THREE.Color(0xffb347);
+const hazardMat = () => new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false, side: THREE.DoubleSide,
+  polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 });
+/**
+ * A hazard zone drawn as a soft shape that follows the ground:
+ *  - a glow draped on the terrain: strongest at the edge, fading towards the middle (red -> amber) and
+ *    a short way outside, so the zone reads as an area, not a hard frame;
+ *  - a thin edge line;
+ *  - a low curtain on the edge that fades upwards, so slopes and height changes along the edge are visible.
+ * `rings` = GeoJSON rings (lon, lat). With `fill: false` (a sinkhole lake) the inside is left to the water.
+ */
+function hazardZone(group, rings, { fill = true, tip = '' } = {}) {
+  const smooth = rings.filter((r) => r.length >= 4).map((r) => chaikin(r.slice(0, -1).map(toXZ)));
+  if (!smooth.length) return;
+  const all = smooth.flat(), xs = all.map((p) => p[0]), zs = all.map((p) => p[1]);
+  const x0 = Math.min(...xs), x1 = Math.max(...xs), z0 = Math.min(...zs), z1 = Math.max(...zs), S = Math.max(x1 - x0, z1 - z0);
+  const clamp = THREE.MathUtils.clamp, dIn = clamp(S * 0.15, 25, 450), dOut = clamp(S * 0.05, 12, 150);
+  const wallH = clamp(S * 0.06, 15, 150), lineW = clamp(S * 0.005, 2.5, 10), lift = 0.3;
+  const segs = [];
+  smooth.forEach((r) => r.forEach((p, i) => segs.push([p, r[(i + 1) % r.length]])));
+  const inside = (x, z) => { let c = false; for (const [p, q] of segs) if ((p[1] > z) !== (q[1] > z) && x < (q[0] - p[0]) * (z - p[1]) / (q[1] - p[1]) + p[0]) c = !c; return c; };
+  const dist = (x, z) => {
+    let m = Infinity;
+    for (const [p, q] of segs) {
+      const dx = q[0] - p[0], dz = q[1] - p[1], t = clamp(((x - p[0]) * dx + (z - p[1]) * dz) / (dx * dx + dz * dz || 1), 0, 1);
+      const ex = p[0] + t * dx - x, ez = p[1] + t * dz - z;
+      m = Math.min(m, ex * ex + ez * ez);
+    }
+    return Math.sqrt(m);
+  };
+
+  // glow on the ground: a patch of the terrain lattice itself, so every triangle lies on the surface
+  const cx = terrainGrid ? SX / (GW - 1) : Math.max(2, S / 120), cz = terrainGrid ? SZ / (GH - 1) : cx;
+  const maxC = Math.floor(SX / cx), maxR = Math.floor(SZ / cz);
+  const c0 = clamp(Math.floor((x0 - dOut + SX / 2) / cx), 0, maxC), c1 = clamp(Math.ceil((x1 + dOut + SX / 2) / cx), 0, maxC);
+  const r0 = clamp(Math.floor((z0 - dOut + SZ / 2) / cz), 0, maxR), r1 = clamp(Math.ceil((z1 + dOut + SZ / 2) / cz), 0, maxR);
+  const nc = c1 - c0 + 1, nr = r1 - r0 + 1, pos = new Float32Array(nc * nr * 3), col = new Float32Array(nc * nr * 4), alpha = new Float32Array(nc * nr), tmp = new THREE.Color();
+  for (let r = 0; r < nr; r++) for (let c = 0; c < nc; c++) {
+    const k = r * nc + c, x = -SX / 2 + (c0 + c) * cx, z = -SZ / 2 + (r0 + r) * cz, d = dist(x, z), inZone = inside(x, z);
+    let a = 0;
+    if (inZone) { if (fill) { const u = Math.min(1, d / dIn); a = 0.1 + 0.4 * (1 - u) ** 1.8; tmp.copy(HAZ_EDGE).lerp(HAZ_CORE, u); } }
+    else { a = 0.38 * (1 - Math.min(1, d / dOut)) ** 2; tmp.copy(HAZ_EDGE); }
+    alpha[k] = a;
+    pos.set([x, H(x, z) + lift, z], k * 3);
+    col.set([tmp.r, tmp.g, tmp.b, a], k * 4);
+  }
+  const idx = [];
+  for (let r = 0; r < nr - 1; r++) for (let c = 0; c < nc - 1; c++) {
+    const a = r * nc + c, b = a + nc, cc = b + 1, d = a + 1;
+    if (alpha[a] + alpha[b] + alpha[cc] + alpha[d] > 0.004) idx.push(a, b, d, b, cc, d);
+  }
+  if (idx.length) {
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(col, 4));
+    geo.setIndex(idx);
+    group.add(tipped(new THREE.Mesh(geo, hazardMat()), tip));
+  }
+
+  // edge line and fading curtain, following the ground along the smoothed edge
+  for (const ring of smooth) {
+    const pts = dense([...ring, ring[0]], Math.max(1.5, Math.min(cx, cz) / 2));
+    group.add(tipped(new THREE.Mesh(ribbon(pts, lineW, (t, x, z) => H(x, z) + lift + 0.4),
+      flat(HAZ_EDGE.getHex(), { transparent: true, opacity: 0.95, polygonOffsetFactor: -6, polygonOffsetUnits: -6 })), tip));
+    if (FLAT) continue;  // no curtain on a flat map
+    const wall = [], wcol = [];
+    for (let i = 1; i < pts.length; i++) {
+      const [ax, az] = pts[i - 1], [bx, bz] = pts[i], ay = H(ax, az) + lift, by = H(bx, bz) + lift;
+      wall.push(ax, ay, az, bx, by, bz, bx, by + wallH, bz, ax, ay, az, bx, by + wallH, bz, ax, ay + wallH, az);
+      const lo = [HAZ_EDGE.r, HAZ_EDGE.g, HAZ_EDGE.b, 0.55], hi = [HAZ_EDGE.r, HAZ_EDGE.g, HAZ_EDGE.b, 0];
+      wcol.push(...lo, ...lo, ...hi, ...lo, ...hi, ...hi);
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(wall, 3));
+    geo.setAttribute('color', new THREE.Float32BufferAttribute(wcol, 4));
+    group.add(new THREE.Mesh(geo, hazardMat()));
+  }
+}
+
 /** Everything that stands on the ground. Runs again when the exaggeration changes. */
 function build() {
 for (const g of Object.values(groups)) {
@@ -483,20 +657,18 @@ pickables.length = 0; labels.length = 0; spots.length = 0; pipeKinds.clear();
 $('labels').innerHTML = '';
 const addBatch = (id, batch) => { const mesh = batch.mesh(); if (mesh) group(id).add(mesh); };
 
-// ---- hazard zones (e.g. an active landslide): outline on the ground + label
-const hazardB = new Batch(flat(0xffffff, { vertexColors: true, polygonOffsetFactor: -6, polygonOffsetUnits: -6 }));
+// ---- hazard zones (e.g. an active landslide): soft glow on the ground, edge line, fading curtain + label
 for (const f of hazards) {
   for (const rings of polygons(f.geometry)) {
-    const ring = dense(rings[0].map(toXZ)), [cx, cz] = centre(rings[0]);
+    const ring = rings[0].map(toXZ), [cx, cz] = centre(rings[0]);
     const size = Math.max(...ring.map(([x, z]) => Math.hypot(x - cx, z - cz)));
-    hazardB.add(ribbon([...ring, ring[1]], 3 * K, (t, x, z) => H(x, z) + 1.2 * K), 0xff6b4a, `<b>${esc(f.properties.name || 'Strefa zagrożenia')}</b>${f.properties.note ? '<br>' + esc(f.properties.note) : ''}`);
+    hazardZone(group('hazards'), rings, { tip: `<b>${esc(f.properties.name || 'Strefa zagrożenia')}</b>${f.properties.note ? '<br>' + esc(f.properties.note) : ''}` });
     if (!spots.some((s) => s.name === f.properties.name)) {
       addLabel(f.properties.name || 'Strefa zagrożenia', cx, cz, H(cx, cz) + 30 * K, 'hazard');
       spots.push({ name: f.properties.name || 'Strefa zagrożenia', x: cx, z: cz, dist: Math.max(900, size * 4) });
     }
   }
 }
-addBatch('hazards', hazardB);
 
 // ---- water (a sinkhole is the hazard there, so it gets an outline and a label)
 const waterB = new Batch(new THREE.MeshPhongMaterial({ vertexColors: true, transparent: true, opacity: 0.76, shininess: 40, specular: 0x24343c, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }), true);
@@ -508,11 +680,9 @@ for (const f of water) {
     const shore = rings[0].map(toXZ), mid = centre(rings[0]);
     const level = shore.reduce((m, [x, z]) => Math.min(m, elevAt(x, z)), elevAt(mid[0], mid[1])) * EXAG;
     const geo = lay(new THREE.ShapeGeometry(shapeOf(rings))).translate(0, level + 0.15, 0);
-    waterB.add(geo, hazard ? 0x1d5068 : 0x3f86a3, `<b>${esc(f.properties.name || (f.properties.kind === 'river' ? 'Rzeka / bayou' : 'Woda'))}</b>${hazard ? '<br>Zapadlisko nad zawaloną komorą solną (od 2012 r.)' : ''}`);
+    waterB.add(geo, hazard ? 0x1d5068 : 0x3f86a3, f.properties.name ? `<b>${esc(f.properties.name)}</b>${hazard ? '<br>Zapadlisko nad zawaloną komorą solną (od 2012 r.)' : ''}` : null);
     if (hazard) {
-      const outline = new Batch(flat(0xffffff, { vertexColors: true }));
-      outline.add(ribbon([...shore, shore[1]], 5, () => level + 0.9), 0xff6b4a);
-      addBatch('water', outline);
+      hazardZone(group('hazards'), rings, { fill: false, tip: `<b>${esc(f.properties.name || 'Zapadlisko')}</b><br>Zapadlisko nad zawaloną komorą solną (od 2012 r.)` });
       addLabel(f.properties.name || 'Zapadlisko', mid[0], mid[1], level + 30, 'hazard');
       spots.push({ name: 'Zapadlisko', x: mid[0], z: mid[1], dist: 900 });
     }
@@ -520,9 +690,9 @@ for (const f of water) {
 }
 addBatch('water', waterB);
 if (T && T.sea_level_m != null && terrainGrid) {  // the sea: one sheet at sea level, the land rises through it
-  const sea = new THREE.Mesh(lay(new THREE.PlaneGeometry(SX, SZ)), new THREE.MeshBasicMaterial({ color: 0x2f6f96, transparent: true, alphaMap: seaAlpha(), ...OFFSET })  /* unlit: a lit sheet this big shows one huge sun glare */);
+  const sea = new THREE.Mesh(lay(new THREE.PlaneGeometry(SX, SZ)), new THREE.MeshBasicMaterial({ map: seaTexture(), transparent: true, ...OFFSET })  /* unlit: a lit sheet this big shows one huge sun glare */);
   sea.position.y = (T.sea_level_m - T.min_m) * EXAG + 0.25;
-  group('water').add(tipped(sea, '<b>Ocean</b>'));
+  group('water').add(sea);  // no name on hover: under the land it would answer for the ground
 }
 
 // ---- industrial areas: outline + name
@@ -531,7 +701,7 @@ for (const f of areas) {
   for (const rings of polygons(f.geometry)) {
     const ring = dense(rings[0].map(toXZ));
     if (ring.length < 3) continue;
-    areaB.add(ribbon([...ring, ring[1]], 4 * Math.sqrt(K), (t, x, z) => H(x, z) + 0.7), 0xffb347, `<b>${esc(f.properties.name || 'Teren przemysłowy')}</b>${tipRow('Operator', f.properties.operator)}`);
+    areaB.add(ribbon([...ring, ring[1]], 4 * Math.sqrt(K), (t, x, z) => H(x, z) + 0.7), 0xffb347, f.properties.name ? `<b>${esc(f.properties.name)}</b>${tipRow('Operator', f.properties.operator)}` : null);
     if (f.properties.name) {
       const [cx, cz] = centre(rings[0]);
       addLabel(f.properties.name, cx, cz, H(cx, cz) + 25, 'area', BIG ? R * 0.12 : Infinity);
@@ -550,7 +720,7 @@ for (const f of roads) {
   const p = f.properties, main = ['motorway', 'trunk', 'primary', 'secondary'].includes(p.kind);
   if (p.tunnel) continue;
   const color = p.kind === 'track' ? ROAD.track : p.kind === 'service' ? ROAD.gravel : ROAD.asphalt;
-  const tip = `<b>${esc(p.name || ROAD_PL[p.kind] || 'Droga')}</b>${p.ref ? ' · ' + esc(p.ref) : ''}${p.name ? '<br>' + esc(ROAD_PL[p.kind] || '') : ''}${p.bridge ? '<br>most' : ''}`;
+  const tip = (p.ref || (main && p.name)) ? `<b>${esc(p.name || ROAD_PL[p.kind] || 'Droga')}</b>${p.ref ? ' · ' + esc(p.ref) : ''}${p.name ? '<br>' + esc(ROAD_PL[p.kind] || '') : ''}${p.bridge ? '<br>most' : ''}` : null;
   for (const coords of lines(f.geometry)) {
     const pts = dense(coords.map(toXZ)), len = pathLen(pts);
     if (pts.length < 2) continue;
@@ -584,7 +754,7 @@ if (rail.length) {
     for (const coords of lines(f.geometry)) {
       const pts = dense(coords.map(toXZ));
       if (pts.length < 2) continue;
-      railB.add(ribbon(pts, 3.4, (t, x, z) => H(x, z) + 0.5), dead ? 0x6d6a5f : 0x7a7068, `<b>${esc(p.name || 'Tory kolejowe')}</b>${dead ? '<br>nieczynne' : ''}${tipRow('Operator', p.operator)}`);
+      railB.add(ribbon(pts, 3.4, (t, x, z) => H(x, z) + 0.5), dead ? 0x6d6a5f : 0x7a7068, p.name ? `<b>${esc(p.name)}</b>${dead ? '<br>nieczynne' : ''}${tipRow('Operator', p.operator)}` : null);
       [-0.72, 0.72].forEach((s) => railB.add(ribbon(pts, 0.16, (t, x, z) => H(x, z) + 0.9, s), dead ? 0x8a6a55 : 0xd5dade));
       tracks.push(pts);
     }
@@ -623,6 +793,59 @@ for (const f of pipes) {
 }
 addBatch('pipes', pipeB);
 
+// ---- power network: a violet corridor on the ground (names on hover), pylons, and in 3D sagging wires
+if (power.length) {
+  const POWER = 0xa66bff, CABLE = 0xc9a8ff, corridor = new Batch(flat(0xffffff, { vertexColors: true, transparent: true, opacity: 0.9, polygonOffsetFactor: -5, polygonOffsetUnits: -5 }));
+  const towers = [], wire = [];
+  for (const f of power) {
+    const p = f.properties, kv = p.kv || 0;
+    const tip = `<b>${esc(p.name || (p.kind === 'cable' ? 'Kabel energetyczny' : p.kind === 'station' ? 'Stacja elektroenergetyczna' : 'Linia energetyczna'))}</b>${kv ? ' · ' + kv + ' kV' : ''}${tipRow('Operator', p.operator)}${p.kind === 'cable' ? '<br>pod ziemią' : ''}`;
+    for (const coords of lines(f.geometry)) {
+      const pts = coords.map(toXZ);
+      if (pts.length < 2) continue;
+      corridor.add(ribbon(dense(pts), (p.kind === 'station' ? 1.2 : 2.2) * Math.sqrt(K), (t, x, z) => H(x, z) + 0.8), p.kind === 'cable' ? CABLE : POWER, tip);
+      if (p.kind !== 'line') continue;
+      const h = kv >= 200 ? 32 : kv >= 100 ? 25 : 16;  // typical lattice tower heights
+      pts.forEach((q, i) => {
+        const a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)];
+        towers.push({ x: q[0], z: q[1], h, heading: Math.atan2(b[1] - a[1], b[0] - a[0]) });
+      });
+      if (FLAT) continue;
+      for (let i = 1; i < pts.length; i++) {  // three conductors per span, hanging between the cross-arms
+        const [ax, az] = pts[i - 1], [bx, bz] = pts[i], len = Math.hypot(bx - ax, bz - az), nx = -(bz - az) / (len || 1), nz = (bx - ax) / (len || 1);
+        const ya = H(ax, az) + h * 0.86, yb = H(bx, bz) + h * 0.86, sag = Math.min(12, Math.max(1, len * 0.025));
+        for (const off of [-5, 0, 5]) {
+          let prev = null;
+          for (let k = 0; k <= 10; k++) {
+            const t = k / 10, pt = [ax + (bx - ax) * t + nx * off, ya + (yb - ya) * t - sag * 4 * t * (1 - t), az + (bz - az) * t + nz * off];
+            if (prev) wire.push(...prev, ...pt);
+            prev = pt;
+          }
+        }
+      }
+    }
+  }
+  addBatch('power', corridor);
+  if (towers.length) {  // pyramid mast + cross-arm; on the flat map just a small dark diamond
+    const mast = new THREE.InstancedMesh(new THREE.ConeGeometry(1, 1, 4), lit(0x55595e), towers.length);
+    const arm = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), lit(0x55595e), towers.length);
+    const m = new THREE.Matrix4(), q = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0), v = new THREE.Vector3(), sc = new THREE.Vector3();
+    towers.forEach((t, i) => {
+      const base = H(t.x, t.z);
+      q.setFromAxisAngle(up, -t.heading + Math.PI / 4);
+      mast.setMatrixAt(i, m.compose(v.set(t.x, base + (FLAT ? 1 : t.h / 2), t.z), q, FLAT ? sc.set(5 * Math.sqrt(K), 1, 5 * Math.sqrt(K)) : sc.set(3.2, t.h, 3.2)));
+      q.setFromAxisAngle(up, -t.heading + Math.PI / 2);
+      arm.setMatrixAt(i, m.compose(v.set(t.x, base + t.h * 0.86, t.z), q, FLAT ? sc.set(0, 0, 0) : sc.set(0.7, 0.6, 12)));
+    });
+    [mast, arm].forEach((mesh) => { mesh.frustumCulled = false; group('power').add(mesh); });
+  }
+  if (wire.length) {
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(wire, 3));
+    group('power').add(new THREE.LineSegments(geo, new THREE.LineBasicMaterial({ color: 0x2e3135, transparent: true, opacity: 0.85 })));
+  }
+}
+
 // ---- buildings from footprints (small areas): walls from the outline, pitched roof on small ones
 const WALLS = [0xece5d3, 0xdcd0bb, 0xcdd6da, 0xe8d5c2, 0xc3ccd0, 0xf2ecdb], ROOFS = [0x8f4b3a, 0x5d646b, 0x75594a, 0x414c57, 0x9b6b50];
 const bldB = new Batch(new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide, flatShading: true }), true);
@@ -632,11 +855,11 @@ buildings.forEach((f, i) => {
     const foot = rings[0].slice(0, -1).map((c) => { const [x, z] = toXZ(c); return [x, -z]; });
     if (foot.length < 3) continue;
     const small = (p.area_m2 || 100) < 450, wall = small ? WALLS[Math.floor(rand() * WALLS.length)] : 0xcfd3d6, roofCol = small ? ROOFS[Math.floor(rand() * ROOFS.length)] : 0xaab0b5;
-    const base = foot.reduce((sum, [x, north]) => sum + H(x, -north), 0) / foot.length, sunk = 4;  // walls continue below ground on slopes
-    const tip = `<b>${esc(p.name || 'Budynek')}</b>${tipRow('Powierzchnia', p.area_m2 ? p.area_m2 + ' m²' : '')}${tipRow('Wysokość w modelu', h + ' m')}${tipRow('Źródło', [p.source, p.source_version].filter(Boolean).join(', '))}`;
-    const body = lay(new THREE.ExtrudeGeometry(shapeOf(rings), { depth: h + sunk, bevelEnabled: false })).translate(0, base - sunk, 0);
+    const base = foot.reduce((sum, [x, north]) => sum + H(x, -north), 0) / foot.length, sunk = FLAT ? 0 : 4;  // walls continue below ground on slopes
+    const tip = p.name ? `<b>${esc(p.name)}</b>${tipRow('Powierzchnia', p.area_m2 ? p.area_m2 + ' m²' : '')}` : null;
+    const body = lay(new THREE.ExtrudeGeometry(shapeOf(rings), { depth: (FLAT ? 0.6 : h) + sunk, bevelEnabled: false })).translate(0, base - sunk, 0);
     bldB.add(body, wall, tip, { count: body.groups[0] ? body.groups[0].count : 0, color: roofCol });
-    if (!small) continue;
+    if (!small || FLAT) continue;  // a flat map shows the roof colour on the footprint
     const r = boundingRect(foot), ux = Math.cos(r.ang), uy = Math.sin(r.ang), over = 0.5, rise = Math.min(3.2, r.b * 0.75);
     const at = (su, sv, y) => [r.cx + ux * su * r.a - uy * sv * (r.b + over), y, -(r.cy + uy * su * r.a + ux * sv * (r.b + over))];
     const E = (su, sv) => at(su, sv, base + h), Rg = (su) => at(su, 0, base + h + rise);
@@ -659,15 +882,15 @@ if (bldBuf) {
   const m = new THREE.Matrix4(), q = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0), v = new THREE.Vector3(), sc = new THREE.Vector3(), col = new THREE.Color(), rand = rng(11);
   const wallCols = WALLS.map((c) => new THREE.Color(c)), roofCols = ROOFS.map((c) => new THREE.Color(c)), bigWall = new THREE.Color(0xcfd3d6), bigRoof = new THREE.Color(0xaab0b5);
   let ig = 0, is = 0;
-  const sunk = 5;  // walls continue below ground on slopes
+  const sunk = FLAT ? 0 : 5;  // walls continue below ground on slopes
   for (let i = 0; i < n; i++) {
     const x = (u16[i] / 65535 - 0.5) * SX, z = (u16[n + i] / 65535 - 0.5) * SZ, len = u16[2 * n + i] / 5, wid = u16[3 * n + i] / 5;  // stored as half sizes in dm
-    const h = u8[n + i] / 2, flatRoof = u8[2 * n + i], base = H(x, z);
+    const h = FLAT ? 0.6 : u8[n + i] / 2, flatRoof = u8[2 * n + i], base = H(x, z);
     q.setFromAxisAngle(up, (u8[i] / 255) * Math.PI);
     walls.setMatrixAt(i, m.compose(v.set(x, base + (h - sunk) / 2, z), q, sc.set(len, h + sunk, wid)));
     walls.setColorAt(i, flatRoof ? bigWall : wallCols[Math.floor(rand() * wallCols.length)]);
     if (flatRoof) { slabs.setMatrixAt(is, m.compose(v.set(x, base + h + 0.2, z), q, sc.set(len + 0.4, 0.4, wid + 0.4))); slabs.setColorAt(is++, bigRoof); }
-    else { gables.setMatrixAt(ig, m.compose(v.set(x, base + h, z), q, sc.set(len, Math.min(3.2, wid * 0.38), wid + 1))); gables.setColorAt(ig++, col.copy(roofCols[Math.floor(rand() * roofCols.length)])); }
+    else { gables.setMatrixAt(ig, m.compose(v.set(x, base + h, z), q, sc.set(len, FLAT ? 0.05 : Math.min(3.2, wid * 0.38), FLAT ? wid : wid + 1))); gables.setColorAt(ig++, col.copy(roofCols[Math.floor(rand() * roofCols.length)])); }
   }
   [walls, gables, slabs].forEach((mesh) => { if (mesh.count) { mesh.instanceColor.needsUpdate = true; mesh.frustumCulled = false; group('buildings').add(mesh); } });
 }
@@ -684,7 +907,8 @@ if (treeBuf) {
     const k = u8[4 * n + i] ? 1 : 0, h = u8[i] / 10, x = (u16[i] / 65535 - 0.5) * SX, z = (u16[n + i] / 65535 - 0.5) * SZ;
     const wet = seaElev != null && elevAt(x, z) <= seaElev + 0.4;  // kelp near the shore looks like canopy in the photo
     const rad = wet ? 0 : h * (k ? 0.2 : 0.33), half = h * (k ? 0.43 : 0.45);  // crown reaches from near the ground to the top
-    m.compose(new THREE.Vector3(x, H(x, z) + h - half, z), q.setFromAxisAngle(up, rand() * Math.PI * 2), new THREE.Vector3(rad, half, rad));
+    if (FLAT) m.compose(new THREE.Vector3(x, H(x, z) + 1.2, z), q.setFromAxisAngle(up, rand() * Math.PI * 2), new THREE.Vector3(rad, 0.6, rad));
+    else m.compose(new THREE.Vector3(x, H(x, z) + h - half, z), q.setFromAxisAngle(up, rand() * Math.PI * 2), new THREE.Vector3(rad, half, rad));
     meshes[k].setMatrixAt(at[k], m);
     meshes[k].setColorAt(at[k]++, col.setRGB(u8[n + i] / 255, u8[2 * n + i] / 255, u8[3 * n + i] / 255, THREE.SRGBColorSpace));
   }
@@ -703,7 +927,7 @@ for (const f of places) {
   } else if (p.kind === 'business') addLabel(p.name, x, z, y + 14, 'biz', 1500);
   else if (p.kind === 'mast' && masts++ < 150) {
     const height = p.height || (BIG ? 45 : 90), bands = 6;
-    for (let b = 0; b < bands; b++) bldB.add(new THREE.CylinderGeometry(0.9, 0.9, height / bands, 6).translate(x, y + (b + 0.5) * height / bands, z), b % 2 ? 0xf2f2f2 : 0xd8392b, `<b>${esc(p.name || 'Maszt telekomunikacyjny')}</b>`);
+    for (let b = 0; b < bands; b++) bldB.add(new THREE.CylinderGeometry(0.9, 0.9, height / bands, 6).translate(x, y + (b + 0.5) * height / bands, z), b % 2 ? 0xf2f2f2 : 0xd8392b, p.name ? `<b>${esc(p.name)}</b>` : null);
   }
 }
 addBatch('buildings', bldB);
@@ -724,11 +948,12 @@ if (BIG && spots.length && hazards.length) {  // a big area with one hot spot: o
 // ------------------------------------------------------------- layer panel
 const hasSinkhole = water.some((f) => f.properties.kind === 'sinkhole');
 const LAYERS = [  // id, name, count, colour, switched on at start, optional (hidden when the data set has none)
-  ['hazards', 'Strefa zagrożenia', hazards.length, '#ff6b4a', true, true],
+  ['hazards', 'Strefa zagrożenia', hazards.length + water.filter((f) => f.properties.kind === 'sinkhole').length, '#ff6b4a', true, true],
   ['buildings', 'Budynki', buildings.length || META.buildings_bin?.count || 0, '#ece5d3', true], ['roads', 'Drogi', roads.length, '#3a3d42', true],
   ['rail', 'Tory kolejowe', rail.length, '#d5dade', true], ['pipes', 'Rurociągi i gazociągi', pipes.length, '#f2c230', true],
+  ['power', 'Sieć energetyczna', power.length, '#a66bff', true, true],
   ['water', hasSinkhole ? 'Woda i zapadlisko' : 'Woda', water.length + (T?.sea_level_m != null ? 1 : 0), '#3f86a3', true],
-  ['trees', BIG ? 'Drzewa' : 'Las (drzewa)', META.trees?.count || 0, '#3f7a35', true], ['areas', 'Tereny przemysłowe', areas.length, '#ffb347', !BIG],
+  ['trees', BIG ? 'Drzewa' : 'Las (drzewa)', META.trees?.count || 0, '#3f7a35', true], ['areas', 'Tereny przemysłowe', areas.length, '#ffb347', true],
   ['labels', 'Etykiety', labels.length, '#f2f3f0', true],
 ].filter(([, , n, , , optional]) => n || !optional);
 $('toggles').innerHTML = LAYERS.map(([id, name, n, color, on]) => n
@@ -767,17 +992,219 @@ if (spots.length) {
   $('goto').innerHTML = spots.map((s, i) => `<button data-spot="${i}">${esc(s.name)}</button>`).join('');
   $('goto').addEventListener('click', (e) => {
     const s = spots[e.target.dataset.spot];
-    if (s) flyTo({ target: new THREE.Vector3(s.x, 0, s.z), dist: s.dist, polar: THREE.MathUtils.degToRad(58) }, 1400);
+    if (s) flyTo({ target: new THREE.Vector3(s.x, 0, s.z), dist: s.dist, ...(FLAT ? { polar: TOP, az: 0 } : { polar: THREE.MathUtils.degToRad(58) }) }, 1400);
   });
 }
 
+// ----------------------------------------------------------- ground-motion timeline (2D view only)
+// One frame per measurement date: cumulative change since the first date. Red = down, blue = up,
+// clear = no change or within the noise. Two stacked sheets cross-fade between dates.
+const TL = META.timeline || null;
+const timeline = TL && (() => {
+  const MONTHS = ['sty', 'lut', 'mar', 'kwi', 'maj', 'cze', 'lip', 'sie', 'wrz', 'paź', 'lis', 'gru'];
+  const dLong = (d) => `${+d.slice(6, 8)} ${MONTHS[+d.slice(4, 6) - 1]} ${d.slice(0, 4)}`;
+  const dShort = (d) => `${+d.slice(6, 8)} ${MONTHS[+d.slice(4, 6) - 1]}`;
+  const loader = new THREE.TextureLoader(), N = TL.dates.length;
+  const tex = TL.files.map((f) => { const t = loader.load(BASE + TL.dir + '/' + f, (img) => { renderer.initTexture(img); dirty = true; });  /* upload now, not on first play */ t.colorSpace = THREE.SRGBColorSpace; return t; });
+  const [w, sLat, e, nLat] = TL.bbox, [x0, z0] = toXZ([w, nLat]), [x1, z1] = toXZ([e, sLat]);
+  // One sheet, two textures: the shader mixes the frames pixel by pixel (premultiplied), so a change of
+  // date never dims what stays the same (two stacked half-transparent sheets did, and that flickered).
+  const mat = new THREE.ShaderMaterial({
+    uniforms: { a: { value: null }, b: { value: null }, k: { value: 0 } },
+    vertexShader: `#include <common>
+      #include <logdepthbuf_pars_vertex>
+      varying vec2 vUv;
+      void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      #include <logdepthbuf_vertex>
+      }`,
+    fragmentShader: `uniform sampler2D a; uniform sampler2D b; uniform float k; varying vec2 vUv;
+      #include <logdepthbuf_pars_fragment>
+      void main() {
+        #include <logdepthbuf_fragment>
+        vec4 ca = texture2D(a, vUv), cb = texture2D(b, vUv);
+        float alpha = mix(ca.a, cb.a, k);
+        if (alpha < 0.002) discard;
+        vec3 rgb = (ca.rgb * ca.a * (1.0 - k) + cb.rgb * cb.a * k) / alpha;
+        gl_FragColor = vec4(rgb, alpha);
+        #include <colorspace_fragment>
+      }`,
+    transparent: true, depthWrite: false, ...OFFSET,
+  });
+  const sheetMesh = new THREE.Mesh(lay(new THREE.PlaneGeometry(x1 - x0, z1 - z0)).translate((x0 + x1) / 2, 0.5, (z0 + z1) / 2), mat);
+  sheetMesh.renderOrder = 2; sheetMesh.visible = false; scene.add(sheetMesh);
+  let idx = N - 1, fade = null, timer = null, on = false;
+  const track = $('tlTrack');
+  track.insertAdjacentHTML('beforeend', TL.dates.map((d, i) => `<span class="tl-tick" data-i="${i}" style="left:${(i / (N - 1)) * 100}%"></span>`).join('')
+    + [0, Math.round((N - 1) / 2), N - 1].map((i) => `<span class="tl-lbl" style="left:${(i / (N - 1)) * 100}%">${dShort(TL.dates[i])}</span>`).join(''));
+  $('tlTitle').textContent = `Zmiana terenu od ${dLong(TL.dates[0])}`;
+  const PLAY = '<svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z"/></svg>', PAUSE = '<svg viewBox="0 0 24 24"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"/></svg>';
+  // main anomalies: numbered pulsing markers, each shown from the date it first appears
+  const ANOS = (TL.anomalies || []).map((a) => {
+    const [x, z] = toXZ([a.lon, a.lat]), down = a.direction === 'down', first = Math.max(0, TL.dates.indexOf(a.first_date));
+    const el = document.createElement('div');
+    el.className = 'amark off';
+    el.style.setProperty('--c', down ? 'rgb(214,39,40)' : 'rgb(31,104,196)');
+    el.innerHTML = `<span class="ring"></span><span class="ring"></span><span class="dot">${a.rank}</span>`;
+    const mm = (v) => `${v > 0 ? '+' : v < 0 ? '−' : ''}${Math.abs(v)} mm`;
+    const tipHtml = () => {
+      const now = a.series_mm[idx];
+      return `<b>Anomalia ${a.rank}: ${down ? 'osiadanie / osuwanie' : 'wypiętrzanie'}</b><br>`
+        + `<span class="k">Obszar:</span> ok. ${a.area_ha} ha<br><span class="k">Widoczna od:</span> ${dLong(TL.dates[first])}<br>`
+        + `<span class="k">Zmiana na ${dLong(TL.dates[idx])}:</span> ${mm(now)} (typowo w obszarze)<br>`
+        + `<span class="k">Największa zmiana do ${dLong(TL.dates[N - 1])}:</span> ${mm(down ? -a.peak_mm : a.peak_mm)}${a.peak_saturated ? ' lub więcej' : ''}`;
+    };
+    el.addEventListener('pointerenter', (ev) => { const t = $('tip'); t.innerHTML = tipHtml(); t.style.display = 'block'; t.style.left = (ev.clientX + 14) + 'px'; t.style.top = (ev.clientY + 14) + 'px'; });
+    el.addEventListener('pointerleave', () => { $('tip').style.display = 'none'; });
+    el.addEventListener('click', () => flyTo({ target: new THREE.Vector3(x, 0, z), dist: Math.max(900, Math.sqrt(a.area_ha * 1e4) * 4) }, 900));
+    $('marks').appendChild(el);
+    return { el, first, pos: new THREE.Vector3(x, 0, z) };
+  });
+  if (ANOS.length) $('tlAno').hidden = false;
+  function render() {
+    ANOS.forEach((m) => m.el.classList.toggle('off', !on || idx < m.first));
+    const pct = (idx / (N - 1)) * 100;
+    $('tlFill').style.width = pct + '%'; $('tlKnob').style.left = pct + '%';
+    track.querySelectorAll('.tl-tick').forEach((t) => t.classList.toggle('on', +t.dataset.i <= idx));
+    track.setAttribute('aria-valuetext', dLong(TL.dates[idx]));
+    $('tlDate').textContent = dLong(TL.dates[idx]);
+    $('tlThr').textContent = `zmiany poniżej ${Array.isArray(TL.threshold_mm) ? TL.threshold_mm.at(-1) : TL.threshold_mm} mm są przezroczyste${idx ? '' : ' · pierwszy pomiar = punkt odniesienia'}`;
+    $('tlPrev').disabled = idx === 0; $('tlNext').disabled = idx === N - 1;
+  }
+  function setDate(i, animate = true) {
+    i = Math.max(0, Math.min(N - 1, i));
+    if (i === idx && mat.uniforms.b.value) return;
+    const shown = fade && mat.uniforms.k.value > 0.5 ? mat.uniforms.b.value : mat.uniforms.a.value || tex[idx];
+    idx = i; render();
+    if (animate && on) { mat.uniforms.a.value = shown; mat.uniforms.b.value = tex[idx]; mat.uniforms.k.value = 0; fade = { t0: performance.now(), ms: 450 }; }
+    else { mat.uniforms.a.value = mat.uniforms.b.value = tex[idx]; mat.uniforms.k.value = 1; fade = null; }
+    dirty = true;
+  }
+  function stop() { clearInterval(timer); timer = null; $('tlPlay').innerHTML = PLAY; $('tlPlay').setAttribute('aria-label', 'Odtwórz'); }
+  $('tlPlay').innerHTML = PLAY;
+  $('tlPlay').addEventListener('click', () => {
+    if (timer) return stop();
+    $('tlPlay').innerHTML = PAUSE; $('tlPlay').setAttribute('aria-label', 'Pauza');
+    if (idx === N - 1) setDate(0);  // from the end: back to the start with the same soft change, then play
+    timer = setInterval(() => { if (idx >= N - 1) return stop(); setDate(idx + 1); }, 900);
+  });
+  $('tlPrev').addEventListener('click', () => { stop(); setDate(idx - 1); });
+  $('tlNext').addEventListener('click', () => { stop(); setDate(idx + 1); });
+  const fromPointer = (ev) => { const b = track.getBoundingClientRect(); return Math.round(((ev.clientX - b.left) / b.width) * (N - 1)); };
+  track.addEventListener('pointerdown', (ev) => { stop(); track.setPointerCapture(ev.pointerId); setDate(fromPointer(ev)); });
+  track.addEventListener('pointermove', (ev) => { if (track.hasPointerCapture(ev.pointerId)) setDate(fromPointer(ev)); });
+  track.addEventListener('keydown', (ev) => {
+    const to = { ArrowLeft: idx - 1, ArrowRight: idx + 1, Home: 0, End: N - 1 }[ev.key];
+    if (to !== undefined) { ev.preventDefault(); stop(); setDate(to); }
+  });
+  return {
+    show(visible) {
+      on = visible;
+      $('timeline').hidden = !visible;
+      sheetMesh.visible = visible;
+      render();
+      if (!visible) stop();
+      if (visible && !mat.uniforms.b.value) setDate(N - 1, false);
+      dirty = true;
+    },
+    place(w, h) {  // keep the markers on their spots, called after each render
+      for (const m of ANOS) {
+        v3.copy(m.pos).project(camera);
+        m.el.style.transform = `translate(${((v3.x + 1) / 2 * w).toFixed(1)}px, ${((1 - v3.y) / 2 * h).toFixed(1)}px)`;
+      }
+    },
+    tick(now) {  // cross-fade step, called from the render loop
+      if (!fade) return false;
+      const k = Math.min(1, (now - fade.t0) / fade.ms);
+      mat.uniforms.k.value = k * k * (3 - 2 * k);  // smoothstep
+      if (k >= 1) { mat.uniforms.a.value = mat.uniforms.b.value; fade = null; }
+      return true;
+    },
+  };
+})();
+
 // ----------------------------------------------------------------- controls
+// 2D / 3D switch: the same model, flattened and seen from above, or in 3D. It keeps the place in view.
+const TOP = 1e-4;  // polar angle of "straight down" (exactly 0 makes the orbit math degenerate)
+const AUTO_OFF = ['hazards', 'labels'];  // switched off on entering the 2D timeline view
+/** Centre and camera distance that fit the main hazard zone (the biggest one plus the parts touching it,
+ *  not small separate zones kilometres away) with some room around it, seen from straight above. */
+function hazardFrame() {
+  const boxes = hazards.flatMap((f) => polygons(f.geometry)).map((rings) => {
+    const pts = rings[0].map(toXZ), xs = pts.map((q) => q[0]), zs = pts.map((q) => q[1]);
+    return [Math.min(...xs), Math.max(...xs), Math.min(...zs), Math.max(...zs)];
+  });
+  if (!boxes.length) return null;
+  const size = (b) => (b[1] - b[0]) * (b[3] - b[2]), main = boxes.reduce((a, b) => (size(b) > size(a) ? b : a)), near = 500;
+  const group = boxes.filter((b) => b[0] < main[1] + near && b[1] > main[0] - near && b[2] < main[3] + near && b[3] > main[2] - near);
+  // anomaly markers close to the zone (within 3 km) belong in the same picture
+  for (const a of (META.timeline?.anomalies || [])) {
+    const [ax, az] = toXZ([a.lon, a.lat]), pad = 250;
+    if (ax > main[0] - 3000 && ax < main[1] + 3000 && az > main[2] - 3000 && az < main[3] + 3000) group.push([ax - pad, ax + pad, az - pad, az + pad]);
+  }
+  const x0 = Math.min(...group.map((b) => b[0])), x1 = Math.max(...group.map((b) => b[1]));
+  const z0 = Math.min(...group.map((b) => b[2])), z1 = Math.max(...group.map((b) => b[3]));
+  // the open layer panel covers the left edge: fit the picture into the free part and centre it there
+  const panel = $('layers').open ? Math.min(stage.clientWidth * 0.4, $('layers').getBoundingClientRect().right - stage.getBoundingClientRect().left + 12) : 0;
+  const freeW = stage.clientWidth - panel, freeH = Math.max(1, stage.clientHeight - ($('timeline').hidden ? 52 : 0));
+  const k = 2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+  const dist = Math.max((x1 - x0) / (freeW / freeH), z1 - z0) * 1.3 / k;
+  const mPerPx = (dist * k) / freeH;  // ground metres per screen pixel at that distance
+  return { x: (x0 + x1) / 2 - (panel / 2) * mPerPx, z: (z0 + z1) / 2, dist: Math.max(controls.minDistance, dist) };
+}
+let savedLayers = null;
+const home2d = () => ({ az: 0, polar: TOP, dist: HOME.dist, target: HOME.target.clone() });  // same place as the 3D start, from above
+function setMode(flat, animate = true) {
+  FLAT = flat;
+  stopSpin();
+  if (flat) { exag3d = EXAG || exag3d; EXAG = 0; } else EXAG = exag3d;
+  shadeTerrain(); build();
+  Object.assign(controls, flat
+    ? { enableRotate: false, screenSpacePanning: true, minPolarAngle: TOP, maxPolarAngle: TOP, minAzimuthAngle: 0, maxAzimuthAngle: 0 }
+    : { enableRotate: true, screenSpacePanning: false, minPolarAngle: 0, maxPolarAngle: THREE.MathUtils.degToRad(86), minAzimuthAngle: -Infinity, maxAzimuthAngle: Infinity });
+  controls.mouseButtons.LEFT = flat ? THREE.MOUSE.PAN : THREE.MOUSE.ROTATE;
+  controls.touches.ONE = flat ? THREE.TOUCH.PAN : THREE.TOUCH.ROTATE;
+  ['rotL', 'rotR', 'tiltBtn', 'spin', 'compass', 'exagWrap'].forEach((id) => { $(id).hidden = flat || (id === 'exagWrap' && !terrainGrid); });
+  $('hint').textContent = flat ? 'Przeciągnij – przesuwanie · kółko – zoom' : 'Przeciągnij – obrót · prawy przycisk lub Shift – przesuwanie · kółko – zoom';
+  $('dim2').setAttribute('aria-pressed', String(flat));
+  $('dim3').setAttribute('aria-pressed', String(!flat));
+  if (timeline) timeline.show(flat);
+  document.body.classList.toggle('flat', flat);
+  const v = viewNow();
+  v.target.y = 0;
+  // With a ground-motion timeline the 2D view is about the hazard: open on it and hide its outline and
+  // the labels, so nothing covers the coloured change. Going back to 3D restores those switches.
+  const spot = flat && timeline ? hazardFrame() : null;
+  if (spot) { v.target.set(spot.x, 0, spot.z); v.dist = spot.dist; }
+  if (flat && timeline) {
+    savedLayers = savedLayers || {};
+    AUTO_OFF.forEach((id) => {
+      const box = document.querySelector(`#toggles [data-layer="${id}"]`);
+      if (!box) return;
+      if (!(id in savedLayers)) savedLayers[id] = box.checked;
+      box.checked = false; applyLayer(id, false);
+    });
+  } else if (!flat && savedLayers) {
+    Object.entries(savedLayers).forEach(([id, checked]) => { const box = document.querySelector(`#toggles [data-layer="${id}"]`); if (box) { box.checked = checked; applyLayer(id, checked); } });
+    savedLayers = null;
+  }
+  if (animate) flyTo(flat ? { az: 0, polar: TOP, dist: v.dist, target: v.target } : { polar: HOME.polar, dist: v.dist }, spot ? 1100 : 700);
+  else place(flat ? { ...v, az: 0, polar: TOP } : { ...v, polar: HOME.polar });
+  controls.target.y = H(controls.target.x, controls.target.z);
+  const url = new URL(location.href);
+  if (flat) url.searchParams.set('view', '2d'); else url.searchParams.delete('view');
+  history.replaceState(null, '', url);
+  dirty = true;
+}
+$('dims').hidden = false;
+$('dim2').addEventListener('click', () => { if (!FLAT) setMode(true); });
+$('dim3').addEventListener('click', () => { if (FLAT) setMode(false); });
+
 const stopSpin = () => { controls.autoRotate = false; $('spin').setAttribute('aria-pressed', 'false'); };
 $('rotL').addEventListener('click', () => { stopSpin(); flyTo({ az: viewNow().az - Math.PI / 4 }, 500); });
 $('rotR').addEventListener('click', () => { stopSpin(); flyTo({ az: viewNow().az + Math.PI / 4 }, 500); });
 $('zoomIn').addEventListener('click', () => flyTo({ dist: Math.max(controls.minDistance, viewNow().dist * 0.6) }, 400));
 $('zoomOut').addEventListener('click', () => flyTo({ dist: Math.min(controls.maxDistance, viewNow().dist * 1.6) }, 400));
-$('home').addEventListener('click', () => { stopSpin(); flyTo(HOME); });
+$('home').addEventListener('click', () => { stopSpin(); flyTo(FLAT ? home2d() : HOME); });
 $('tiltBtn').addEventListener('click', () => flyTo({ polar: viewNow().polar < THREE.MathUtils.degToRad(20) ? HOME.polar : 0.01 }, 700));
 $('compass').addEventListener('click', () => { stopSpin(); flyTo({ az: 0 }, 600); });
 $('spin').addEventListener('click', () => {
@@ -786,6 +1213,7 @@ $('spin').addEventListener('click', () => {
 });
 window.addEventListener('keydown', (e) => {
   if (e.target.matches('input, select, button')) return;
+  if (FLAT && e.key.startsWith('Arrow')) return;  // nothing to rotate or tilt on a flat map
   const v = viewNow(), step = THREE.MathUtils.degToRad(15);
   const to = { ArrowLeft: { az: v.az - step }, ArrowRight: { az: v.az + step }, ArrowUp: { polar: Math.max(0.01, v.polar - step / 2) },
     ArrowDown: { polar: Math.min(controls.maxPolarAngle, v.polar + step / 2) }, '+': { dist: v.dist * 0.8 }, '=': { dist: v.dist * 0.8 }, '-': { dist: v.dist * 1.25 } }[e.key];
@@ -800,12 +1228,29 @@ let dragging = false, hoverAt = null, hoverTime = 0;
 const hideTip = () => { $('tip').style.display = 'none'; };
 renderer.domElement.addEventListener('pointermove', (e) => { hoverAt = dragging ? null : e; hoverTime = performance.now(); });
 renderer.domElement.addEventListener('pointerleave', () => { hoverAt = null; hideTip(); });
+/** Distance along a ray to the terrain surface (marching + bisection on the height function; much
+ *  cheaper than testing the ray against the million triangles of the terrain mesh). */
+const probe = new THREE.Vector3();
+function groundDistance(r) {
+  const below = (t) => { probe.copy(r.direction).multiplyScalar(t).add(r.origin); return Math.abs(probe.x) <= SX / 2 && Math.abs(probe.z) <= SZ / 2 && probe.y <= H(probe.x, probe.z); };
+  let prev = camera.near, t = prev;
+  while (t < R * 8) {
+    if (below(t)) {
+      let lo = prev, hi = t;
+      for (let k = 0; k < 24; k++) { const mid = (lo + hi) / 2; if (below(mid)) hi = mid; else lo = mid; }
+      return hi;
+    }
+    prev = t; t += Math.max(0.5, t * 0.004);
+  }
+  return Infinity;
+}
 function pick() {
   const e = hoverAt; hoverAt = null;
   const box = renderer.domElement.getBoundingClientRect();
   mouse.set(((e.clientX - box.left) / box.width) * 2 - 1, -((e.clientY - box.top) / box.height) * 2 + 1);
   ray.setFromCamera(mouse, camera);
-  const hit = ray.intersectObjects(pickables.filter((o) => o.parent && o.parent.visible), false)[0];
+  let hit = ray.intersectObjects(pickables.filter((o) => o.parent && o.parent.visible), false)[0];
+  if (hit && hit.distance > groundDistance(ray.ray) + 2 + hit.distance * 0.004) hit = null;  // behind a hill or under the land
   const html = hit && (hit.object.userData.tipAt ? hit.object.userData.tipAt(hit.faceIndex) : hit.object.userData.tip);
   if (!html) return hideTip();
   const tip = $('tip');
@@ -842,16 +1287,20 @@ function frame(now) {
     if (k >= 1) flight = null;
     dirty = true;
   } else controls.update();  // damping and auto-rotation; fires 'change' when the camera moved
+  if (timeline && timeline.tick(now)) dirty = true;
   if (hoverAt && now - hoverTime > (BIG ? 90 : 0)) pick();
   if (!dirty) return;
   dirty = false;
   $('needle').setAttribute('transform', `rotate(${THREE.MathUtils.radToDeg(controls.getAzimuthalAngle()).toFixed(1)} 20 20)`);
   renderer.render(scene, camera);
   placeLabels();
+  if (timeline) timeline.place(stage.clientWidth, stage.clientHeight);
 }
 $('status').hidden = true;
 ['layers', 'nav', 'compass', 'hint'].forEach((id) => { $(id).hidden = false; });
-window.__scene3d = { scene, camera, controls, flyTo, place, viewNow, groups, renderer };  // handy in the browser console
+$('dim3').setAttribute('aria-pressed', 'true');
+if (FLAT) setMode(true, false);
+window.__scene3d = { scene, camera, controls, flyTo, place, viewNow, groups, renderer, toXZ: (lon, lat) => toXZ([lon, lat]), H, groundDistance };  // handy in the browser console
 requestAnimationFrame(frame);
 </script>
 </body>

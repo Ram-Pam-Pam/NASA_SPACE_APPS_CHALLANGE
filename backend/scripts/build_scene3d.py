@@ -3,7 +3,7 @@ for one AOI, ready for frontend/view3d.html.
 
 Usage (from the repo root):
     python3 backend/scripts/build_scene3d.py <aoi.geojson> <Dane/model3d_<id>/data>
-        [--name "Display name"] [--overture PATH] [--cache DIR] [--insar-data <Dane/.../data>]
+        [--name "Display name"] [--overture PATH] [--cache DIR] [--insar-data <Dane/.../data>] [--power <file>]
 
 Sources (all open, fetched live so the model is as current as the sources are):
     OpenStreetMap via Overpass API  - roads, rail, water, pipelines, industrial areas, places, masts
@@ -12,8 +12,10 @@ Sources (all open, fetched live so the model is as current as the sources are):
     ESA WorldCover 10 m (2021)      - tree cover, used to plant the trees
     USGS 3DEP elevation service     - lidar terrain heights (USA only); water bodies newer than the
                                       lidar survey, and swamp channels, are cut down to the water level
+    --power (optional)              - the team's own power-line layer, used instead of the OSM power lines
     --insar-data (optional)         - an InSAR frontend folder of the same AOI: its pipeline layer (course
-                                      only, no risk classes) and its active hazard zone are added
+                                      only, no risk classes), its active hazard zone and the ground-motion
+                                      timeline for the 2D view (build_timeline.py) are added
 
 The level of detail follows the AOI size: a small AOI (up to 10 km) keeps every building footprint and
 service road; a large one stores buildings as oriented rectangles in buildings.bin and drops minor roads.
@@ -41,6 +43,9 @@ from pathlib import Path
 
 import numpy as np
 from osgeo import gdal, ogr, osr
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from build_timeline import build_timeline  # noqa: E402 - sibling script
 
 gdal.UseExceptions()
 ogr.UseExceptions()
@@ -157,7 +162,7 @@ def fetch_osm(bbox, cache: Path | None, big: bool, with_buildings: bool) -> list
     roads = MAIN_ROADS if big else MAIN_ROADS + "|service|track"
     parts = [f'way[highway~"^({roads})(_link)?$"]{box};',
              f'way[railway~"^(rail|light_rail|tram|narrow_gauge|disused|abandoned)$"]{box};',
-             f'way[man_made=pipeline]{box};', f'nwr[natural=water]{box};', f'nwr[landuse~"^(industrial|reservoir|basin)$"]{box};',
+             f'way[man_made=pipeline]{box};', f'way[power~"^(line|minor_line|cable)$"]{box};', f'nwr[natural=water]{box};', f'nwr[landuse~"^(industrial|reservoir|basin)$"]{box};',
              f'node[place]{box};', f'node[man_made~"^(mast|tower|communications_tower)$"]{box};', f'way[natural=coastline]{box};']
     if with_buildings:
         parts.append(f"nwr[building]{box};")
@@ -209,8 +214,40 @@ def parse_number(text) -> float | None:
         return None
 
 
+def power_props(power, line, voltage, name, operator) -> dict:
+    """Common description of a power line: kind (line = overhead on pylons, cable = underground,
+    station = short pieces inside a substation), voltage in kV, name, operator."""
+    kind = "cable" if power == "cable" else "station" if line in ("bay", "busbar") else "line"
+    volt = str(voltage or "").split(";")[0].strip()
+    return {"kind": kind, "kv": round(int(volt) / 1000) if volt.isdigit() else None, "name": name, "operator": operator}
+
+
+def power_from_file(path: Path, aoi: ogr.Geometry, digits: int) -> list[dict]:
+    """Power lines from the team's own layer (GeoPackage, GeoJSON, ... in any CRS), clipped to the AOI."""
+    ds = ogr.Open(str(path))
+    layer = ds.GetLayer(0)
+    src = layer.GetSpatialRef()
+    transform = None
+    if src is not None and not src.IsSame(WGS84):
+        src.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
+        transform = osr.CoordinateTransformation(src, WGS84)
+    field = lambda f, k: f.GetField(k) if f.GetFieldIndex(k) >= 0 else None  # noqa: E731
+    out = []
+    for f in layer:
+        geom = f.GetGeometryRef()
+        if geom is None:
+            continue
+        geom = geom.Clone()
+        if transform:
+            geom.Transform(transform)
+        props = power_props(field(f, "power"), field(f, "line"), field(f, "voltage"), field(f, "name"), field(f, "operator"))
+        for part in simple_parts(geom.Intersection(aoi), "line"):
+            out.append(feature(part, props, digits))
+    return out
+
+
 def osm_layers(elements: list[dict], aoi: ogr.Geometry, big: bool) -> dict[str, list[dict]]:
-    layers = {k: [] for k in ("roads", "rail", "water", "pipelines", "areas", "places", "buildings")}
+    layers = {k: [] for k in ("roads", "rail", "water", "pipelines", "areas", "places", "buildings", "power")}
     digits = 6 if big else 7
     place_kinds = ("city", "town", "suburb", "village") if big else None  # a city has hundreds of neighbourhood nodes
     for el in elements:
@@ -244,6 +281,9 @@ def osm_layers(elements: list[dict], aoi: ogr.Geometry, big: bool) -> dict[str, 
                     "kind": tags["railway"], "name": tags.get("name"), "operator": tags.get("operator"),
                     "service": tags.get("service"), "bridge": 1 if tags.get("bridge") not in (None, "no") else None,
                     "tunnel": 1 if tags.get("tunnel") not in (None, "no") else None}, digits))
+        elif tags.get("power") in ("line", "minor_line", "cable") and el["type"] == "way":
+            for part in simple_parts(line_geom(way_coords(el)).Intersection(aoi), "line"):
+                layers["power"].append(feature(part, power_props(tags.get("power"), tags.get("line"), tags.get("voltage"), tags.get("name"), tags.get("operator")), digits))
         elif tags.get("man_made") == "pipeline" and el["type"] == "way":
             for part in simple_parts(line_geom(way_coords(el)).Intersection(aoi), "line"):
                 layers["pipelines"].append(feature(part, {
@@ -691,6 +731,7 @@ def main() -> None:
     parser.add_argument("--cache", type=Path, help="folder for raw downloads of this AOI; delete it to refresh the data")
     parser.add_argument("--insar-data", type=Path, help="InSAR frontend folder of the same AOI (pipeline course and hazard zone)")
     parser.add_argument("--hazard-name", help="label of the hazard zone taken from --insar-data")
+    parser.add_argument("--power", type=Path, help="own power-line layer (GPKG/GeoJSON, any CRS) instead of the OSM one")
     args = parser.parse_args()
 
     aoi_feature = json.loads(args.aoi.read_text(encoding="utf-8"))["features"][0]
@@ -737,6 +778,9 @@ def main() -> None:
     if extras["pipelines"] is not None:
         layers["pipelines"] = extras["pipelines"]  # the team's own pipeline layer replaces the OSM one
     layers["hazards"] = extras["hazards"]
+    if args.power:
+        layers["power"] = power_from_file(args.power, aoi, 6 if big else 7)
+        print(f"power: {len(layers['power'])} lines from {args.power}")
 
     ground_px = 8192 if big else 4096
     scale = ground_px / max(size_m)
@@ -771,6 +815,7 @@ def main() -> None:
         "trees": {"file": "trees.bin", "count": trees, "spacing_m": round(spacing, 1),
                   "layout": "uint16 x[n], y[n] (0..65535 = west..east, north..south); uint8 height_dm[n], r[n], g[n], b[n], kind[n] (0 round crown, 1 conical)"},
         "buildings_bin": buildings_bin,
+        "timeline": build_timeline(args.insar_data, args.out) if args.insar_data else None,
         "layers": {name: {"file": f"{name}.geojson", "count": len(features)} for name, features in layers.items()},
         "sources": [s for s in [
             f"OpenStreetMap (ODbL), stan na {today}",

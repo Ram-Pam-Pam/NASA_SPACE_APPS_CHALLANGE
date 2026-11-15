@@ -138,6 +138,32 @@ Projekt/
   `view3d.html` (także Portuguese Bend – na prośbę użytkownika model 3D „kompletnie podmienił” starą
   zakładkę). `index.html` pokazuje tylko lokalizacje bez modelu; stara analiza 2D zastąpionej lokalizacji
   jest dostępna pod `index.html?2d#<id>`. Lista „Lokalizacja” nie pokazuje już zastąpionych stron 2D.
+- **Przełącznik 2D / 3D** w nagłówku `view3d.html` (`#dims`, wszystkie modele): **2D = ten sam model
+  spłaszczony i oglądany z góry** (na prośbę użytkownika 15.11 – nie stara strona analizy). Tryb `FLAT`:
+  teren płaski (cieniowanie rzeźby zostaje), płaskie dachy i korony drzew, bez kurtyn stref, północ u góry,
+  przeciąganie = przesuwanie. Warstwy, nazwy, legenda i „Przejdź do” działają tak samo. Adres
+  `view3d.html?view=2d#<id>` otwiera od razu 2D. Stara strona analizy (`index.html?2d#<id>`) nie jest
+  już podlinkowana z przełącznika.
+- **Oś czasu ruchu terenu w 2D** (tylko gdy `meta.timeline`, dziś Portuguese Bend; w 3D ukryta):
+  23.11.2025 → 22.05.2026, odtwarzanie, poprzedni/następny, przeciąganie po osi. Klatki
+  `timeline/frame_XX.png` robi `backend/scripts/build_timeline.py <pakiet InSAR> <pakiet 3D>` (wywoływany też
+  z `build_scene3d.py --insar-data`): odczytuje mm z kolorów RdBu klatek `img/cum_XX.png` (sprawdzone z
+  `timeseries.json`: mediana różnicy 1 mm), przelicza wiersze z Web Mercatora na siatkę lon/lat i maluje:
+  czerwony = w dół, niebieski = w górę, przezroczyste poniżej stałego progu 20 mm dla wszystkich dat (`THRESHOLD_MM` w `build_timeline.py`);
+  siła koloru rośnie do 100 mm. Ruch jest w linii widzenia satelity (LOS).
+  Legenda: „osiadanie / osuwanie” (czerwony), „wypiętrzanie” (niebieski). **Główne anomalie** = 3 największe
+  skupiska zmian z ostatniej daty (łączna zmiana, `ANOMALY_COUNT` w `build_timeline.py`, `meta.timeline.anomalies`):
+  numerowane pulsujące znaczniki w 2D, każdy widoczny od daty pojawienia się (≥25% obszaru ponad progiem),
+  podpowiedź z powierzchnią, datą i zmianą; klik przybliża. Dziś: 1 osuwisko PB (175 ha, ≥150 mm w dół),
+  2 Palos Verdes Estates/Rolling Hills (211 ha, do 88 mm w dół), 3 na zachód od osuwiska (193 ha, do 50 mm w górę).
+  Wejście w 2D z osią czasu przybliża na główne osuwisko (`hazardFrame`: największa strefa + części
+  przy niej + anomalie do 3 km, z miejscem na otwarty panel warstw) i wyłącza warstwy „Strefa zagrożenia” i „Etykiety” (`AUTO_OFF`); powrót do 3D je przywraca.
+- **Sieć energetyczna w 3D/2D** (`power.geojson`, warstwa „Sieć energetyczna”, fiolet): korytarz na ziemi
+  z nazwą/napięciem po najechaniu, słupy kratowe i zwisające przewody (w 2D tylko korytarz i znaczniki).
+  Portuguese Bend: z pliku zespołu `3d/linie_energetyczne_dociete.gpkg` (115 odcinków; `--power <plik>`),
+  w innych AOI z OSM. Tereny przemysłowe są domyślnie włączone.
+- **Oś czasu bez migania:** klatki są mieszane w jednym shaderze (dwie tekstury, mieszanie z premultiplikacją),
+  a nie dwiema półprzezroczystymi płaszczyznami; tekstury są wgrywane do GPU od razu po pobraniu.
 - Model buduje `backend/scripts/build_scene3d.py <aoi.geojson> <Dane/model3d_<id>/data>` (GDAL + numpy +
   polecenie `overturemaps`): OSM przez Overpass, budynki z Overture Maps, ortofoto USGS NAIP (tylko USA),
   drzewa z ESA WorldCover + koloru zdjęcia, wysokości terenu z lidaru USGS 3DEP (`terrain.bin`, tylko USA).
@@ -154,8 +180,19 @@ Projekt/
   pikselach w stopniach; inaczej po cichu poszerzają obszar. Skrypt zamawia kwadratowe piksele i dopasowuje
   wynik do AOI (`fetch_ground`, `fetch_terrain`). Wcześniejszy błąd dawał zdublowane wybrzeże na łączeniach
   kafli i teren rozciągnięty o ok. 20% w Portuguese Bend (naprawione 14.11 w nocy).
-- **Morze w 3D:** płaszczyzna na poziomie 0, przezroczysta przy brzegu i kryjąca na otwartej wodzie
-  (zdjęcie lotnicze jest tam zlepkiem pasów nalotu).
+- **Strefy zagrożenia w 3D** (osuwisko z `hazards.geojson`, zapadlisko z `water.geojson`, funkcja `hazardZone`
+  w `view3d.html`): obrys wygładzony tylko do wyświetlania (Chaikin – bez schodków z pikseli InSAR; dane
+  bez zmian), poświata na terenie od krawędzi do środka (czerwony → bursztynowy), cienka linia krawędzi
+  i niska „kurtyna” zanikająca ku górze. Wysokości liczone na tych samych trójkątach co siatka terenu
+  (`elevAt`), więc wszystko leży dokładnie na powierzchni.
+- **Morze w 3D:** płaszczyzna na poziomie 0 z własną teksturą (`seaTexture` w `view3d.html`): przy linii
+  brzegowej przezroczysta (widać przybój i baseny portowe ze zdjęcia), od ~200 m od brzegu w pełni kryjąca,
+  bo zdjęcie lotnicze na otwartym morzu to pasy nalotu z widocznymi szwami. Kolor jaśniejszy przy brzegu,
+  ciemniejszy dalej, z lekką falą.
+- **Podpowiedzi po najechaniu** tylko dla wybranych obiektów z nazwą: rurociągi, strefy zagrożenia, nazwane
+  wody, drogi z numerem lub główne z nazwą, nazwane tory, tereny przemysłowe, budynki i maszty. Ocean,
+  nienazwane ulice i budynki nic nie pokazują. Trafienie liczy się tylko, gdy nie leży za/pod terenem
+  (`groundDistance` – marsz wzdłuż promienia po funkcji wysokości), więc ląd nie podpisuje się jako ocean.
 - **Rzeźba terenu w 3D:** Bayou Corne ma realnie 3,2 m różnicy wysokości, więc widok mnoży wysokości
   (`meta.terrain.default_exaggeration`, przełącznik ×1/×5/×15/×30; obiekty są przebudowywane na nowym terenie).
   Wody z OSM są w skrypcie obniżane do poziomu lustra wody (lidar jest starszy niż zapadlisko).

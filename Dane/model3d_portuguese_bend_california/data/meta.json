@@ -135,6 +135,10 @@
   "forest": {
    "file": "forest.geojson",
    "count": 0
+  },
+  "power": {
+   "file": "power.geojson",
+   "count": 115
   }
  },
  "sources": [
@@ -144,6 +148,135 @@
   "ESA WorldCover 10 m 2021 (CC BY 4.0)",
   "USGS 3DEP (wysokości terenu z lidaru)",
   "OGIM (przebieg rurociągów)",
-  "NISAR L2 GUNW, track 013, descending, frame 071 (strefa osuwiska)"
- ]
+  "NISAR L2 GUNW, track 013, descending, frame 071 (strefa osuwiska)",
+  "Sieć energetyczna: warstwa zespołu (linie_energetyczne_dociete.gpkg, OSM)"
+ ],
+ "timeline": {
+  "dir": "timeline",
+  "files": [
+   "frame_00.png",
+   "frame_01.png",
+   "frame_02.png",
+   "frame_03.png",
+   "frame_04.png",
+   "frame_05.png",
+   "frame_06.png",
+   "frame_07.png",
+   "frame_08.png",
+   "frame_09.png",
+   "frame_10.png",
+   "frame_11.png",
+   "frame_12.png",
+   "frame_13.png"
+  ],
+  "dates": [
+   "20251123",
+   "20251205",
+   "20251229",
+   "20260122",
+   "20260203",
+   "20260215",
+   "20260227",
+   "20260311",
+   "20260323",
+   "20260404",
+   "20260416",
+   "20260428",
+   "20260510",
+   "20260522"
+  ],
+  "bbox": [
+   -118.53124125525459,
+   33.60615332375136,
+   -118.20694943768743,
+   33.87581998375532
+  ],
+  "threshold_mm": 20.0,
+  "full_colour_mm": 100.0,
+  "anomalies": [
+   {
+    "rank": 1,
+    "direction": "down",
+    "lon": -118.368242,
+    "lat": 33.745211,
+    "area_ha": 175,
+    "peak_mm": 150,
+    "peak_saturated": true,
+    "median_mm": 147,
+    "first_date": "20251229",
+    "series_mm": [
+     1,
+     -12,
+     -34,
+     -54,
+     -69,
+     -83,
+     -82,
+     -92,
+     -109,
+     -114,
+     -130,
+     -134,
+     -138,
+     -147
+    ]
+   },
+   {
+    "rank": 2,
+    "direction": "down",
+    "lon": -118.394333,
+    "lat": 33.79409,
+    "area_ha": 211,
+    "peak_mm": 88,
+    "peak_saturated": false,
+    "median_mm": 32,
+    "first_date": "20260215",
+    "series_mm": [
+     1,
+     -3,
+     1,
+     -6,
+     -10,
+     -22,
+     -16,
+     -28,
+     -26,
+     -24,
+     -24,
+     -32,
+     -32,
+     -32
+    ]
+   },
+   {
+    "rank": 3,
+    "direction": "up",
+    "lon": -118.39813,
+    "lat": 33.743817,
+    "area_ha": 193,
+    "peak_mm": 50,
+    "peak_saturated": false,
+    "median_mm": 27,
+    "first_date": "20260227",
+    "series_mm": [
+     1,
+     2,
+     1,
+     5,
+     7,
+     1,
+     19,
+     22,
+     14,
+     20,
+     16,
+     19,
+     24,
+     27
+    ]
+   }
+  ],
+  "source": "NISAR L2 GUNW, track 013, descending, frame 071",
+  "note": "Cumulative ground motion since the first date, in the satellite's line of sight. Red = down, blue = up, clear = less than threshold_mm."
+ }
 }
