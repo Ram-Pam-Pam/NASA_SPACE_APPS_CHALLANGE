@@ -81,14 +81,74 @@ select { background: var(--surface); color: var(--text); border: 1px solid var(-
 @media (prefers-reduced-motion: reduce) { .zone-icon .pin-ring::before { animation: none; transform: scale(2); opacity: .8; } .zone-icon .pin-ring::after { display: none; } }
 /* Legend sample of the "new anomaly" mark */
 .new-mark { position: relative; display: inline-block; width: 10px; height: 10px; margin: 0 4px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 1.5px rgba(0,0,0,.5), 0 0 0 4px rgba(255,255,255,.55), 0 0 0 5px rgba(0,0,0,.35); vertical-align: -1px; }
-/* Case-study extras: class legend, line/area samples in the legend, layer toggles, GNSS pin, profile labels */
-.cat-keys { display: flex; flex-wrap: wrap; gap: 3px 12px; font-size: 12px; color: var(--text-2); }
-.cat-keys span { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
-.cat-keys i { width: 12px; height: 12px; border-radius: 3px; box-shadow: inset 0 0 0 1px rgba(0,0,0,.25); }
-.ln-key { display: inline-block; width: 18px; border-top: 4px solid; border-radius: 2px; margin-right: 2px; }
-.sq-key { display: inline-block; width: 13px; height: 13px; border: 2px solid; border-radius: 3px; margin-right: 2px; }
-.pop-sec { margin-top: 4px; padding-top: 8px; border-top: 1px solid var(--grid); font-size: 12px; font-weight: 650; color: var(--text-2); text-transform: uppercase; letter-spacing: .04em; }
-.gnss-pin svg { display: block; width: 26px; height: 26px; filter: drop-shadow(0 1px 2px rgba(0,0,0,.6)); cursor: pointer; }
+/* Case-study side panel: result views (risk / zones / phase), legend, quality filter, read-out */
+.side { position: absolute; z-index: 1000; top: 10px; right: 10px; bottom: 34px; width: 360px; display: flex; flex-direction: column; overflow: hidden;
+  background: color-mix(in srgb, var(--surface) 96%, transparent); backdrop-filter: blur(6px); box-shadow: 0 4px 18px rgba(0,0,0,.3); }
+.side-tabs { display: grid; grid-template-columns: repeat(3, 1fr) auto; gap: 4px; padding: 8px; border-bottom: 1px solid var(--grid); flex: none; }
+/* collapsed: only the view buttons and "Szczegóły" stay on the map */
+.side.collapsed { bottom: auto; }
+.side.collapsed .side-tabs { border-bottom: 0; }
+.side.collapsed .side-body { display: none; }
+.side-toggle, .lg-toggle { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; font-weight: 600; }
+.side-toggle svg, .lg-toggle svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; transition: transform .2s; }
+.side-toggle[aria-expanded="true"] svg, .lg-toggle[aria-expanded="true"] svg { transform: rotate(180deg); }
+.side-tabs .side-toggle { padding: 7px 8px; background: var(--wash); }
+.lg-toggle { align-self: flex-start; border: 0; background: transparent; padding: 0; font-size: 12.5px; letter-spacing: .05em; text-transform: uppercase; color: var(--text-2); }
+.lg-toggle:hover { background: transparent; color: var(--text); }
+.under.legend-card.collapsed { width: auto; padding: 9px 14px; }
+.under.legend-card.collapsed > :not(.lg-toggle) { display: none; }
+.under.legend-card.collapsed .lg-toggle { color: var(--text); }
+/* "i" button that opens a longer explanation in the legend */
+.lg-info { display: inline-block; vertical-align: 1px; margin-left: 4px; }
+.lg-info summary { display: inline-grid; place-items: center; width: 17px; height: 17px; border-radius: 50%; border: 1.5px solid var(--text-2); color: var(--text-2);
+  font: 700 11px/1 Georgia, serif; font-style: italic; cursor: pointer; list-style: none; }
+.lg-info summary::-webkit-details-marker { display: none; }
+.lg-info[open] summary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.lg-info p { margin: 6px 0 4px; font-size: 12px; font-weight: 400; line-height: 1.4; color: var(--text-2); }
+.side-tabs button { padding: 7px 4px; font-size: 12.5px; font-weight: 600; line-height: 1.2; border-radius: 8px; border: 1px solid var(--axis); background: var(--surface); }
+.side-tabs button[aria-selected="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.side-body { overflow-y: auto; padding: 12px 14px 14px; display: grid; gap: 10px; align-content: start; }
+.side-body h2 { margin: 0; font-size: 17px; font-weight: 650; }
+.side-body h3 { margin: 0 0 6px; font-size: 11.5px; font-weight: 650; letter-spacing: .05em; text-transform: uppercase; color: var(--text-2); }
+.side-lead { margin: 0; font-size: 13.5px; line-height: 1.45; color: var(--text-2); }
+.side-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.side-stats:empty { display: none; }
+.side-stats div { padding: 8px 10px; border-radius: 8px; background: var(--wash); display: grid; gap: 1px; }
+.side-stats b { font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.side-stats span { font-size: 11.5px; line-height: 1.3; color: var(--text-2); }
+.side-sec { padding-top: 10px; border-top: 1px solid var(--grid); }
+.side-note { margin: 0; font-size: 12.5px; line-height: 1.45; color: var(--text-2); }
+.side .scale { width: 100%; }
+.side #tlNote { display: block; margin-top: 6px; font-size: 12px; }
+.side #readout { min-width: 0; font-size: 13px; }
+.side .q-label { display: grid; gap: 4px; font-size: 12.5px; color: var(--text-2); }
+.side .q-label input { width: 100%; }
+.lg-title { font-size: 12.5px; font-weight: 600; margin-bottom: 4px; }
+.lg-row { display: flex; align-items: center; gap: 8px; font-size: 12.5px; margin-top: 5px; }
+.lg-line { flex: none; width: 24px; height: 0; border-radius: 2px; }
+.lg-area { flex: none; width: 18px; height: 12px; border: 1.6px solid #862e9c; background: rgba(134,46,156,.45); border-radius: 2px; }
+.lg-dot { flex: none; width: 11px; height: 11px; border-radius: 50%; box-shadow: 0 0 0 1.5px #fff, 0 0 0 2.5px rgba(0,0,0,.3); }
+.no-pins .zone-icon { display: none; }
+.leaflet-tooltip.cont-label { background: transparent; border: 0; box-shadow: none; padding: 0; color: #fff; font: 600 10.5px/1 system-ui, -apple-system, "Segoe UI", sans-serif; text-shadow: 0 0 3px #000, 0 0 2px #000; }
+.leaflet-tooltip.cont-label::before { display: none; }
+.mid .leaflet-tooltip.cont-label { display: none; }
+.far .risk-halo { display: none; }   /* zoomed out: the at-risk fragments are shown as dots instead */
+.phase-view .risk-halo { stroke: #141414; stroke-opacity: .85; }   /* phase view: dark outline reads better on the fringe colours */
+.risk-dot { filter: drop-shadow(0 0 3px rgba(0,0,0,.7)); }
+.cont-label2 span { position: absolute; left: 0; top: 0; white-space: nowrap; color: #fff; font: 600 11px/1 system-ui, -apple-system, "Segoe UI", sans-serif;
+  text-shadow: 0 0 3px #000, 0 0 2px #000; pointer-events: none; }
+.mid .cont-label2 { display: none; }
+/* basemap switcher right of the zoom buttons */
+.leaflet-top.leaflet-left .leaflet-control-layers { clear: none; margin-left: 6px; }
+/* legend of a case study with a side panel: separate card in the bottom-left corner */
+.under.legend-card { flex-direction: column; align-items: stretch; gap: 6px; width: 320px; max-height: calc(100% - 100px); overflow-y: auto; padding: 12px 14px; }
+.under.legend-card .scale { width: 100%; }
+.under.legend-card h3 { margin: 0; font-size: 11.5px; font-weight: 650; letter-spacing: .05em; text-transform: uppercase; color: var(--text-2); }
+@media (max-width: 700px) {
+  .side { top: auto; left: 0; right: 0; bottom: 0; width: auto; max-height: 46%; border-radius: 12px 12px 0 0; }
+  .side.collapsed { bottom: 0; }
+  .side-tabs button { font-size: 11.5px; padding: 6px 3px; }
+}
 .leaflet-tooltip.prof-label { background: rgba(11,11,11,.72); color: #fff; border: 0; border-radius: 6px; box-shadow: none; padding: 1px 7px; font: 600 11.5px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; }
 .leaflet-tooltip.prof-label::before { display: none; }
 .far .leaflet-tooltip.prof-label { display: none; }
@@ -297,7 +357,8 @@ details.adv .pop label.row { display: flex; gap: 6px; color: var(--text); }
   // Only the first observation period is shown; later periods in the package are ignored
   const dates = G.dates, times = dates.map(dTime), SER = G.series.slice(0, 1), last = SER.length - 1;
   const winEnd = G.windows.map((w) => w.split('-')[1]);
-  const state = { s: last, t: SER[last].end, ref: SER[last].start, mode: 'cum', range: 50, cohMin: 0, timer: null };
+  const state = { s: last, t: SER[last].end, ref: SER[last].start, mode: 'cum', range: 50, cohMin: (DATA.display && DATA.display.coh_min) || 0, timer: null };
+  const VIEWS = DATA.views || null;  // case study with a side panel of result views (risk / zones / phase)
   const S = () => SER[state.s];
   const seenBy = (z) => S().start + z.first_index <= state.t;  // already an anomaly on the selected date?
   const isNewAt = (z, t) => z.series === state.s && S().start + z.first_index === t;  // detected for the first time on date t?
@@ -346,7 +407,8 @@ details.adv .pop label.row { display: flex; gap: 6px; color: var(--text); }
   const dark = L.layerGroup([esri('Canvas/World_Dark_Gray_Base'), esri('Canvas/World_Dark_Gray_Reference', { pane: 'labels' })]).addTo(map);
   const light = L.layerGroup([esri('Canvas/World_Light_Gray_Base'), esri('Canvas/World_Light_Gray_Reference', { pane: 'labels' })]);
   const imagery = esri('World_Imagery', { maxZoom: 18, attribution: 'Esri World Imagery' });
-  L.control.layers({ 'Mapa ciemna': dark, 'Mapa jasna': light, 'Zdjęcia satelitarne': imagery }, null, { position: 'topright' }).addTo(map);
+  // basemap switcher next to the zoom buttons (top left), so the right side stays free for panels
+  L.control.layers({ 'Mapa ciemna': dark, 'Mapa jasna': light, 'Zdjęcia satelitarne': imagery }, null, { position: 'topleft' }).addTo(map);
   L.control.scale({ imperial: false, position: 'bottomright' }).addTo(map);
   map.attributionControl.addAttribution(DATA.config.sources || 'Ruch gruntu: NISAR (NASA/ISRO, ASF DAAC)');
 
@@ -377,7 +439,7 @@ details.adv .pop label.row { display: flex; gap: 6px; color: var(--text); }
   // just a putImageData (no PNG encoding), which keeps the date transitions smooth.
   const CanvasOverlay = L.ImageOverlay.extend({
     _initImage() {
-      const el = this._image = canvas;
+      const el = this._image = this.options.canvas || canvas;
       L.DomUtil.addClass(el, 'leaflet-image-layer');
       if (this._zoomAnimated) L.DomUtil.addClass(el, 'leaflet-zoom-animated');
       if (this.options.className) L.DomUtil.addClass(el, this.options.className);
@@ -396,28 +458,19 @@ details.adv .pop label.row { display: flex; gap: 6px; color: var(--text); }
     return stops[stops.length - 1].slice(1);
   }
   const windowIndex = (t) => winEnd.indexOf(dates[t]);
-  // Band of an extra layer for date t: static layers have one band, window layers one per monitoring
-  // window (shown on the window's end date), pair layers one per 12-day pair (pair t-1 → t).
-  function layerBand(Lr, t) {
-    if (Lr.time === 'window') return windowIndex(t);
-    if (Lr.time === 'pair') return t - S().start - 1;
-    return 0;
-  }
-  function layerValue(Lr, i, t) {
-    const b = layerBand(Lr, t);
-    if (b < 0 || b >= Lr.bands) return null;
+  // Value of an extra single-band layer (e.g. vertical velocity) at map pixel i; layers may be stored
+  // at a coarser pixel (down = 2 → every 2×2 map pixels share one value)
+  function layerValue(Lr, i) {
     const row = Math.floor(i / G.width), r2 = Math.floor(row / Lr.down), c2 = Math.floor((i - row * G.width) / Lr.down);
     if (r2 >= Lr.h || c2 >= Lr.w) return null;
-    const v = Lr.arr[b * Lr.n + r2 * Lr.w + c2];
+    const v = Lr.arr[r2 * Lr.w + c2];
     return Lr.enc === 'u8' ? (v === ND8 ? null : v) : (v === ND16 ? null : v * Lr.scale);
   }
   function valueAt(i, mode = state.mode, t = state.t) {
-    const Lr = R.layers[mode];
-    if (Lr) return layerValue(Lr, i, t);
     const c = R.coh[i];
     if (c === ND8 || c / 250 < state.cohMin) return null;
     if (mode === 'coh') return c / 250;
-    if (mode === 'cum' || mode === 'fringe') {
+    if (mode === 'cum') {
       const a = R.cum[t * N + i], b = R.cum[state.ref * N + i];
       return a === ND16 || b === ND16 ? null : (a - b) / 10;
     }
@@ -426,20 +479,13 @@ details.adv .pop label.row { display: flex; gap: 6px; color: var(--text); }
     const v = R.vwin[w * N + i];
     return v === ND16 ? null : v / 10;
   }
-  const noise = () => (state.mode === 'cum' ? S().threshold_mm : R.layers[state.mode] ? R.layers[state.mode].range * 0.25 : 50);
+  const noise = () => (state.mode === 'cum' ? S().threshold_mm : 50);
   // Fringe colours: cyclic hue, one full cycle = half the radar wavelength; 0 mm = cyan (team convention)
   const hsl2rgb = (h, s, l) => { const a = s * Math.min(l, 1 - l), f = (n) => { const k = (n + h / 30) % 12; return 255 * (l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1))); }; return [f(0), f(8), f(4)]; };
   const cycHue = (frac) => (180 + frac * 360) % 360;
-  const PUOR = [[-1, 179, 88, 6], [-0.5, 241, 163, 64], [0, 247, 247, 247], [0.5, 153, 142, 195], [1, 84, 39, 136]];
-  // Categorical colours of a layer ("#rrggbb" or "#rrggbbaa") as a 256-entry RGBA table
-  function catLut(classes) {
-    const lut = new Uint8ClampedArray(256 * 4);
-    for (const [v, [, hex]] of Object.entries(classes)) {
-      const h = hex.replace('#', ''), o = +v * 4;
-      lut.set([parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16), h.length > 6 ? parseInt(h.slice(6, 8), 16) : 235], o);
-    }
-    return lut;
-  }
+  // Case studies may ask for a "clean" raster: motion within the noise is transparent (fading in from
+  // display.min_mm to the 3-sigma threshold), so only real movement is coloured on top of the basemap
+  const DISP = DATA.display || null;
 
   // Colour lookup tables (512 steps) so painting a frame is a table lookup per pixel
   const LUT_N = 512;
@@ -448,22 +494,32 @@ details.adv .pop label.row { display: flex; gap: 6px; color: var(--text); }
     for (let k = 0; k < LUT_N; k++) { const c = ramp(stops, x0 + k / (LUT_N - 1) * (x1 - x0)); lut.set(c, k * 3); }
     return lut;
   }
-  const LUT_DIV = makeLut(DIV), LUT_SEQ = makeLut(SEQ), LUT_PUOR = makeLut(PUOR);
+  const LUT_DIV = makeLut(DIV), LUT_SEQ = makeLut(SEQ);
   const LUT_CYC = new Uint8ClampedArray(LUT_N * 3);
   for (let k = 0; k < LUT_N; k++) LUT_CYC.set(hsl2rgb(cycHue(k / LUT_N), 0.85, 0.55), k * 3);
-  for (const Lr of Object.values(R.layers)) if (Lr.ramp === 'cat') Lr.cat = catLut(Lr.classes);
-  // How the current mode turns a value into a colour: lookup table + index + opacity (or a class table)
+  // How the current mode turns a value into a colour: lookup table + index + opacity
   function paintSpec() {
-    const m = state.mode, Lr = R.layers[m], top = LUT_N - 1;
-    if (m === 'coh') return { lut: LUT_SEQ, idx: (v) => Math.round(Math.max(0, Math.min(1, v)) * top), a: () => 235 };
-    if (m === 'fringe') { const cyc = G.fringe_cycle_mm; return { lut: LUT_CYC, idx: (v) => Math.floor((((v % cyc) + cyc) % cyc) / cyc * top), a: () => 240 }; }
-    if (Lr && Lr.ramp === 'cat') return { cat: Lr.cat };
-    if (Lr && Lr.ramp === 'cyclic') return { lut: LUT_CYC, idx: (v) => Math.round(v / 254 * top), a: () => 235 };
-    const range = Lr ? Lr.range : state.range, fade = noise(), lut = Lr && Lr.ramp === 'puor' ? LUT_PUOR : LUT_DIV;
-    return { lut, idx: (v) => Math.round((Math.max(-1, Math.min(1, v / range)) + 1) / 2 * top), a: (v) => 255 * (0.72 + 0.28 * Math.min(1, Math.abs(v) / fade)) };
+    const top = LUT_N - 1;
+    if (state.mode === 'coh') return { lut: LUT_SEQ, idx: (v) => Math.round(Math.max(0, Math.min(1, v)) * top), a: () => 235 };
+    const range = state.range, fade = noise(), idx = (v) => Math.round((Math.max(-1, Math.min(1, v / range)) + 1) / 2 * top);
+    if (DISP && state.mode === 'cum') {
+      const lo = DISP.min_mm, span = Math.max(1, fade - lo);
+      return { lut: LUT_DIV, idx, a: (v) => 255 * Math.max(0, Math.min(1, (Math.abs(v) - lo) / span)) };
+    }
+    // Values near zero (the grey/white middle of the colour scale) are transparent, so only clear
+    // subsidence (red/orange) and uplift (blue) stand out; opacity grows up to the noise threshold
+    const lo = 0.35 * fade, span = fade - lo;
+    return { lut: LUT_DIV, idx, a: (v) => 255 * Math.max(0, Math.min(1, (Math.abs(v) - lo) / span)) };
   }
-  // Classes and wrapped phase can't be morphed between dates (values are labels / angles)
-  const noMorph = () => { const Lr = R.layers[state.mode]; return !!Lr && (Lr.ramp === 'cat' || Lr.ramp === 'cyclic'); };
+  // Legend bar matching the painting above: same colours, same transparency in the middle
+  function divGradient() {
+    const fade = noise(), lo = DISP && state.mode === 'cum' ? DISP.min_mm : 0.35 * fade, range = state.range, n = 24, st = [];
+    for (let k = 0; k <= n; k++) {
+      const x = -1 + 2 * k / n, c = ramp(DIV, x), a = Math.max(0, Math.min(1, (Math.abs(x * range) - lo) / Math.max(1, fade - lo)));
+      st.push(`rgba(${c.map(Math.round).join(',')},${a.toFixed(2)}) ${(k / n * 100).toFixed(1)}%`);
+    }
+    return `linear-gradient(90deg, ${st.join(',')})`;
+  }
 
   // Raster state: what is on screen now (shown*), where it is heading (tgt*), where the
   // current transition started (from*). V = value, P = presence 0..1 (used to fade pixels in/out).
@@ -472,12 +528,11 @@ details.adv .pop label.row { display: flex; gap: 6px; color: var(--text); }
   const ANIM_MS = 650, reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   let animFrame = null;
   function paint() {
-    const px = img.data, sp = paintSpec(), lut = sp.lut, cat = sp.cat;
+    const px = img.data, sp = paintSpec(), lut = sp.lut;
     for (let i = 0, o = 0; i < N; i++, o += 4) {
       const p = shownP[i];
       if (p < 0.004) { px[o + 3] = 0; continue; }
       const v = shownV[i];
-      if (cat) { const c = Math.round(v) * 4; px[o] = cat[c]; px[o + 1] = cat[c + 1]; px[o + 2] = cat[c + 2]; px[o + 3] = cat[c + 3] * p; continue; }
       const k = sp.idx(v) * 3;
       px[o] = lut[k]; px[o + 1] = lut[k + 1]; px[o + 2] = lut[k + 2]; px[o + 3] = sp.a(v) * p;
     }
@@ -487,15 +542,11 @@ details.adv .pop label.row { display: flex; gap: 6px; color: var(--text); }
   // of every pixel's value), instead of the map jumping between measurements.
   function renderRaster(animate = false) {
     if (animFrame) { cancelAnimationFrame(animFrame); animFrame = null; }
-    // Phase views (fringes, per-pair interferograms) are scaled smoothly: hard pixel edges in a cyclic
-    // colour scale turn measurement noise into a mosaic. All other views keep crisp data pixels.
-    const Lr = R.layers[state.mode];
-    canvas.style.imageRendering = state.mode === 'fringe' || (Lr && Lr.ramp === 'cyclic') ? 'auto' : '';
     for (let i = 0; i < N; i++) {
       const v = valueAt(i);
       if (v === null) { tgtP[i] = 0; tgtV[i] = shownV[i]; } else { tgtP[i] = 1; tgtV[i] = v; }
     }
-    if (!animate || reduceMotion || noMorph()) { shownV.set(tgtV); shownP.set(tgtP); paint(); return; }
+    if (!animate || reduceMotion) { shownV.set(tgtV); shownP.set(tgtP); paint(); return; }
     fromV.set(shownV); fromP.set(shownP);
     for (let i = 0; i < N; i++) if (fromP[i] === 0) fromV[i] = tgtV[i];  // new pixels fade in with their final colour
     const t0 = performance.now();
@@ -515,21 +566,16 @@ details.adv .pop label.row { display: flex; gap: 6px; color: var(--text); }
   }
   function renderLegend() {
     const grad = (stops) => `linear-gradient(90deg, ${stops.map((s) => `rgb(${s[1]},${s[2]},${s[3]}) ${((s[0] - stops[0][0]) / (stops[stops.length - 1][0] - stops[0][0])) * 100}%`).join(',')})`;
-    const r = state.range, unit = state.mode === 'cum' ? 'mm' : 'mm/rok', Lr = R.layers[state.mode];
-    const cycGrad = `linear-gradient(90deg, ${[0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1].map((f) => `hsl(${cycHue(f)} 85% 55%) ${f * 100}%`).join(',')})`;
+    if (VIEWS) return renderViewLegend();  // case studies with a side panel have their own, per-view legend
+    const r = state.range, unit = state.mode === 'cum' ? 'mm' : 'mm/rok';
     const bar = (bg, a, b) => `<span class="legend-bar" style="background:${bg}"></span><div class="legend-ticks"><span>${a}</span><span>${b}</span></div>`;
     if (state.mode === 'coh') $('legend').innerHTML = bar(grad(SEQ), 'niepewny pomiar', 'pewny');
-    else if (state.mode === 'fringe') $('legend').innerHTML = bar(cycGrad, '0 mm', `jeden cykl barw = ${fmt(G.fringe_cycle_mm)} mm ruchu`);
-    else if (Lr && Lr.ramp === 'cyclic') $('legend').innerHTML = bar(cycGrad, 'faza 0', `2π = ${fmt(G.fringe_cycle_mm || 121)} mm`);
-    else if (Lr && Lr.ramp === 'cat') $('legend').innerHTML = `<div class="cat-keys">${Object.values(Lr.classes).filter(([, c]) => !/^#\w{6}00$/.test(c))
-      .map(([label, c]) => `<span><i style="background:${c.length > 7 ? c.slice(0, 7) : c}"></i>${label}</span>`).join('')}</div>`;
-    else if (Lr) $('legend').innerHTML = bar(grad(Lr.ramp === 'puor' ? PUOR : DIV), `−${Lr.range} ${Lr.unit} · ${Lr.ends[0]}`, `${Lr.ends[1]} · +${Lr.range} ${Lr.unit}`);
-    else $('legend').innerHTML = bar(grad(DIV), `−${r} ${unit} · ${hazardIsSlope ? 'osuwanie' : 'osiadanie'}`, `wypiętrzanie · +${r} ${unit}`);
+    else $('legend').innerHTML = bar(divGradient(), `−${r} ${unit} · ${hazardIsSlope ? 'osuwanie' : 'osiadanie'}`, `wypiętrzanie · +${r} ${unit}`)
+      + '<div class="legend-ticks"><span></span><span>bez koloru = brak istotnego ruchu</span><span></span></div>';
     // One legend entry per anomaly type that occurs in this case study (hover = explanation)
     const present = Object.keys(TYPES).filter((k) => DATA.zones.some((z) => z.series === state.s && zoneType(z) === k));
     $('keys').innerHTML = present.map((k) => `<span title="${TYPES[k].desc}">${badge(k)}${TYPES[k].name}</span>`).join('')
-      + '<span title="Anomalia wykryta po raz pierwszy w wybranym pomiarze. Na osi czasu takie daty mają puste kółko."><span class="new-mark"></span>nowa w tym pomiarze</span>'
-      + vectorKeys();
+      + '<span title="Anomalia wykryta po raz pierwszy w wybranym pomiarze. Na osi czasu takie daty mają puste kółko."><span class="new-mark"></span>nowa w tym pomiarze</span>';
   }
 
   // -------------------------------------------------------------- vectors
@@ -719,7 +765,7 @@ details.adv .pop label.row { display: flex; gap: 6px; color: var(--text); }
     // Whole-period results of the case study at this spot (e.g. vertical motion from two orbits)
     for (const Lr of Object.values(R.layers)) {
       if (!Lr.popup) continue;
-      const lv = layerValue(Lr, i, state.t);
+      const lv = layerValue(Lr, i);
       if (lv !== null) rows.push(`<div class="pp-row"><span>${Lr.popup}</span><b>${sgn(lv)} ${Lr.unit}</b></div>`);
     }
 
@@ -747,12 +793,14 @@ details.adv .pop label.row { display: flex; gap: 6px; color: var(--text); }
   // Is there a visible measurement at this spot on the selected date? (outside the AOI, no data,
   // or hidden by the coherence filter = nothing to show, so no popup)
   const hasData = (latlng) => { const i = pixelOf(latlng); return i >= 0 && valueAt(i, 'cum') !== null; };
-  // A popup never gets taller than the map: the map is locked to the AOI, so it can't always pan to make room
-  // (popups open above the clicked point, so the room is the distance from the point to the top of the map)
-  function fitPopup(popup, latlng) {
-    const room = latlng ? map.latLngToContainerPoint(latlng).y - 40 : map.getSize().y - 70;
-    popup.options.maxHeight = Math.max(200, Math.min(map.getSize().y - 70, room));
-  }
+  // Popups show their whole content (no scrollbar). Only when the map is locked to the AOI and can't pan far
+  // enough (point near the bottom, small screen) the popup is shortened to the room it has and scrolls.
+  function fitPopup(popup) { popup.options.maxHeight = map.getSize().y - 50; }
+  map.on('popupopen', (e) => setTimeout(() => {
+    const p = e.popup, el = p.getElement(); if (!el || !p.isOpen()) return;
+    const top = el.getBoundingClientRect().top - map.getContainer().getBoundingClientRect().top;
+    if (top < 6) { p.options.maxHeight = Math.max(160, el.querySelector('.leaflet-popup-content-wrapper').offsetHeight + top - 12); p.update(); }
+  }, 350));
   function selectPoint(latlng) {
     if (!hasData(latlng)) { map.closePopup(pointPopup); return; }
     pointMarker.setLatLng(latlng).addTo(map);
@@ -768,25 +816,25 @@ details.adv .pop label.row { display: flex; gap: 6px; color: var(--text); }
     else map.closePopup(pointPopup);
   };
 
-  // ------------------------------------------------- case-study vector layers
-  // Optional GeoJSON layers of a case study (pipelines with risk classes, network facilities,
-  // apparent uplift over water, monitoring alerts, profiles, GNSS station). Each gets a toggle
-  // in "Więcej opcji" and a plain-language popup. Locations without them are unaffected.
+  // ------------------------------------------------- case-study result views
+  // A case study can ship `views` (side panel), `vectors` (pipelines, profiles) and `focus` (a phase-analysis
+  // crop). The page then shows three views of the main results instead of the generic options:
+  //   risk  - pipelines at risk on top of the significant ground motion
+  //   zones - subsidence zones appearing over time
+  //   phase - interferometric fringes of the focus crop, animated with the timeline
+  // Locations without these keys (e.g. Portuguese Bend) keep the original interface.
+  map.createPane('focus').style.zIndex = 425;
   map.createPane('vec').style.zIndex = 440;
-  const RISK = { 'wysokie': '#c62a22', 'średnie': '#e3871f', 'niskie': '#6b7682', 'brak danych': '#98a3ab' };
+  const RISK = { 'wysokie': '#e03131', 'średnie': '#f08c00', 'niskie': '#8a96a3', 'brak danych': '#8a96a3' };
   const RISK_LABEL = { 'wysokie': 'Wysokie zagrożenie', 'średnie': 'Średnie zagrożenie', 'niskie': 'Niskie zagrożenie', 'brak danych': 'Brak danych' };
-  const ALERT = { 'nowa strefa ruchu': '#7b3294', 'spowolnienie': '#2166ac', 'przyspieszenie': '#d7301f' };
-  const ALERT_DESC = { 'nowa strefa ruchu': 'pojawił się tu ruch, którego wcześniej nie było', 'spowolnienie': 'ruch wyraźnie zwolnił w porównaniu z poprzednimi 72 dniami',
-    'przyspieszenie': 'ruch wyraźnie przyspieszył w porównaniu z poprzednimi 72 dniami' };
   const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const row = (k, v) => (v === null || v === undefined || v === '' ? '' : `<div class="pp-row"><span>${k}</span><b>${v}</b></div>`);
   const chipOf = (color, text) => `<span class="pp-chip" style="background:${color}">${text}</span>`;
   const vecPopup = L.popup({ className: 'cw-pop', minWidth: 270, maxWidth: 320, autoPanPadding: [20, 20] });
   function openVec(latlng, render) { vecPopup.render = render; fitPopup(vecPopup, latlng); vecPopup.setLatLng(latlng).setContent(render()).openOn(map); }
   // Profile labels only when zoomed in enough for them not to pile up on each other
-  const labelZoom = () => map.getContainer().classList.toggle('far', map.getZoom() < 12);
+  const labelZoom = () => { map.getContainer().classList.toggle('far', map.getZoom() < 12); map.getContainer().classList.toggle('mid', map.getZoom() < 13.5); };
   map.on('zoomend', labelZoom); labelZoom();
-  const decYear = (d) => +d.slice(0, 4) + (dTime(d) - Date.UTC(+d.slice(0, 4), 0, 1)) / (365.25 * 864e5);
 
   function riskHTML(p) {
     const c = RISK[p.klasa] || RISK.niskie;
@@ -795,18 +843,11 @@ details.adv .pop label.row { display: flex; gap: 6px; color: var(--text); }
       ${p.powod ? `<div class="pp-sec pp-zone" style="background:color-mix(in srgb, ${c} 13%, transparent)">${esc(p.powod)}</div>` : ''}
       <div class="pp-sec">${row('Ruch pionowy gruntu', p.v != null ? `${sgn(p.v)} mm/rok` : null)}${row('Nierówne osiadanie', p.gradient != null ? `${fmt(p.gradient)} mm/100 m/rok` : null)}
       ${row('Przemieszczenie za okres', p.przem_mm != null ? `${sgn(p.przem_mm)} mm` : null)}
-      ${row('Długość w tej klasie', p.dlugosc_m != null ? `${fmt(p.dlugosc_m)} m` : p.km != null ? `${fmt(p.km, 2)} km` : null)}
+      ${row('Długość fragmentu', p.dlugosc_m != null ? `${fmt(p.dlugosc_m)} m` : null)}
       ${row('Odległość od strefy osiadania', p.odl_m != null ? (p.odl_m === 0 ? 'w strefie' : `${fmt(p.odl_m)} m`) : null)}
       ${row('Okna monitoringu z ruchem', p.okna_ruch != null ? `${fmt(p.okna_ruch)} z ${G.windows.length}` : null)}${row('Pewność danych', esc(p.pewnosc))}</div>
-      <div class="pp-foot">Klasa opisuje ruch gruntu pod obiektem (narażenie), nie jego stan techniczny. Sieć: baza OGIM.</div>`;
+      <div class="pp-foot">Klasa opisuje ruch gruntu pod rurociągiem (narażenie), nie jego stan techniczny. Sieć: baza OGIM.</div>`;
   }
-  const waterHTML = (p) => `${chipOf('#2b8cbe', 'Uwaga: woda')}<div class="pp-head">Pozorne wypiętrzanie</div>
-    <div class="pp-sub">W porze deszczowej zalany teren „podnosi się” w danych, bo radar w paśmie L widzi wtedy lustro wody, a nie grunt. Nie liczymy tego jako zagrożenia.</div>
-    <div class="pp-sec">${row('Powierzchnia', `${fmt(p.pow_km2, 2)} km²`)}</div>`;
-  const alertHTML = (p) => `${chipOf(ALERT[p.typ] || RISK.niskie, 'Alert monitoringu')}<div class="pp-head">${esc(p.typ.charAt(0).toUpperCase() + p.typ.slice(1))}</div>
-    <div class="pp-sub">W oknie ${esc(p.okno.split('-').map(dShort).join(' → '))} ${ALERT_DESC[p.typ] || ''}.</div>
-    <div class="pp-sec">${row('Tempo w tym oknie', `${sgn(p.v_mm_rok)} mm/rok`)}${row('Wcześniej (72 dni)', p.v_bazowe != null ? `${sgn(p.v_bazowe)} mm/rok` : null)}${row('Powierzchnia', `${fmt(p.pow_km2, 3)} km²`)}</div>
-    <div class="pp-foot">Tempo w linii widzenia orbity wznoszącej; ujemne = od satelity (osiadanie).</div>`;
 
   // Profile across the subsidence bowl: one line per measurement date up to the selected one
   const profName = (n) => (n === 'os_dluga' ? 'Oś wzdłuż niecki' : n === 'os_krotka' ? 'Oś w poprzek niecki' : 'Wzdłuż rurociągu ' + n.replace(/_/g, ' '));
@@ -826,89 +867,202 @@ details.adv .pop label.row { display: flex; gap: 6px; color: var(--text); }
     const now = p.values_mm[cur].filter((v) => v !== null);
     return `${chipOf('#334155', 'Przekrój')}<div class="pp-head">${esc(profName(p.nazwa))}</div>
       <div class="pp-sub">Ruch w linii widzenia (orbita wznosząca) od ${dShort(p.dates[0])}. Kolejne linie to kolejne pomiary, niebieska = wybrana data.</div>
-      <div class="pp-sec"><h4>Profil terenu w czasie [mm]</h4>${svg}</div>
+      <div class="pp-sec"><h4>Profil niecki w czasie [mm]</h4>${svg}</div>
       <div class="pp-sec">${row('Najgłębiej na wybraną datę', now.length ? `${fmt(Math.min(...now))} mm` : null)}
       ${(p.crossings || []).map((c) => row('Przecina', `${esc(c.obiekt)} (${fmt(c.odleglosc_m / 1000, 1)} km)`)).join('')}</div>
       <div class="pp-foot">Długość przekroju ${fmt(maxD / 1000, 1)} km. Pionowa kreska = przecięcie z rurociągiem (kolor = klasa zagrożenia).</div>`;
   }
 
-  // GNSS station: independent check of the radar result
-  function gnssHTML(p) {
-    const s = p.series_up, W = 290, H = 130, L0 = 30, R0 = 8, T0 = 8, B0 = 20;
-    const y0 = s[0][0], y1 = Math.max(s[s.length - 1][0], decYear(dates[dates.length - 1]));
-    const vals = s.map((q) => q[1]); let lo = Math.min(...vals), hi = Math.max(...vals); const pad = (hi - lo) * 0.08; lo -= pad; hi += pad;
-    const x = (t) => L0 + (t - y0) / (y1 - y0) * (W - L0 - R0), y = (v) => T0 + (hi - v) / (hi - lo) * (H - T0 - B0);
-    const band = `<rect x="${x(decYear(dates[0]))}" y="${T0}" width="${Math.max(2, x(decYear(dates[dates.length - 1])) - x(decYear(dates[0])))}" height="${H - T0 - B0}" fill="#2563eb" opacity=".18"/>`;
-    const line = s.map((q, k) => `${k ? 'L' : 'M'}${x(q[0]).toFixed(1)} ${y(q[1]).toFixed(1)}`).join('');
-    const xt = [Math.ceil(y0), Math.round((y0 + y1) / 2), Math.floor(y1)].map((t) => `<text x="${x(t)}" y="${H - 5}" text-anchor="middle">${t}</text>`).join('');
-    const yt = [lo, hi].map((v) => `<text x="${L0 - 4}" y="${y(v) + 3}" text-anchor="end">${fmt(v)}</text>`).join('');
-    const tg = p.tempo.ostatnie_5_lat, n = p.nisar;
-    return `${chipOf('#0f766e', 'Kontrola GNSS')}<div class="pp-head">${esc(p.stacja)}</div>
-      <div class="pp-sub">Stacja GPS na ziemi mierzy ruch niezależnie od radaru – pozwala sprawdzić, czy NISAR mówi prawdę.</div>
-      <div class="pp-sec"><h4>Ruch pionowy stacji ${Math.ceil(y0)}–${Math.floor(y1)} [mm]</h4><svg class="pp-spark" viewBox="0 0 ${W} ${H}" aria-hidden="true">${band}<path d="${line}" fill="none" stroke="var(--text-2)" stroke-width="1.2"/>${yt}${xt}</svg>
-      <div class="pp-hint" style="margin:0">niebieski pas = okres pomiarów NISAR</div></div>
-      <div class="pp-sec">${row('GNSS, ruch pionowy (5 lat)', `${sgn(tg.pion.tempo, 1)} ± ${fmt(tg.pion.sigma, 1)} mm/rok`)}
-      ${row('NISAR w tym miejscu (pion)', `${sgn(n.predkosc_pionowa.wartosc, 1)} ± ${fmt(p.niepewnosc_nisar_pionowa_mm_rok)} mm/rok`)}
-      ${row('GNSS, ruch wschód–zachód', `${sgn(tg.wschod.tempo, 1)} mm/rok`)}${row('NISAR, wschód–zachód', `${sgn(n.predkosc_wschodnia.wartosc, 1)} mm/rok`)}</div>
-      <div class="pp-sec">${esc(p.wniosek)}</div><div class="pp-foot">${esc(p.zrodlo)}</div>`;
-  }
-
-  const vecLayers = {}, dateLayers = [];
+  // --- vector layers
+  const vecLayers = {};
   const tipOn = (l, html) => { l.on('mousemove', (e) => showTip(html, e.originalEvent)); l.on('mouseout', hideTip); };
   const clickOpen = (l, render) => l.on('click', (e) => { L.DomEvent.stopPropagation(e); hideTip(); openVec(e.latlng, render); });
   for (const V of DATA.vectors || []) {
-    let lyr;
-    if (V.style === 'risk' && V.kind === 'line') {
-      const main = L.geoJSON(V.data, { pane: 'vec', style: (f) => { const k = f.properties.klasa, hot = k === 'wysokie' || k === 'średnie';
-        return { color: RISK[k] || RISK.niskie, weight: k === 'wysokie' ? 4.5 : k === 'średnie' ? 3.5 : 1.3, opacity: hot ? 1 : 0.75, dashArray: k === 'brak danych' ? '3 4' : null }; },
-        onEachFeature: (f, l) => { const p = f.properties; clickOpen(l, () => riskHTML(p)); tipOn(l, `<b>${esc(p.nazwa || p.typ)}</b><br>${RISK_LABEL[p.klasa] || ''} · kliknij po szczegóły`); } });
-      lyr = V.key === 'pipes_risk' ? L.layerGroup([L.geoJSON(V.data, { pane: 'vec', interactive: false, style: { color: '#0b0b0b', weight: 6.5, opacity: 0.55 } }), main]) : main;
+    if (V.style === 'network') {
+      vecLayers[V.key] = L.geoJSON(V.data, { pane: 'vec', interactive: false,
+        style: (f) => ({ color: '#aab4be', weight: 1, opacity: f.properties.klasa === 'brak danych' ? 0.25 : 0.5, dashArray: f.properties.klasa === 'brak danych' ? '2 4' : null }) });
     } else if (V.style === 'risk') {
-      lyr = L.geoJSON(V.data, { pointToLayer: (f, ll) => L.circleMarker(ll, { pane: 'vec', radius: 5.5, color: '#fff', weight: 1.5, fillColor: RISK[f.properties.klasa] || RISK.niskie, fillOpacity: 1 }),
-        onEachFeature: (f, l) => { const p = f.properties; clickOpen(l, () => riskHTML(p)); tipOn(l, `<b>${esc(p.nazwa || p.typ)}</b><br>${esc(p.typ)} · ${RISK_LABEL[p.klasa] || ''}`); } });
-    } else if (V.style === 'water') {
-      lyr = L.geoJSON(V.data, { pane: 'vec', style: { color: '#2b8cbe', weight: 1.6, dashArray: '4 3', fillColor: '#2b8cbe', fillOpacity: 0.18 },
-        onEachFeature: (f, l) => { clickOpen(l, () => waterHTML(f.properties)); tipOn(l, '<b>Pozorne wypiętrzanie</b><br>prawdopodobnie zalany teren'); } });
-    } else if (V.style === 'alert') {
-      lyr = L.layerGroup(); lyr.V = V; dateLayers.push(lyr);
+      // halo first: Leaflet draws a group's layers in creation order, so the halo has to be created before the line
+      const halo = L.geoJSON(V.data, { pane: 'vec', interactive: false, style: { color: '#fff', weight: 14, opacity: 0.95, lineCap: 'round', className: 'risk-halo' } });
+      const main = L.geoJSON(V.data, { pane: 'vec', style: (f) => ({ color: RISK[f.properties.klasa] || RISK.niskie, weight: f.properties.klasa === 'wysokie' ? 9 : 7, opacity: 1, lineCap: 'round' }),
+        onEachFeature: (f, l) => { const p = f.properties; clickOpen(l, () => riskHTML(p)); tipOn(l, `<b>${esc(p.nazwa || p.typ)}</b><br>${RISK_LABEL[p.klasa] || ''} · kliknij po szczegóły`); } });
+      // Fragments are 100 m – 2 km long, invisible when the whole area is shown: below zoom 12 each one
+      // also gets a dot at its middle, so the threatened places can be found at a glance
+      const dots = L.layerGroup(V.data.features.map((f) => {
+        const p = f.properties, c = L.geoJSON(f).getBounds().getCenter();
+        const m = L.circleMarker(c, { pane: 'vec', radius: p.klasa === 'wysokie' ? 8 : 6.5, color: '#fff', weight: 2.5, fillColor: RISK[p.klasa] || RISK.niskie, fillOpacity: 1, className: 'risk-dot' });
+        clickOpen(m, () => riskHTML(p)); tipOn(m, `<b>${esc(p.nazwa || p.typ)}</b><br>${RISK_LABEL[p.klasa] || ''} · kliknij po szczegóły`);
+        return m;
+      }));
+      const grp = L.layerGroup([halo, main]);
+      const syncDots = () => { if (!map.hasLayer(grp)) return; if (map.getZoom() < 12) dots.addTo(map); else dots.remove(); };
+      grp.on('add', syncDots); grp.on('remove', () => dots.remove()); map.on('zoomend', syncDots);
+      vecLayers[V.key] = grp;
+      vecLayers[V.key].data = V.data;
     } else if (V.style === 'profile') {
-      const main = L.geoJSON(V.data, { pane: 'vec', style: { color: '#fff', weight: 3, dashArray: '8 6' },
-        onEachFeature: (f, l) => { const p = f.properties; clickOpen(l, () => profileHTML(p)); tipOn(l, `<b>Przekrój: ${esc(profName(p.nazwa))}</b><br>kliknij, żeby zobaczyć profil w czasie`);
-          l.bindTooltip(p.nazwa === 'os_dluga' ? 'przekrój: oś wzdłuż' : p.nazwa === 'os_krotka' ? 'przekrój: oś w poprzek' : 'przekrój: rurociąg',
-            { permanent: true, direction: 'top', className: 'prof-label', offset: [0, -4] }); } });
-      lyr = L.layerGroup([L.geoJSON(V.data, { pane: 'vec', interactive: false, style: { color: '#0b0b0b', weight: 6, opacity: 0.5 } }), main]);
-    } else if (V.style === 'gnss') {
-      lyr = L.geoJSON(V.data, { pointToLayer: (f, ll) => L.marker(ll, { pane: 'marks', title: 'Stacja GNSS', icon: L.divIcon({ className: 'gnss-pin', iconSize: [26, 26], iconAnchor: [13, 13],
-        html: '<svg viewBox="0 0 26 26" aria-hidden="true"><path d="M13 3l10 18H3z" fill="#0f766e" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><circle cx="13" cy="15" r="2.2" fill="#fff"/></svg>' }) }),
-        onEachFeature: (f, l) => { clickOpen(l, () => gnssHTML(f.properties)); tipOn(l, `<b>${esc(f.properties.stacja)}</b><br>stacja GNSS – kontrola pomiaru radarowego`); } });
-    } else continue;
-    vecLayers[V.key] = lyr;
-    if (V.on) lyr.addTo(map);
-  }
-  // Layers that follow the timeline: monitoring alerts of the window ending on the selected date
-  function renderDateLayers() {
-    for (const lyr of dateLayers) {
-      lyr.clearLayers();
-      const feats = lyr.V.data.features.filter((f) => f.properties.data === dISO(dates[state.t]));
-      L.geoJSON({ type: 'FeatureCollection', features: feats }, { pane: 'vec', style: (f) => ({ color: ALERT[f.properties.typ] || RISK.niskie, weight: 2, fillColor: ALERT[f.properties.typ] || RISK.niskie, fillOpacity: 0.32 }),
-        onEachFeature: (f, l) => { clickOpen(l, () => alertHTML(f.properties)); tipOn(l, `<b>Alert: ${esc(f.properties.typ)}</b><br>kliknij po szczegóły`); } }).eachLayer((l) => lyr.addLayer(l));
+      // drawn like in the team's phase figure: a thin dark line; a wide invisible line on top makes it easy to click
+      const halo = L.geoJSON(V.data, { pane: 'vec', interactive: false, style: { color: '#262626', weight: 1.4, opacity: 0.9 } });
+      const main = L.geoJSON(V.data, { pane: 'vec', style: { color: '#000', weight: 14, opacity: 0 },
+        onEachFeature: (f, l) => { const p = f.properties; clickOpen(l, () => profileHTML(p)); tipOn(l, `<b>Przekrój: ${esc(profName(p.nazwa))}</b><br>kliknij, żeby zobaczyć profil w czasie`); } });
+      // labels at the line ends (the three profiles cross in the middle of the bowl, labels there would overlap)
+      const labels = V.data.features.map((f) => {
+        // western end, text to the left: away from the side panel on the right
+        const c = f.geometry.coordinates, end = c[0][0] < c[c.length - 1][0] ? c[0] : c[c.length - 1];
+        return L.tooltip({ permanent: true, direction: 'left', className: 'prof-label', offset: [-4, 0], interactive: false })
+          .setLatLng([end[1], end[0]]).setContent(f.properties.nazwa === 'os_dluga' ? 'przekrój: oś wzdłuż' : f.properties.nazwa === 'os_krotka' ? 'przekrój: oś w poprzek' : 'przekrój: rurociąg');
+      });
+      vecLayers[V.key] = L.layerGroup([halo, main, ...labels]);
     }
   }
-  // Legend entries for the vector layers that are switched on
-  function vectorKeys() {
-    const on = (k) => vecLayers[k] && map.hasLayer(vecLayers[k]);
-    let s = '';
-    if (on('pipes_risk') || on('pipes_all')) s += `<span title="Klasa zagrożenia rurociągu wg ruchu gruntu pod nim"><i class="ln-key" style="border-color:${RISK.wysokie}"></i>rurociąg: wysokie</span><span><i class="ln-key" style="border-color:${RISK['średnie']}"></i>średnie</span>`;
-    if (on('alerts')) s += `<span title="Alert monitoringu w oknie kończącym się w wybranej dacie"><i class="sq-key" style="border-color:${ALERT['nowa strefa ruchu']};background:${ALERT['nowa strefa ruchu']}55"></i>nowa strefa</span><span><i class="sq-key" style="border-color:${ALERT.spowolnienie};background:${ALERT.spowolnienie}55"></i>spowolnienie</span>`;
-    return s;
+
+  // --- phase-analysis crop: wrapped fringes (0..cycle mm) and displacement at a fine pixel, one band per date
+  const F = DATA.focus || null;
+  if (F) {
+    F.n = F.w * F.h;
+    F.contours_fc = F.contours;   // GeoJSON from the package; F.contours becomes the map layer below
+    F.wr = await unpack(F.wrapped, Uint8Array); F.dp = await unpack(F.disp, Int16Array);
+    delete F.wrapped; delete F.disp;
+    F.cv = document.createElement('canvas'); F.cv.width = F.w; F.cv.height = F.h;
+    F.ctx = F.cv.getContext('2d'); F.img = F.ctx.createImageData(F.w, F.h);
+    F.overlay = new CanvasOverlay('', F.bounds, { pane: 'focus', canvas: F.cv, className: 'focus-img', opacity: 0.92 });
+    F.contours = L.layerGroup();
+    F.band = (t) => F.dates.indexOf(dates[t]);   // -1 = reference date (nothing has moved yet)
+    // subsidence zones inside the crop as white dashed outlines (style of the team's phase figure)
+    const fb = L.latLngBounds(F.bounds);
+    F.zones = L.geoJSON({ type: 'FeatureCollection', features: DATA.zones.filter((z) => fb.contains(z.peak_latlon)).map((z) => ({ type: 'Feature', properties: {}, geometry: z.geometry })) },
+      { pane: 'vec', interactive: false, style: { color: '#fff', weight: 1.6, dashArray: '6 4', fill: false, opacity: 0.95 } });
   }
-  // Note under the legend: what the current layer shows and for which date / window / pair
-  function modeNote() {
-    const Lr = R.layers[state.mode];
-    if (!Lr) return state.mode === 'cum' || state.mode === 'fringe' ? (state.t === state.ref ? 'początek okresu: zmiana = 0' : `zmiana od ${dPL(dates[state.ref])}`) : '';
-    if (Lr.time === 'pair') return state.t > S().start ? `para ${dShort(dates[state.t - 1])} → ${dShort(dates[state.t])}` : 'pierwszy pomiar – jeszcze bez pary';
-    if (Lr.time === 'window') { const w = windowIndex(state.t); return w >= 0 ? `okno ${G.windows[w].split('-').map(dShort).join(' → ')}` : 'okno niepełne (potrzeba 3 par)'; }
-    return Lr.note || '';
+  // Contour label rotated along the line (readable: never upside down), placed at the middle vertex
+  function contourLabel(f) {
+    const c = f.geometry.coordinates, m = Math.floor(c.length / 2), a = c[Math.max(0, m - 2)], b = c[Math.min(c.length - 1, m + 2)];
+    const pa = map.project([a[1], a[0]], 0), pb = map.project([b[1], b[0]], 0);
+    let ang = Math.atan2(pb.y - pa.y, pb.x - pa.x) * 180 / Math.PI;
+    if (ang > 90) ang -= 180; if (ang < -90) ang += 180;
+    return L.marker([c[m][1], c[m][0]], { pane: 'vec', interactive: false, keyboard: false,
+      icon: L.divIcon({ className: 'cont-label2', iconSize: [0, 0], html: `<span style="transform:translate(-50%,-50%) rotate(${ang.toFixed(1)}deg)">${esc(f.properties.etykieta)}</span>` }) });
+  }
+  function paintFocus() {
+    const b = F.band(state.t), px = F.img.data, top = LUT_N - 1, base = Math.max(0, b) * F.n;
+    for (let i = 0, o = 0; i < F.n; i++, o += 4) {
+      const v = F.wr[base + i];
+      if (v === ND8) { px[o + 3] = 0; continue; }   // no data inside the crop: transparent (basemap shows through)
+      const k = (b < 0 ? 0 : Math.min(top, Math.round(v / 250 * top))) * 3;   // reference date: zero motion = cyan
+      px[o] = LUT_CYC[k]; px[o + 1] = LUT_CYC[k + 1]; px[o + 2] = LUT_CYC[k + 2]; px[o + 3] = 238;
+    }
+    F.ctx.putImageData(F.img, 0, 0);
+    F.contours.clearLayers();
+    L.geoJSON({ type: 'FeatureCollection', features: F.contours_fc.features.filter((f) => f.properties.data === dates[state.t]) }, { pane: 'vec', interactive: false,
+      style: { color: '#fff', weight: 1.4, opacity: 0.95 },
+      // label the longer lines only (short ones are small noise rings around the bowl)
+      onEachFeature: (f) => { if (f.geometry.coordinates.length >= 12) F.contours.addLayer(contourLabel(f)); } })
+      .eachLayer((l) => F.contours.addLayer(l));
+  }
+  function focusValue(latlng) {
+    const x = MR * latlng.lng * Math.PI / 180, y = MR * Math.log(Math.tan(Math.PI / 4 + latlng.lat * Math.PI / 360));
+    const c = Math.floor((x - F.mercator.west) / F.mercator.pixel), r = Math.floor((F.mercator.north - y) / F.mercator.pixel);
+    if (c < 0 || r < 0 || c >= F.w || r >= F.h) return undefined;
+    const b = F.band(state.t);
+    if (b < 0) return F.wr[r * F.w + c] === ND8 ? null : 0;
+    const v = F.dp[b * F.n + r * F.w + c];
+    return v === ND16 ? null : v / 10;
+  }
+
+  // --- side panel and legend card: both start collapsed, so the map is free at first sight.
+  // Collapsed panel = just the three view buttons + "Szczegóły"; collapsed legend = a "Legenda" button.
+  const side = VIEWS ? document.createElement('aside') : null;
+  const CHEV = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
+  if (VIEWS) {
+    side.className = 'side card collapsed'; side.id = 'side';
+    side.innerHTML = `<div class="side-tabs" role="tablist">${['risk', 'zones', 'phase'].filter((k) => VIEWS[k]).map((k) =>
+        `<button role="tab" data-view="${k}">${{ risk: 'Zagrożone rurociągi', zones: 'Strefy osiadania', phase: 'Analiza fazowa' }[k]}</button>`).join('')}
+        <button class="side-toggle" id="sideToggle" aria-expanded="false" aria-controls="sideBody" title="Pokaż szczegóły">Szczegóły ${CHEV}</button></div>
+      <div class="side-body" id="sideBody"><h2 id="sideTitle"></h2><p class="side-lead" id="sideLead"></p><div class="side-stats" id="sideStats"></div>
+        <div class="side-sec" id="legendSlot" hidden><h3>Legenda</h3></div>
+        <div class="side-sec" id="qualitySlot"><h3>Jakość pomiaru</h3></div>
+        <div class="side-sec"><h3>Pod kursorem</h3><div id="readoutSlot"></div></div>
+        <p class="side-note" id="sideNote"></p></div>`;
+    $('app').appendChild(side);
+    $('readoutSlot').appendChild($('readout'));
+    const q = $('coh').closest('label'); q.classList.add('q-label'); $('qualitySlot').appendChild(q);
+    $('coh').value = state.cohMin; $('cohVal').textContent = fmt(state.cohMin, 2);
+    // the legend stays a separate card in the bottom-left corner of the map (moved into the panel on phones)
+    const under = document.querySelector('.under');
+    under.classList.add('legend-card', 'collapsed'); $('adv').hidden = true;
+    under.insertAdjacentHTML('afterbegin', `<button class="lg-toggle" id="lgToggle" aria-expanded="false" title="Pokaż legendę">Legenda ${CHEV}</button>`);
+    side.querySelectorAll('[data-view]').forEach((b) => b.addEventListener('click', () => applyView(b.dataset.view, true)));
+    const setOpen = (el, btn, open, label) => { el.classList.toggle('collapsed', !open); btn.setAttribute('aria-expanded', String(open)); btn.title = (open ? 'Zwiń ' : 'Pokaż ') + label; };
+    $('sideToggle').addEventListener('click', () => setOpen(side, $('sideToggle'), side.classList.contains('collapsed'), 'szczegóły'));
+    $('lgToggle').addEventListener('click', () => setOpen(under, $('lgToggle'), under.classList.contains('collapsed'), 'legendę'));
+  }
+  function placeLegend() {
+    if (!VIEWS) return;
+    const narrow = window.innerWidth <= 700, under = document.querySelector('.under'), slot = $('legendSlot');
+    for (const id of ['legend', 'keys', 'tlNote']) (narrow ? slot : under).appendChild($(id));
+    under.hidden = narrow; slot.hidden = !narrow;
+  }
+  placeLegend();
+  window.addEventListener('resize', placeLegend);
+  // keep the fitted area clear of the view buttons (top right) and, in the phase view, of the legend corner
+  const padView = (clearLegend) => (map.getSize().x > 760 ? { paddingTopLeft: [clearLegend ? 60 : 20, 20], paddingBottomRight: [20, clearLegend ? 70 : 20] } : { padding: [10, 10] });
+  function renderSide() {
+    const V = VIEWS[state.view];
+    side.querySelectorAll('[data-view]').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.view === state.view)));
+    $('sideTitle').textContent = V.title; $('sideLead').textContent = V.lead; $('sideNote').textContent = V.note || '';
+    $('sideBody').scrollTop = 0;
+    $('sideStats').innerHTML = (V.stats || []).map(([a, b]) => `<div><b>${esc(a)}</b><span>${esc(b)}</span></div>`).join('');
+    $('qualitySlot').hidden = state.view === 'phase';
+  }
+  function renderViewLegend() {
+    const grad = (stops) => `linear-gradient(90deg, ${stops.map((s) => `rgb(${s[1]},${s[2]},${s[3]}) ${((s[0] - stops[0][0]) / (stops[stops.length - 1][0] - stops[0][0])) * 100}%`).join(',')})`;
+    const cycGrad = `linear-gradient(90deg, ${[0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1].map((f) => `hsl(${cycHue(f)} 85% 55%) ${f * 100}%`).join(',')})`;
+    const line = (style, label) => `<div class="lg-row"><i class="lg-line" style="${style}"></i>${label}</div>`;
+    // longer explanations hide behind a small "i" button (click to open / close)
+    const info = (text) => `<details class="lg-info"><summary title="Wyjaśnienie" aria-label="Wyjaśnienie">i</summary><p>${text}</p></details>`;
+    const v = state.view, r = state.range, thr = S().threshold_mm;
+    let h = '';
+    if (v === 'phase') {
+      h += `<div class="lg-title">Prążki interferometryczne ${info(`Kolor powtarza się co ${fmt(F.cycle_mm)} mm: liczba pierścieni od brzegu do środka niecki × ${fmt(F.cycle_mm)} mm = jej głębokość. Ruch w linii widzenia orbity wznoszącej, od ${dShort(F.ref_date)}.`)}</div>
+        <span class="legend-bar" style="background:${cycGrad}"></span>
+        <div class="legend-ticks"><span>0</span><span>jeden cykl barw = ${fmt(F.cycle_mm)} mm ruchu</span></div>`;
+      h += line('border-top:2px solid #fff;box-shadow:0 0 0 1px #555', `kontur przemieszczenia co ${fmt(F.contour_step_mm)} mm (z etykietą)`);
+      h += line(`border-top:6px solid ${RISK.wysokie};box-shadow:0 0 0 2px #141414`, 'zagrożony odcinek rurociągu (wysokie)');
+      h += line(`border-top:5px solid ${RISK['średnie']};box-shadow:0 0 0 2px #141414`, 'zagrożony odcinek rurociągu (średnie)');
+      h += line('border-top:1.5px solid #262626;box-shadow:0 0 0 1px rgba(255,255,255,.6)', 'linia przekroju (wzdłuż rurociągu i przez nieckę) – kliknij, żeby zobaczyć profil');
+      h += '<div class="lg-row"><i class="lg-area" style="border:1.6px dashed #fff;background:transparent;box-shadow:0 0 0 1px #555"></i>strefa osiadania potwierdzona w obu orbitach</div>';
+      h += '<div class="lg-row"><i class="lg-area" style="border:1px dashed var(--axis);background:transparent"></i>bez koloru = brak danych w wycinku (woda, utrata spójności)</div>';
+    } else {
+      h += `<div class="lg-title">Ruch gruntu od ${dShort(dates[state.ref])} ${info(`Ruch w linii widzenia orbity wznoszącej. Kolor tylko tam, gdzie ruch przekracza szum pomiaru (pełny kolor od ±${fmt(thr)} mm) i jakość sygnału jest wystarczająca. Przezroczyste = brak istotnego ruchu albo brak wiarygodnego pomiaru (woda, mokradła).`)}</div>
+        <span class="legend-bar" style="background:${divGradient()}"></span>
+        <div class="legend-ticks"><span>−${r} mm · osiadanie</span><span>wypiętrzanie · +${r} mm</span></div>`;
+      h += line(`border-top:6px solid ${RISK.wysokie};box-shadow:0 0 0 3px #fff, 0 0 0 4px #888`, 'rurociąg – wysokie zagrożenie');
+      h += line(`border-top:5px solid ${RISK['średnie']};box-shadow:0 0 0 3px #fff, 0 0 0 4px #888`, 'rurociąg – średnie zagrożenie');
+      h += `<div class="lg-row"><i class="lg-dot" style="background:${RISK.wysokie}"></i><i class="lg-dot" style="background:${RISK['średnie']};margin-left:-4px"></i>zagrożony odcinek przy oddaleniu (przybliż, żeby zobaczyć przebieg)</div>`;
+      if (v === 'risk') {
+        h += line('border-top:1.5px solid #aab4be', 'pozostała sieć – niskie zagrożenie');
+        h += line('border-top:1.5px dashed #aab4be;opacity:.6', 'sieć bez danych NISAR (mokradła, woda)');
+      }
+      h += `<div class="lg-row"><i class="lg-area"></i>strefa osiadania potwierdzona w obu orbitach</div>`;
+      if (v === 'zones') h += `<div class="lg-row">${badge('subsidence')}pinezka: 20 stref o największym osiadaniu</div>
+        <div class="lg-row"><span class="new-mark"></span>strefa wykryta po raz pierwszy w wybranym pomiarze (biały obrys / pierścień)</div>`;
+    }
+    $('legend').innerHTML = h; $('keys').innerHTML = '';
+  }
+  function viewNote() {
+    if (state.view === 'phase') return F.band(state.t) < 0 ? `${dShort(dates[state.t])}: punkt odniesienia, jeszcze bez ruchu` : `prążki: ${dShort(F.ref_date)} → ${dShort(dates[state.t])}`;
+    return state.t === state.ref ? 'początek okresu: zmiana = 0' : `zmiana od ${dPL(dates[state.ref])}`;
+  }
+  const show = (layer, on) => { if (!layer) return; if (on) layer.addTo(map); else layer.remove(); };
+  function applyView(v, fit) {
+    state.view = v;
+    const phase = v === 'phase';
+    show(overlay, !phase); show(zoneLayer, !phase);
+    map.getContainer().classList.toggle('no-pins', v !== 'zones');
+    show(vecLayers.pipes_all, v === 'risk'); show(vecLayers.pipes_risk, true); show(vecLayers.profiles, phase);
+    if (F) { show(F.overlay, phase); show(F.contours, phase); show(F.zones, phase); }
+    map.getContainer().classList.toggle('phase-view', phase);
+    map.closePopup();
+    if (fit) map.fitBounds(phase ? F.bounds : (DATA.config.view || G.bounds), padView(phase));
+    renderSide(); renderLegend(); setDate(state.t, false);
   }
 
   // ---------------------------------------------------------- date / period
@@ -916,8 +1070,9 @@ details.adv .pop label.row { display: flex; gap: 6px; color: var(--text); }
     state.t = Math.max(S().start, Math.min(S().end, t));
     $('tlDate').textContent = dLong(dates[state.t]);
     $('prev').disabled = state.t <= S().start; $('next').disabled = state.t >= S().end;
-    $('tlNote').textContent = modeNote();
-    renderRaster(animate); renderContours(); renderTimeline(); renderZones(); renderDateLayers(); refreshPointPopup();
+    $('tlNote').textContent = VIEWS ? viewNote() : (state.mode === 'cum' ? (state.t === state.ref ? 'początek okresu: zmiana = 0' : `zmiana od ${dPL(dates[state.ref])}`) : '');
+    if (VIEWS && state.view === 'phase') paintFocus(); else renderRaster(animate);
+    renderContours(); renderTimeline(); renderZones(); refreshPointPopup();
     if (vecPopup.render && map.hasLayer(vecPopup)) vecPopup.setContent(vecPopup.render());
   }
   function setPeriod(s) {
@@ -925,7 +1080,8 @@ details.adv .pop label.row { display: flex; gap: 6px; color: var(--text); }
     state.s = s; state.t = SER[s].end; state.ref = SER[s].start;
     $('period').querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', +b.dataset.s === s));
     $('ref').innerHTML = seriesIdx().map((i) => `<option value="${i}">${dPL(dates[i])}${i === S().start ? ' (początek okresu)' : ''}</option>`).join('');
-    zonesKey = ''; renderLegend(); buildTimeline(); setDate(state.t);
+    zonesKey = ''; buildTimeline();
+    if (VIEWS) applyView(state.view || VIEWS.default, true); else { renderLegend(); setDate(state.t); }
   }
   function stop() { clearInterval(state.timer); state.timer = null; setPlayIcon(false); }
 
@@ -942,20 +1098,6 @@ details.adv .pop label.row { display: flex; gap: 6px; color: var(--text); }
   $('prev').addEventListener('click', () => { stop(); setDate(state.t - 1); });
   $('next').addEventListener('click', () => { stop(); setDate(state.t + 1); });
   if (!R.vwin) $('mode').querySelector('[value="vwin"]').remove();
-  // Case-study extras in the layer list: fringes computed from the displacement, then extra rasters by group
-  if (G.fringe_cycle_mm) $('mode').querySelector('[value="cum"]').insertAdjacentHTML('afterend', `<option value="fringe">Prążki interferometryczne (cykl ${fmt(G.fringe_cycle_mm)} mm)</option>`);
-  const layerGroups = {};
-  for (const Lr of Object.values(R.layers)) (layerGroups[Lr.group] = layerGroups[Lr.group] || []).push(Lr);
-  for (const [g, ls] of Object.entries(layerGroups)) $('mode').insertAdjacentHTML('beforeend', `<optgroup label="${esc(g)}">${ls.map((Lr) => `<option value="${Lr.key}">${esc(Lr.label)}</option>`).join('')}</optgroup>`);
-  // Toggles for the vector layers of this case study
-  if ((DATA.vectors || []).length) {
-    $('adv').querySelector('.pop').insertAdjacentHTML('beforeend', '<div class="pop-sec">Warstwy tego obszaru</div>'
-      + DATA.vectors.filter((V) => vecLayers[V.key]).map((V) => `<label class="row"><input type="checkbox" data-vec="${V.key}" ${V.on ? 'checked' : ''}> ${esc(V.label)}</label>`).join(''));
-    $('adv').querySelectorAll('[data-vec]').forEach((cb) => cb.addEventListener('change', (e) => {
-      const l = vecLayers[cb.dataset.vec]; if (e.target.checked) l.addTo(map); else l.remove(); renderLegend();
-    }));
-  }
-  if (G.contour_step_mm) $('showContours').parentNode.lastChild.textContent = ` Izolinie co ${G.contour_step_mm} mm`;
   $('mode').addEventListener('change', (e) => { state.mode = e.target.value; renderLegend(); setDate(state.t, false); });
   $('ref').addEventListener('change', (e) => { state.ref = +e.target.value; setDate(state.t); });
   $('range').addEventListener('change', (e) => { state.range = +e.target.value; renderLegend(); renderRaster(); });
@@ -964,16 +1106,15 @@ details.adv .pop label.row { display: flex; gap: 6px; color: var(--text); }
   const toggle = (id, layer) => $(id).addEventListener('change', (e) => (e.target.checked ? layer.addTo(map) : layer.remove()));
   toggle('showZones', zoneLayer); toggle('showContours', contourLayer);
   document.addEventListener('click', (e) => { if (!$('adv').contains(e.target)) $('adv').open = false; });
-  map.on('click', (e) => selectPoint(e.latlng));
+  map.on('click', (e) => { if (!(VIEWS && state.view === 'phase')) selectPoint(e.latlng); });
   map.on('mousemove', (e) => {
-    const i = pixelOf(e.latlng), Lr = R.layers[state.mode];
-    if (Lr) {  // extra layer: show its own value under the cursor
-      const v = i < 0 ? null : valueAt(i);
-      $('readout').innerHTML = v === null ? 'Brak danych w tym miejscu.' : Lr.ramp === 'cat' ? `<b>${esc((Lr.classes[String(v)] || ['?'])[0])}</b>`
-        : Lr.ramp === 'cyclic' ? `faza <b>${fmt(v / 254 * 360)}°</b>` : `<b>${sgn(v)} ${Lr.unit}</b>`;
+    if (VIEWS && state.view === 'phase') {
+      const v = focusValue(e.latlng);
+      $('readout').innerHTML = v === undefined ? 'Poza wycinkiem analizy fazowej.' : v === null ? 'Brak danych w tym miejscu.'
+        : `<b>${sgn(v, 0)} mm</b> od ${dShort(F.ref_date)} ${v < -S().threshold_mm / 3 ? '· grunt się obniża' : ''}`;
       return;
     }
-    const v = i < 0 ? null : valueAt(i, 'cum');
+    const i = pixelOf(e.latlng), v = i < 0 ? null : valueAt(i, 'cum');
     $('readout').innerHTML = v === null ? 'Brak pomiaru w tym miejscu.'
       : `<b>${sgn(v, 0)} mm</b> ${Math.abs(v) < S().threshold_mm ? 'bez istotnej zmiany' : v < 0 ? 'osuwanie lub osiadanie' : 'wypiętrzanie'}`;
   });
@@ -982,6 +1123,7 @@ details.adv .pop label.row { display: flex; gap: 6px; color: var(--text); }
   window.addEventListener('resize', () => { hideTip(); buildTimeline(); });
 
   // ---------------------------------------------------------------- start
+  state.view = VIEWS ? VIEWS.default : null;
   setPeriod(state.s);
 })();
 </script>

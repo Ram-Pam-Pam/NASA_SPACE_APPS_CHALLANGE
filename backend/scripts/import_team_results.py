@@ -8,8 +8,11 @@ Web Mercator grid and writes the data package the page draws:
   core (same as build_location.py data.js, so the existing page works as is)
     grid, payload.cum / coh / vwin, zones (with peak per date and first date), contours
   extensions (optional keys, only used when present)
-    layers   - extra rasters: whole-period results, monitoring classes, per-pair phase
-    vectors  - GeoJSON layers: pipelines, facilities, water anomalies, alerts, profiles, GNSS
+    views    - side-panel views of the main results: pipelines at risk, subsidence zones, phase analysis
+    vectors  - pipelines (network + at-risk fragments), profiles
+    focus    - phase-analysis crop (Tokal): wrapped fringes and displacement at 20 m, contours per date
+    layers   - vertical velocity from two orbits (quoted in the point popup only)
+    display  - default quality filter and the noise level below which pixels are transparent
 
 and registers it as a location. Run from the backend/ folder:
     pip install -r requirements-tools.txt
@@ -182,11 +185,9 @@ def build(src: Path) -> tuple[dict, dict]:
     coh_u8 = np.clip(np.round(coh * 250), 0, 250)
     coh_u8[nodata | np.isnan(coh)] = np.nan
 
-    # --- monitoring windows (velocity in each 36-day window, change classes)
+    # --- monitoring windows (only their names; used by the risk popup "okna z ruchem")
     mon = json.loads((asc / "monitoring/monitoring.json").read_text(encoding="utf-8"))
     windows = [w["okno"] for w in mon["windows"]]
-    vwin = grid.warp(asc / "monitoring/predkosc_okna.tif")
-    classes = grid.warp(asc / "monitoring/klasy_zmian.tif", categorical=True)
 
     # --- noise / threshold (team estimate of LOS noise over the period)
     dec = json.loads((vert / "dekompozycja.json").read_text(encoding="utf-8"))
@@ -234,156 +235,137 @@ def build(src: Path) -> tuple[dict, dict]:
                    "first_dates": {dates[i]: sum(z["first_index"] == i for z in zones) for i in range(E)},
                    "noise_mm": round(noise_mm, 1), "threshold_mm": round(thr, 1)})
 
-    # --- contours of the ascending displacement (every 50 mm, at the window end dates)
-    contours = [feature(g, {"data": p["data"][:10], "poziom_mm": p["poziom_mm"]}, 0.0002)
-                for g, p in read_layer(asc / "monitoring/strefy.gpkg", "kontury")]
+    # ================================================================ extension: what the case-study page shows
+    # The page for this case study is built around three results of the analysis (side panel views):
+    #   risk  - pipelines with a subsidence risk class
+    #   zones - subsidence zones confirmed in both orbits (appear on the timeline)
+    #   phase - phase analysis of the Tokal field crop (fringes at 20 m, contours, profiles)
+    # Everything else from the results folder is left out on purpose (it cluttered the map).
 
-    # ================================================================ extension: extra rasters
-    D2 = 2                                                       # whole-period / window / pair layers at 2x pixel
+    # vertical velocity from two orbits: not drawn, only quoted in the point popup
     layers = []
+    vel_up = block_reduce(grid.warp(vert / "predkosc_pionowa.tif"), 2)
+    layers.append({"key": "vel_up", "enc": "i16", "scale": 1.0, "bands": 1, "down": 2, "unit": "mm/rok",
+                   "popup": "Ruch pionowy (2 orbity)", "data": pack(to_i16(vel_up, 1.0))})
 
-    def add_layer(key, arr, **meta):
-        enc = meta.pop("enc", "i16")
-        scale = meta.pop("scale", 1.0)
-        data = to_i16(arr, scale) if enc == "i16" else to_u8(arr)
-        layers.append({"key": key, "enc": enc, "scale": scale, "bands": int(arr.shape[0]), "down": meta.pop("down", 1),
-                       "data": pack(data), **meta})
-
-    def d2(a, how="mean"):
-        return block_reduce(a, D2, how)
-
-    add_layer("vel_up", d2(grid.warp(vert / "predkosc_pionowa.tif")), down=D2, group="Wynik za cały okres (obie orbity)",
-              label="Ruch pionowy [mm/rok]", unit="mm/rok", ramp="div", range=200, popup="Ruch pionowy (2 orbity)",
-              ends=["osiadanie", "wypiętrzanie"], note="z dwóch orbit, 18.06–16.10.2026; niepewność ok. ±57 mm/rok")
-    add_layer("disp_up", d2(grid.warp(vert / "osiadanie_okres.tif")), down=D2, group="Wynik za cały okres (obie orbity)",
-              label="Przemieszczenie pionowe [mm]", unit="mm", ramp="div", range=80, popup="Przemieszczenie pionowe",
-              ends=["osiadanie", "wypiętrzanie"], note="suma za 18.06–16.10.2026, z dwóch orbit")
-    add_layer("vel_east", d2(grid.warp(vert / "predkosc_wschodnia.tif")), down=D2, group="Wynik za cały okres (obie orbity)",
-              label="Ruch wschód–zachód [mm/rok]", unit="mm/rok", ramp="puor", range=150, popup="Ruch wschód–zachód",
-              ends=["na zachód", "na wschód"], note="tylko tam, gdzie są obie orbity")
-    add_layer("vel_asc", d2(grid.warp(asc / "los_velocity_okres_pary.tif")), down=D2, group="Wynik za cały okres (obie orbity)",
-              label="Prędkość LOS – orbita wznosząca [mm/rok]", unit="mm/rok", ramp="div", range=150,
-              ends=["od satelity", "do satelity"], note="tor 62, ramka 11; ruch w linii widzenia")
-    add_layer("vel_desc", d2(grid.warp(desc / "los_velocity_okres_pary.tif")), down=D2, group="Wynik za cały okres (obie orbity)",
-              label="Prędkość LOS – orbita zstępująca [mm/rok]", unit="mm/rok", ramp="div", range=150,
-              ends=["od satelity", "do satelity"], note="tor 156, ramka 79; ruch w linii widzenia")
-    add_layer("orbits", d2(grid.warp(vert / "liczba_orbit.tif", categorical=True), "mode"), down=D2, enc="u8",
-              group="Jakość i tło", label="Liczba orbit z danymi", ramp="cat",
-              classes={"0": ["brak danych", "#00000000"], "1": ["jedna orbita (zakładamy ruch pionowy)", "#fdae61"],
-                       "2": ["obie orbity (ruch pionowy i wschód–zachód)", "#2c7bb6"]},
-              note="pewność rozkładu ruchu na składowe")
-    lc_path = src / "dane do tabasco/pokrycie_terenu/esa_worldcover_2021_tabasco.tif"
-    lc = d2(grid.warp(lc_path, categorical=True), "mode")
-    lc[lc == 0] = np.nan
-    add_layer("landcover", lc, down=D2, enc="u8", group="Jakość i tło", label="Pokrycie terenu (ESA WorldCover)", ramp="cat",
-              classes={"10": ["las", "#5f8f4e"], "20": ["krzewy", "#c9b16b"], "30": ["trawy, pastwiska", "#d8d39a"],
-                       "40": ["uprawy", "#e3b7d8"], "50": ["zabudowa", "#c96a5f"], "60": ["teren odkryty", "#bdbdbd"],
-                       "80": ["woda", "#7fb2d9"], "90": ["mokradła", "#79bdb9"], "95": ["namorzyny", "#6fbf95"]},
-              note="woda, mokradła i namorzyny są zamaskowane: radar mierzy tam poziom wody, nie grunt")
-    add_layer("vwin", d2(vwin), down=D2, time="window", group="Oś czasu (orbita wznosząca)",
-              label="Tempo ruchu w oknach 36 dni [mm/rok]", unit="mm/rok", ramp="div", range=250,
-              ends=["od satelity", "do satelity"], note="prędkość z 3 kolejnych par kończących się w wybranej dacie")
-    add_layer("classes", d2(classes, "mode"), down=D2, enc="u8", time="window", group="Oś czasu (orbita wznosząca)",
-              label="Wykrywanie zmian (okna 36 dni)", ramp="cat",
-              classes={"0": ["brak istotnego ruchu", "#9aa3ab55"], "1": ["ruch stały", "#e3a21a"],
-                       "2": ["przyspieszenie", "#d7301f"], "3": ["nowa strefa ruchu", "#7b3294"], "4": ["spowolnienie", "#2166ac"]},
-              note="każde okno: 3 kolejne pary porównane z poprzednimi 72 dniami")
-
-    # per-pair interferometric phase: the raw 12-day interferograms (with ionosphere and atmosphere), wrapped
-    pair_files = sorted((W / "wycinki_gunw/obszar_aoi").glob("062A_011_*.tif"))
-    pairs, pair_names = [], []
-    for f in pair_files:
-        ph = grid.warp(f, bands=[1])[0]
-        cohp = grid.warp(f, bands=[2])[0]
-        water = grid.warp(f, bands=[11], categorical=True)[0]
-        ph[(water == 1) | (cohp < 0.15)] = np.nan
-        z = np.exp(1j * ph.astype(np.complex64))                  # average phasors, then take the angle
-        re, im = d2(np.real(z)[None])[0], d2(np.imag(z)[None])[0]
-        wrapped = (np.angle(re + 1j * im) % (2 * np.pi)) / (2 * np.pi) * 254
-        wrapped[np.isnan(re)] = np.nan
-        pairs.append(wrapped)
-        a, b = f.stem.split("_")[-2:]
-        pair_names.append(f"{a}-{b}")
-    add_layer("pairs", np.stack(pairs), down=D2, enc="u8", time="pair", group="Oś czasu (orbita wznosząca)",
-              label="Interferogram pary 12-dniowej (surowa faza)", ramp="cyclic", pairs=pair_names,
-              note="faza prosto z satelity: ruch + jonosfera + atmosfera; 1 cykl barw = 121 mm")
-
-    # ================================================================ extension: vectors
-    risk_col = {"wysokie": "#c62a22", "średnie": "#e3871f", "niskie": "#4a5560", "brak danych": "#98a3ab"}
+    # --- pipelines: whole network (context, merged per pipeline and class) + at-risk fragments
     vectors = []
-
-    # whole pipeline network: 100 m segments merged per pipeline and risk class
-    segs = read_layer(gp_risk, "odcinki")
     groups = {}
-    for g, p in segs:
+    for g, p in read_layer(gp_risk, "odcinki"):
         groups.setdefault((p["obiekt_id"], p["klasa"]), []).append((g, p))
     net = []
     for (oid, klasa), items in groups.items():
+        if klasa in ("wysokie", "średnie"):
+            continue                                              # drawn by the at-risk layer
         merged = line_merge(unary_union([g for g, _ in items]))
         p0 = items[0][1]
-        net.append(feature(merged, {"nazwa": p0["nazwa"], "typ": p0["typ"], "status": p0["status"],
-                                    "srednica_mm": p0["srednica_mm"], "klasa": klasa,
-                                    "km": round(sum(p.get("dl_m") or 0 for _, p in items) / 1000, 2)}, 0.00015))
-    vectors.append({"key": "pipes_all", "label": "Sieć rurociągów (OGIM)", "kind": "line", "on": False,
-                    "style": "risk", "data": fc(net)})
+        net.append(feature(merged, {"nazwa": p0["nazwa"], "typ": p0["typ"], "status": p0["status"], "klasa": klasa}, 0.0003))
+    vectors.append({"key": "pipes_all", "style": "network", "data": fc(net)})
     risky = [feature(g, p, 0.00005) for g, p in read_layer(gp_risk, "rurociagi_zagrozone")]
-    vectors.append({"key": "pipes_risk", "label": "Rurociągi zagrożone osiadaniem", "kind": "line", "on": True,
-                    "style": "risk", "data": fc(risky)})
-    vectors.append({"key": "facilities", "label": "Obiekty sieci (tłocznie, baterie, terminal)", "kind": "point", "on": False,
-                    "style": "risk", "data": fc([feature(g, p) for g, p in read_layer(gp_risk, "obiekty_sieci")])})
-    vectors.append({"key": "water", "label": "Pozorne wypiętrzanie – prawdopodobnie woda", "kind": "polygon", "on": False,
-                    "style": "water", "data": fc([feature(g, p, 0.0001) for g, p in read_layer(gp_risk, "anomalie_wody")])})
-    alerts = [feature(g, {**p, "data": (p.get("data") or "")[:10]}, 0.0001) for g, p in read_layer(asc / "monitoring/strefy.gpkg", "alerty")]
-    vectors.append({"key": "alerts", "label": "Alerty monitoringu (w wybranym oknie)", "kind": "polygon", "on": True,
-                    "style": "alert", "time": "date", "data": fc(alerts)})
+    vectors.append({"key": "pipes_risk", "style": "risk", "data": fc(risky)})
 
-    # profiles: lines + values for every date + crossings with infrastructure
+    # --- profiles across the Tokal bowl and along the most threatened pipeline
     prof_meta = json.loads((W / "przekroje/przekroje.json").read_text(encoding="utf-8"))
     profs = []
     for g, p in read_layer(W / "przekroje/przekroje.gpkg", "przekroje"):
         name = p["nazwa"]
         rows = list(csv.reader((W / f"przekroje/przekroj_{name}.csv").read_text(encoding="utf-8").splitlines()))
         head, body = rows[0], rows[1:]
-        dist = [round(float(r[0])) for r in body]
         vals = [[None if r[k + 1] in ("", "nan") else round(float(r[k + 1]), 1) for r in body] for k in range(len(head) - 1)]
         m = prof_meta.get(name, {})
-        profs.append(feature(g, {"nazwa": name, "dates": head[1:], "distance_m": dist, "values_mm": vals,
-                                 "crossings": m.get("przeciecia_infrastruktury", []), "max_mm": m.get("max_przemieszczenie_mm")}))
-    vectors.append({"key": "profiles", "label": "Przekroje przez nieckę (kliknij linię)", "kind": "line", "on": True,
-                    "style": "profile", "data": fc(profs)})
+        profs.append(feature(g, {"nazwa": name, "dates": head[1:], "distance_m": [round(float(r[0])) for r in body],
+                                 "values_mm": vals, "crossings": m.get("przeciecia_infrastruktury", []),
+                                 "max_mm": m.get("max_przemieszczenie_mm")}))
+    vectors.append({"key": "profiles", "style": "profile", "data": fc(profs)})
 
-    # GNSS VIL2: comparison + vertical series (weekly means to keep it light)
-    gn = json.loads((W / "gnss/vil2_porownanie.json").read_text(encoding="utf-8"))
-    rows = list(csv.DictReader((W / "gnss/vil2_enu.csv").read_text(encoding="utf-8").splitlines()))
-    yrs = np.array([float(r["rok"]) for r in rows])
-    up = np.array([float(r["pion_mm"]) for r in rows])
-    bins = np.floor(yrs * 52).astype(int)
-    series = [[round(float(yrs[bins == b].mean()), 3), round(float(up[bins == b].mean()), 1)] for b in np.unique(bins)]
-    gnss = {"type": "Feature", "geometry": {"type": "Point", "coordinates": [round(gn["lon"], 6), round(gn["lat"], 6)]},
-            "properties": {**{k: gn[k] for k in ("stacja", "zrodlo", "wniosek", "niepewnosc_nisar_pionowa_mm_rok")},
-                           "tempo": gn["tempo_mm_rok"], "nisar": gn["nisar_w_miejscu_stacji_mm_rok"], "series_up": series}}
-    vectors.append({"key": "gnss", "label": "Stacja GNSS VIL2 (kontrola pomiaru)", "kind": "point", "on": True,
-                    "style": "gnss", "data": fc([gnss])})
+    # --- phase analysis crop (Tokal): wrapped fringes + displacement at 20 m, contours per date
+    QF = W / "qgis_fazy"
+    qpar = json.loads((QF / "parametry.json").read_text(encoding="utf-8"))
+    with rasterio.open(QF / "tokal_prazki.tif") as ds:
+        fr_crs, fr_bounds, fr_w, fr_h = ds.crs, ds.bounds, ds.width, ds.height
+    tr, fw, fh = calculate_default_transform(fr_crs, MERC, fr_w, fr_h, *fr_bounds)
+    fgrid = Grid.__new__(Grid)                                    # same helper, own (finer) grid for the crop
+    res = abs(tr.a)
+    fgrid.res, fgrid.w, fgrid.h, fgrid.x0, fgrid.y1 = res, fw, fh, tr.c, tr.f
+    fgrid.transform = rasterio.Affine(res, 0, tr.c, 0, -res, tr.f)
+    to_ll = Transformer.from_crs(MERC, "EPSG:4326", always_xy=True)
+    w_lon, n_lat = to_ll.transform(tr.c, tr.f)
+    e_lon, s_lat = to_ll.transform(tr.c + fw * res, tr.f - fh * res)
+    wrapped = fgrid.warp(QF / "tokal_prazki.tif", categorical=True)          # 0..121 mm, nearest keeps the wrap edges
+    disp = fgrid.warp(QF / "tokal_przemieszczenie.tif")                      # mm LOS, + toward satellite
+    cyc = qpar.get("pol_dlugosci_fali_mm", HALF_WAVELENGTH_MM)
+    wrapped_u8 = np.where(np.isnan(wrapped), np.nan, np.clip(np.round(wrapped / cyc * 250), 0, 250))
+    tok_dates = [d.replace("-", "") for d in qpar["tokal"]["daty"]]
+    kont = [feature(g, {"data": p["data"].replace("-", ""), "poziom_mm": p["poziom_mm"], "etykieta": p["etykieta"]}, 0.00003)
+            for g, p in read_layer(QF / "tokal_kontury.gpkg", "kontury")]
+    last = disp[-1]
+    focus = {
+        "key": "tokal", "name": "Złoże Tokal",
+        "bounds": [[s_lat, w_lon], [n_lat, e_lon]], "mercator": {"west": tr.c, "north": tr.f, "pixel": res},
+        "w": fw, "h": fh, "bands": len(tok_dates), "dates": tok_dates, "ref_date": qpar["tokal"]["data_odniesienia"].replace("-", ""),
+        "cycle_mm": cyc, "contour_step_mm": qpar["tokal"]["kontury_co_mm"],
+        "wrapped": pack(to_u8(wrapped_u8)), "disp": pack(to_i16(disp, 0.1)),
+        "contours": fc(kont), "max_mm": round(float(np.nanmin(last)), 1),
+        "pixel_m": 20, "orbit": "orbita wznosząca (tor 62)",
+    }
+
+    # --- side-panel texts and numbers (all from the team's summaries)
+    summ = json.loads((W / "infrastruktura/rurociagi_podsumowanie.json").read_text(encoding="utf-8"))
+    thr_pipe = json.loads((W / "infrastruktura/parametry.json").read_text(encoding="utf-8"))["progi_efektywne"]
+    top = [{k: o.get(k) for k in ("obiekt_id", "nazwa", "typ", "status", "srednica_mm", "km_wysokie", "km_średnie",
+                                   "v_p95_mm_rok", "gradient_max", "powod_najgorszy")} for o in summ["obiekty_najbardziej_zagrozone"][:8]]
+    kmc, cov = summ["km_wg_klasy"], summ["pokrycie_danymi"]
+    act = summ["km_wg_statusu_i_klasy"]["czynny"]
+    zones_info = summ["strefy_osiadania"]
+    pm = prof_meta.get("os_krotka", {})
+    views = {
+        "default": "risk",
+        "risk": {"title": "Zagrożone rurociągi",
+                 "lead": "Odcinki sieci (baza OGIM), pod którymi grunt osiada szybko albo nierówno. Klasa wynika z ruchu pionowego "
+                         "z dwóch orbit NISAR; ocena co 100 m.",
+                 "stats": [[f"{kmc['wysokie']:.1f} km".replace(".", ","), "wysokie zagrożenie"],
+                           [f"{kmc['średnie']:.1f} km".replace(".", ","), "średnie zagrożenie"],
+                           [str(summ.get("przeciecia_granicy_strefy", 0)), "przecięć granicy strefy osiadania"],
+                           [f"{act['wysokie']:.1f} km".replace(".", ","), "czynnych rurociągów w klasie wysokiej"]],
+                 "note": f"Sieć ma {summ['km']:,.0f}".replace(",", " ") + f" km; dane NISAR są dla {cov['udzial'] * 100:.0f}% długości "
+                         "(reszta: mokradła, woda). "
+                         f"Klasa wysoka: osiadanie ≥ {thr_pipe['v_high']:.0f} mm/rok albo nierówne osiadanie ≥ {thr_pipe['g_high']:.0f} mm/100 m/rok.",
+                 "top": top},
+        "zones": {"title": "Strefy osiadania",
+                  "lead": f"{zones_info['liczba']} stref osiadania widocznych w obu orbitach (łącznie "
+                          f"{zones_info['pow_km2']:.1f}".replace(".", ",") + " km²). "
+                          "Pojawiają się na osi czasu w dniu, w którym ruch przekroczył 3× szum pomiaru.",
+                  "note": "Kliknij strefę albo pinezkę, żeby zobaczyć historię ruchu w tym miejscu. Pinezki: 20 stref o największym "
+                          "osiadaniu × powierzchni; pozostałe są obrysami."},
+        "phase": {"title": "Analiza fazowa: złoże Tokal",
+                  "lead": "Wycinek 10 × 8 km nad największą niecką osiadania. Kolorowe pierścienie to prążki interferometryczne: "
+                          f"każdy pełny cykl barw to {cyc:.0f} mm ruchu w linii widzenia satelity. Im więcej pierścieni, tym głębsza niecka.",
+                  "stats": [[f"{focus['max_mm']:.0f} mm".replace("-", "−"), "najgłębiej w niecce (16.10)"],
+                            [f"{qpar['tokal']['kontury_co_mm']:.0f} mm", "odstęp białych konturów"]],
+                  "note": "Naciśnij Odtwórz na osi czasu: pierścienie narastają z każdym przelotem (co 12 dni). "
+                          f"Przekrój przecina rurociąg {pm.get('przeciecia_infrastruktury', [{}])[0].get('obiekt', '')} – kliknij linię przekroju, "
+                          "żeby zobaczyć profil niecki w czasie. Pole wygładzone (~80 m) i interpolowane do 20 m."},
+    }
+    display = {"coh_min": 0.35, "min_mm": 25}   # hide low-quality pixels and motion within the noise (transparent)
 
     package = {
         "grid": {"width": grid.w, "height": grid.h, "bounds": grid.bounds,
                  "mercator": {"west": grid.x0, "north": grid.y1, "pixel": grid.res},
                  "pixel_m": round(grid.res * math.cos(math.radians(lat_mid))), "dates": dates, "windows": windows,
-                 "fringe_cycle_mm": HALF_WAVELENGTH_MM, "contour_step_mm": 50,
                  "series": [{"period": f"{dates[0]}_{dates[-1]}", "start": 0, "end": E - 1, "days": round(years * 365.25),
                              "step_days": 12, "noise_mm": round(noise_mm, 1), "threshold_mm": round(thr, 1),
                              "moving_km2_by_date": moving, "zones": len(zones)}],
                  "orbit": "wznosząca (tor 62, ramka 11), ruch w linii widzenia satelity"},
         "params": {"threshold_rule": "3 x szum LOS okresu (dekompozycja.json)"},
         "payload": {"cum": pack(to_i16(cum, 0.1)), "coh": pack(to_u8(coh_u8))},
-        "zones": zones, "pipes": [], "contours": contours, "alerts": [],
-        "layers": layers, "vectors": vectors,
+        "zones": zones, "pipes": [], "contours": [], "alerts": [],
+        "layers": layers, "vectors": vectors, "focus": focus, "views": views, "display": display,
         "config": {"pipelines_label": "OGIM v1.1",
-                   "sources": "NISAR L2 GUNW (NASA/ISRO, ASF DAAC) · OGIM v1.1 (EDF/MethaneSAT) · ESA WorldCover 2021 (CC-BY 4.0) · GNSS VIL2: Nevada Geodetic Laboratory"},
+                   "sources": "NISAR L2 GUNW (NASA/ISRO, ASF DAAC) · OGIM v1.1 (EDF/MethaneSAT)"},
     }
     sizes = {k: len(json.dumps(v)) // 1000 for k, v in package.items()}
-    sizes["layers_each"] = {l["key"]: len(l["data"]) // 1000 for l in layers}
     sizes["vectors_each"] = {v["key"]: len(json.dumps(v["data"])) // 1000 for v in vectors}
+    sizes["focus_each"] = {k: len(json.dumps(v)) // 1000 for k, v in focus.items()}
     report["size_kb"] = sizes
     return package, report
 
