@@ -1,0 +1,2602 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Corridor Watch · model 3D</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23C8F169'/%3E%3Cpath d='M4 21h9l3-3 3 3h9' fill='none' stroke='%230B0C0E' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<style>
+/* Same dark theme tokens as index.html, so both views read as one product. */
+:root {
+  color-scheme: dark;
+  --page: #0B0C0E; --surface: #15171A; --text: #F2F3F0; --text-2: #A2A6AC; --border: #2B2E33; --wash: rgba(242,243,240,0.06);
+  --accent: #C8F169; --accent-ink: #0B0C0E; --alert: #ff6b4a;
+  --font: "Inter", "Manrope", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --shadow: 0 1px 2px rgba(0,0,0,.5), 0 4px 14px rgba(0,0,0,.4);
+  --label: 600 11.5px/1.3 var(--font);
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--page); color: var(--text); font: 14px/1.5 var(--font); -webkit-font-smoothing: antialiased; display: flex; flex-direction: column; overflow: hidden; }
+[hidden] { display: none !important; }
+button, select, input { font: inherit; }
+button { background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 6px 12px; cursor: pointer; transition: background .15s, border-color .15s; }
+button:hover { background: #22252a; }
+button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+select { background: var(--page); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 7px 10px; max-width: 100%; cursor: pointer; }
+input[type="checkbox"] { accent-color: var(--accent); width: 16px; height: 16px; margin: 0; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.bar { flex: none; display: flex; gap: 8px 18px; align-items: center; flex-wrap: wrap; min-height: 52px; padding: 8px 20px; background: var(--surface); box-shadow: inset 0 -1px 0 var(--border); position: relative; z-index: 20; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 15.5px; letter-spacing: -.01em; white-space: nowrap; }
+.brand svg { width: 26px; height: 26px; flex: none; }
+.bar h1 { display: flex; align-items: baseline; gap: 10px; margin: 0; padding-left: 18px; border-left: 1px solid var(--border); font-size: 15px; font-weight: 600; line-height: 1.3; }
+.bar h1::before { content: "Model 3D"; font: var(--label); letter-spacing: .07em; text-transform: uppercase; color: var(--text-2); white-space: nowrap; }
+.bar h1:empty { display: none; }
+body.flat .bar h1::before { content: "Widok 2D"; }
+.bar .sp { flex: 1; }
+/* 2D / 3D switch in the header: the same location as a map with the analysis results or as a 3D model */
+.dims { display: inline-flex; flex: none; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--page); }
+.dims button { border: 0; border-radius: 0; padding: 6px 14px; background: transparent; color: var(--text); font-size: 13px; font-weight: 600; letter-spacing: .02em; }
+.dims button + button { border-left: 1px solid var(--border); }
+.dims button:hover { background: var(--wash); }
+.dims button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); cursor: default; }
+
+.loc { display: flex; align-items: center; gap: 10px; min-width: 0; font: var(--label); letter-spacing: .07em; text-transform: uppercase; color: var(--text-2); }
+
+/* Timeline of ground motion (2D view only): play it to see how the ground changed between the measurements. */
+#timeline { flex: none; display: flex; align-items: center; gap: 10px 14px; flex-wrap: wrap; padding: 8px 20px; background: var(--surface); box-shadow: inset 0 -1px 0 var(--border); position: relative; z-index: 15; }
+.tl-title { font: var(--label); letter-spacing: .07em; text-transform: uppercase; color: var(--text-2); white-space: nowrap; }
+.tl-series-label { display: inline-flex; align-items: center; gap: 8px; font: var(--label); letter-spacing: .05em; text-transform: uppercase; color: var(--text-2); white-space: nowrap; }
+.tl-series-label select { max-width: 190px; padding: 7px 28px 7px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--page); color: var(--text); font-size: 13px; font-weight: 600; letter-spacing: normal; text-transform: none; }
+.tl-step { display: inline-flex; align-items: center; gap: 2px; padding: 2px; border: 1px solid var(--border); border-radius: 10px; background: var(--page); }
+.tl-step button, .tl-round { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; background: transparent; }
+.tl-round { border: 1px solid var(--border); border-radius: 50%; background: var(--page); }
+#tlPlay { width: 38px; height: 38px; background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.tl-step svg, .tl-round svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+#tlPlay svg { fill: currentColor; stroke: none; }
+.tl-date { min-width: 104px; text-align: center; font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }
+#tlTrack { position: relative; flex: 1 1 320px; min-width: 220px; height: 38px; cursor: pointer; touch-action: none; }
+#tlTrack::before { content: ""; position: absolute; left: 0; right: 0; top: 13px; height: 4px; border-radius: 2px; background: var(--border); }
+#tlFill { position: absolute; left: 0; top: 13px; height: 4px; border-radius: 2px; background: var(--accent); }
+.tl-tick { position: absolute; top: 11px; width: 8px; height: 8px; margin-left: -4px; border-radius: 50%; background: #5b6068; }
+.tl-tick.on { background: var(--accent); }
+.tl-lbl { position: absolute; top: 22px; transform: translateX(-50%); font-size: 11.5px; color: var(--text-2); white-space: nowrap; }
+#tlKnob { position: absolute; top: 7px; width: 16px; height: 16px; margin-left: -8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 4px rgba(200,241,105,.25); }
+.tl-key { display: flex; align-items: center; gap: 12px; font-size: 12.5px; color: var(--text-2); }
+.tl-key b { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+@media (max-width: 720px) { .tl-key { flex-basis: 100%; } }
+
+#stage { position: relative; flex: 1; min-height: 0; background: radial-gradient(ellipse at 50% 35%, #1d2733 0%, #0e1218 60%, #0B0C0E 100%); }
+#stage canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+#stage canvas:active { cursor: grabbing; }
+#status { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; text-align: center; color: var(--text-2); font-size: 15px; z-index: 5; }
+
+/* Labels are HTML placed over the canvas every frame. */
+#labels { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.lbl { position: absolute; left: 0; top: 0; white-space: nowrap; font-size: 12px; font-weight: 600; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.9), 0 0 6px rgba(0,0,0,.7); will-change: transform; }
+.lbl.place { font-size: 14px; letter-spacing: .01em; }
+.lbl.area { color: #ffc266; }
+.lbl.biz { font-weight: 500; font-size: 11.5px; color: #e6e8ea; }
+.lbl.hazard { padding: 3px 9px; border-radius: 999px; background: var(--haz-bg, rgba(255,107,74,.92)); color: var(--haz-ink, #1a0b06); text-shadow: none; font-size: 12.5px; box-shadow: var(--shadow); }
+/* Main anomalies of the timeline (2D view): a numbered dot with a pulsing ring, red = sinking, blue = rising */
+#marks { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 4; }
+.amark { position: absolute; left: 0; top: 0; width: 0; height: 0; pointer-events: auto; cursor: pointer; transition: opacity .4s; }
+.amark .dot { position: absolute; left: -13px; top: -13px; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--c); color: #fff; font: 700 13px/1 var(--font); border: 2px solid #fff; box-shadow: 0 1px 6px rgba(0,0,0,.55); }
+.amark .ring { pointer-events: none; position: absolute; left: -13px; top: -13px; width: 26px; height: 26px; border-radius: 50%; border: 3px solid var(--c); animation: apulse 1.8s ease-out infinite; }
+.amark .ring + .ring { animation-delay: .9s; }
+.amark.off { opacity: 0; pointer-events: none; }
+@keyframes apulse { from { transform: scale(1); opacity: .9; } to { transform: scale(3.4); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .amark .ring { animation: none; opacity: .5; transform: scale(1.6); } }
+.lbl.road { padding: 1px 6px; border-radius: 4px; background: #f2f3f0; color: #15171A; text-shadow: none; font-size: 11px; font-weight: 700; }
+
+.panel { position: absolute; z-index: 10; background: rgba(21,23,26,.9); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow); backdrop-filter: blur(8px); }
+#layers { top: 14px; left: 14px; width: 252px; max-height: calc(100% - 28px); overflow: auto; }
+#layers summary { padding: 10px 14px; font: var(--label); letter-spacing: .07em; text-transform: uppercase; color: var(--text-2); cursor: pointer; list-style: none; display: flex; justify-content: space-between; }
+#layers summary::after { content: "▾"; }
+#layers:not([open]) summary::after { content: "▸"; }
+#layers .body { padding: 2px 14px 14px; display: grid; gap: 9px; }
+.row { display: flex; align-items: center; gap: 10px; font-size: 13.5px; cursor: pointer; }
+.row .n { margin-left: auto; color: var(--text-2); font-size: 12px; font-variant-numeric: tabular-nums; }
+.row.off { color: var(--text-2); cursor: default; }
+.sw { flex: none; width: 12px; height: 12px; border-radius: 3px; }
+.lg-h { margin: 6px 0 0; font: var(--label); letter-spacing: .07em; text-transform: uppercase; color: var(--text-2); }
+.keys { display: grid; gap: 5px; font-size: 12.5px; }
+.keys span { display: flex; align-items: center; gap: 8px; }
+.keys .sw { height: 5px; width: 20px; border-radius: 3px; }
+.note { margin: 0; font-size: 12px; line-height: 1.45; color: var(--text-2); }
+.seg { display: flex; gap: 4px; }
+.seg button { flex: 1; padding: 4px 0; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.goto { display: flex; flex-wrap: wrap; gap: 6px; }
+.goto button { padding: 4px 10px; font-size: 12.5px; border-radius: 999px; }
+/* Tabasco: ranking of the strongest subsidence under the pipelines instead of "go to" buttons */
+.goto.rank { display: grid; gap: 4px; }
+.goto.rank button { display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; gap: 8px; align-items: center; width: 100%; padding: 6px 8px; border-radius: 8px; text-align: left; font-size: 12px; }
+.goto.rank b { font-weight: 700; color: var(--text-2); }
+.goto.rank span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.3; word-break: break-word; }
+.goto.rank em { font-style: normal; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+#nav { right: 14px; bottom: 14px; padding: 8px; display: grid; grid-template-columns: repeat(3, 38px); gap: 6px; }
+#nav button { width: 38px; height: 38px; padding: 0; display: grid; place-items: center; }
+#nav button svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+#nav button.wide { grid-column: 1 / -1; width: auto; font-size: 12.5px; font-weight: 600; }
+#compass { right: 14px; top: 14px; width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; padding: 0; }
+#compass svg { width: 40px; height: 40px; }
+#hint { left: 50%; top: 14px; transform: translateX(-50%); padding: 7px 14px; font-size: 12.5px; color: var(--text-2); white-space: nowrap; pointer-events: none; transition: opacity .6s; }
+#src { position: absolute; left: 14px; bottom: 10px; z-index: 9; max-width: calc(100% - 200px); font-size: 11px; line-height: 1.4; color: rgba(162,166,172,.85); pointer-events: none; }
+/* Verification signal for a clicked object (results of the InSAR analysis) */
+#verify { right: 14px; top: 80px; width: 340px; max-height: calc(100% - 200px); overflow: auto; padding: 14px 16px 14px; z-index: 12; }
+body.flat #verify { top: 14px; max-height: calc(100% - 120px); }
+#verify .vx { position: absolute; top: 8px; right: 8px; width: 28px; height: 28px; padding: 0; border-radius: 50%; display: grid; place-items: center; font-size: 16px; line-height: 1; }
+#verify h3 { margin: 0 30px 2px 0; font-size: 15px; font-weight: 600; }
+#verify .vsub { margin: 0 0 10px; font-size: 12.5px; color: var(--text-2); }
+.vsig { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: 8px; background: var(--wash); border-left: 4px solid var(--sig); }
+.vsig b { display: block; font-size: 14px; }
+.vsig span { font-size: 12.5px; color: var(--text-2); }
+.vgrid { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; margin: 10px 0 0; font-size: 12.5px; }
+.vgrid dt { color: var(--text-2); }
+.vgrid dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.vh { margin: 14px 0 6px; font: var(--label); letter-spacing: .07em; text-transform: uppercase; color: var(--text-2); }
+.vtrend { font-size: 12.5px; line-height: 1.45; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); }
+.vtrend b { font-weight: 600; }
+.vnotes { margin: 0; padding-left: 16px; font-size: 12px; line-height: 1.45; color: var(--text-2); }
+.vnotes li + li { margin-top: 4px; }
+.vnext { font-size: 12.5px; line-height: 1.45; }
+.vplain { margin: 10px 0 8px; font-size: 14px; line-height: 1.5; }
+.vplain b { font-weight: 700; }
+.vmore { margin-top: 10px; border-top: 1px solid var(--border); padding-top: 8px; }
+.vmore summary { cursor: pointer; font-size: 12.5px; color: var(--text-2); }
+.vmore summary:hover { color: var(--text); }
+.amark.sel .dot { width: 14px; height: 14px; left: -7px; top: -7px; background: var(--accent); border-color: #0B0C0E; }
+.amark.sel .ring { width: 14px; height: 14px; left: -7px; top: -7px; border-color: var(--accent); }
+#tip { position: fixed; z-index: 50; pointer-events: none; max-width: 300px; padding: 8px 11px; background: #15171A; border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--shadow); font-size: 12.5px; line-height: 1.45; display: none; }
+#tip b { font-weight: 600; }
+#tip .k { color: var(--text-2); }
+
+/* Results of the analysis: summary block, phase-analysis switch of the timeline, contour labels, new anomalies */
+.sum { margin-top: 2px; padding-top: 8px; border-top: 1px solid var(--border); }
+.sum summary { cursor: pointer; font: var(--label); letter-spacing: .07em; text-transform: uppercase; color: var(--text-2); }
+.sum-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0 6px; }
+.sum-stats div { padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--wash); }
+.sum-stats b { display: block; font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.sum-stats span { font-size: 11.5px; line-height: 1.3; color: var(--text-2); }
+.tl-mode { display: inline-flex; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--page); }
+.tl-mode button { padding: 7px 12px; border: 0; border-radius: 0; background: transparent; font-size: 12.5px; font-weight: 600; color: var(--text-2); white-space: nowrap; }
+.tl-mode button + button { border-left: 1px solid var(--border); }
+.tl-mode button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); cursor: default; }
+.kg { display: contents; }
+.kg[hidden] { display: none; }
+.fringe-bar { display: inline-block; width: 110px; height: 10px; border-radius: 5px; margin-right: 6px; vertical-align: -1px; }
+.lbl.contour { padding: 0 4px; border-radius: 3px; background: rgba(11,12,14,.72); font-size: 10.5px; text-shadow: none; }
+.amark.fresh .dot { background: var(--accent); color: #0B0C0E; border-color: #0B0C0E; }
+.amark.fresh .ring { border-color: var(--accent); }
+.amark.gnss .dot { font-size: 12px; }
+.tl-pipes { display: inline-flex; align-items: center; gap: 10px; }
+.tl-pipes i { display: inline-block; width: 16px; height: 4px; border-radius: 2px; margin-right: 5px; vertical-align: 2px; box-shadow: 0 0 0 1px rgba(0,0,0,.5); }
+
+@media (max-width: 720px) {
+  #layers { width: 210px; }
+  #hint, #src { display: none; }
+  .bar h1 { flex-basis: 100%; order: 1; padding-left: 0; border-left: 0; }
+}
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "./vendor/three/three.module.js",
+  "three/addons/": "./vendor/three/addons/"
+} }
+</script>
+</head>
+<body>
+
+<header class="bar">
+  <div class="brand">
+    <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#C8F169"/><path d="M4 12c4-5 8 3 12-1s8 3 12-1" fill="none" stroke="#2B2E33" stroke-width="2.2" stroke-linecap="round"/><path d="M4 21h9l3-3 3 3h9" fill="none" stroke="#0B0C0E" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <span>Corridor Watch</span>
+  </div>
+  <h1 id="title"></h1>
+  <span class="sp"></span>
+  <div class="dims" id="dims" role="group" aria-label="Rodzaj widoku" hidden>
+    <button id="dim2" aria-pressed="false" title="Widok z góry: płaska mapa tego samego modelu">2D</button>
+    <button id="dim3" aria-pressed="false" title="Model 3D terenu i infrastruktury">3D</button>
+  </div>
+  <label class="loc">Lokalizacja
+    <select id="loc" aria-label="Lokalizacja"></select>
+  </label>
+</header>
+
+<div id="timeline" hidden>
+  <span class="tl-title" id="tlTitle">Zmiana terenu</span>
+  <div class="tl-mode" id="tlMode" role="group" aria-label="Rodzaj analizy" hidden>
+    <button id="tlModeMove" aria-pressed="true" title="Skumulowana zmiana terenu w linii widzenia satelity">Zmiana terenu</button>
+    <button id="tlModePhase" aria-pressed="false" title="Prążki interferometryczne i kontury przemieszczenia – szczegółowa analiza fazowa">Analiza fazowa</button>
+  </div>
+  <div class="tl-step">
+    <button id="tlPrev" title="Poprzedni pomiar" aria-label="Poprzedni pomiar"><svg viewBox="0 0 24 24"><path d="M14.5 6l-6 6 6 6"/></svg></button>
+    <span class="tl-date" id="tlDate"></span>
+    <button id="tlNext" title="Następny pomiar" aria-label="Następny pomiar"><svg viewBox="0 0 24 24"><path d="M9.5 6l6 6-6 6"/></svg></button>
+  </div>
+  <button class="tl-round" id="tlPlay" title="Odtwórz zmiany w czasie" aria-label="Odtwórz"></button>
+  <div id="tlTrack" role="slider" tabindex="0" aria-label="Data pomiaru"><div id="tlFill"></div><div id="tlKnob"></div></div>
+  <div class="tl-key"><span class="kg" id="tlKeyMove"><span title="Teren przesunął się od satelity: osiada albo osuwa się po zboczu"><b style="background:rgb(214,39,40)"></b>osiadanie / osuwanie</span><span title="Teren przesunął się w stronę satelity: podnosi się"><b style="background:rgb(31,104,196)"></b>wypiętrzanie</span><span id="tlAno" hidden><b style="background:#fff;border-radius:50%;box-shadow:0 0 0 2px rgb(214,39,40)"></b>główne anomalie</span></span><span class="kg" id="tlKeyPhase" hidden><span title="Jeden pełny cykl barw to jeden prążek: zmiana odległości do satelity o połowę długości fali"><i class="fringe-bar" id="tlFringeBar"></i><span id="tlFringeTxt"></span></span><span><b style="background:none;border:2px solid #fff"></b>kontury przemieszczenia</span></span><span id="tlThr"></span></div>
+</div>
+
+<div id="stage">
+  <div id="status">Wczytywanie modelu 3D…</div>
+  <div id="labels"></div>
+  <div id="marks"></div>
+
+  <details class="panel" id="layers" open hidden>
+    <summary>Warstwy modelu</summary>
+    <div class="body">
+      <div id="sumWrap" hidden></div>
+      <div id="toggles" style="display:grid;gap:9px"></div>
+      <div id="exagWrap" hidden>
+        <p class="lg-h">Przewyższenie terenu</p>
+        <div class="seg" id="exag" role="group" aria-label="Przewyższenie terenu" style="margin-top:6px"></div>
+        <p class="note" id="exagNote" style="margin-top:6px"></p>
+      </div>
+      <div id="pipeLegend" hidden>
+        <p class="lg-h" id="pipeTitle">Rurociągi – co płynie</p>
+        <div class="keys" id="pipeKeys" style="margin-top:6px"></div>
+        <p class="note" id="pipeNote" style="margin-top:6px"></p>
+      </div>
+      <div id="gotoWrap" hidden>
+        <p class="lg-h">Przejdź do</p>
+        <div class="goto" id="goto" style="margin-top:6px"></div>
+      </div>
+    </div>
+  </details>
+
+  <button class="panel" id="compass" title="Ustaw północ u góry" aria-label="Kompas: ustaw północ u góry" hidden>
+    <svg viewBox="0 0 40 40" aria-hidden="true"><g id="needle"><path d="M20 4l6 16H14z" fill="#ff6b4a"/><path d="M20 36l6-16H14z" fill="#A2A6AC"/><text x="20" y="16.5" text-anchor="middle" font-size="8" font-weight="700" fill="#15171A" font-family="Inter, sans-serif">N</text></g></svg>
+  </button>
+
+  <div class="panel" id="nav" hidden>
+    <button id="rotL" title="Obróć w lewo" aria-label="Obróć w lewo"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.6-5.9M4 4v5h5"/></svg></button>
+    <button id="tiltBtn" title="Widok z góry / z ukosa" aria-label="Widok z góry lub z ukosa"><svg viewBox="0 0 24 24"><path d="M3 17l9 4 9-4M3 12l9 4 9-4M12 3l9 4-9 4-9-4z"/></svg></button>
+    <button id="rotR" title="Obróć w prawo" aria-label="Obróć w prawo"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.6-5.9M20 4v5h-5"/></svg></button>
+    <button id="zoomOut" title="Oddal" aria-label="Oddal"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button>
+    <button id="home" title="Cały obszar" aria-label="Pokaż cały obszar"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7M6 10v9h12v-9"/></svg></button>
+    <button id="zoomIn" title="Przybliż" aria-label="Przybliż"><svg viewBox="0 0 24 24"><path d="M5 12h14M12 5v14"/></svg></button>
+    <button id="spin" class="wide" aria-pressed="false">Obracaj model</button>
+  </div>
+
+  <aside class="panel" id="verify" hidden aria-live="polite">
+    <button class="vx" id="vClose" aria-label="Zamknij" title="Zamknij">×</button>
+    <div id="vBody"></div>
+  </aside>
+  <div class="panel" id="hint" hidden>Przeciągnij – obrót · prawy przycisk lub Shift – przesuwanie · kółko – zoom</div>
+  <div id="src"></div>
+</div>
+<div id="tip"></div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { LineSegments2 } from 'three/addons/lines/LineSegments2.js';
+import { LineSegmentsGeometry } from 'three/addons/lines/LineSegmentsGeometry.js';
+import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const fail = (msg) => { $('status').hidden = false; $('status').textContent = msg; };
+const getJSON = async (url) => { const res = await fetch(url); if (!res.ok) throw new Error(`HTTP ${res.status}`); return res.json(); };
+
+// ----------------------------------------------------------- which location
+// Scene packages are listed by the backend (/api/v1/datasets, kind "scene3d"). A location that has a
+// 3D model is shown here; locations with only an InSAR package still open in index.html.
+const API = window.CW_API || '/api/v1';
+let SETS;
+try { SETS = await getJSON(`${API}/datasets`); }
+catch (err) { fail(`Nie udało się połączyć z serwerem (${err.message}). Czy backend jest uruchomiony?`); throw err; }
+// models with data first; a placeholder location ("ready": false) is listed last and shows an empty state
+const SCENES = SETS.filter((d) => d.kind === 'scene3d').sort((a, b) => (b.ready !== false) - (a.ready !== false));
+const OTHERS = SETS.filter((d) => d.kind !== 'scene3d' && d.kind !== 'analysis' && !SCENES.some((sc) => sc.id === d.id));
+$('loc').innerHTML = SCENES.map((d) => `<option value="scene3d:${esc(d.id)}">${esc(d.name)}${d.ready === false ? ' · w przygotowaniu' : ''}</option>`).join('')
+  + OTHERS.map((d) => `<option value="insar:${esc(d.id)}">${esc(d.name)} · analiza InSAR</option>`).join('');
+const LOC = SCENES.find((d) => d.id === decodeURIComponent(location.hash.slice(1))) || SCENES.find((d) => d.ready !== false) || SCENES[0];
+if (!LOC) { fail('Brak modelu 3D. Zbuduj go skryptem backend/scripts/build_scene3d.py.'); throw new Error('no scene'); }
+$('loc').value = `scene3d:${LOC.id}`;
+$('loc').addEventListener('change', (e) => {
+  const [kind, id] = e.target.value.split(/:(.*)/);
+  // another model keeps the current 2D/3D mode; an address that differs only after "#" does not reload
+  // the page by itself, the hashchange listener below does that
+  const flat = new URLSearchParams(location.search).get('view') === '2d';  // the address holds the current mode (also on an empty location)
+  location.href = kind === 'scene3d' ? `view3d.html${flat ? '?view=2d' : ''}#${encodeURIComponent(id)}` : `index.html#${encodeURIComponent(id)}`;
+});
+window.addEventListener('hashchange', () => location.reload());
+const BASE = LOC.base_url;
+let META;
+try { META = await getJSON(BASE + 'meta.json'); }
+catch (err) { fail(`Nie udało się wczytać modelu (${err.message}).`); throw err; }
+$('title').textContent = META.name;
+document.title = `${META.name} · model 3D · Corridor Watch`;
+if (META.empty || !META.bbox) {  // placeholder location: header and location list work, the model area says why it is empty
+  $('status').hidden = false;
+  $('status').innerHTML = `<div style="max-width:440px"><div style="font-size:17px;font-weight:600;color:var(--text);margin-bottom:6px">${esc(META.name)} – w przygotowaniu</div>`
+    + `Dla tej lokalizacji nie ma jeszcze danych. Model 3D, widok 2D i oś czasu pojawią się tutaj, gdy zespół przygotuje dane.`
+    + `<br><br>Wybierz inną lokalizację z listy w prawym górnym rogu.</div>`;
+  throw new Error('placeholder location without data');
+}
+$('src').textContent = 'Źródła: ' + (META.sources || []).join(' · ');
+
+// ----------------------------------------------------------------- terrain
+// Real lidar heights. Flat areas (a few metres of relief over kilometres) only show their shape
+// when the heights are multiplied, so everything is placed at height x EXAG.
+const T = META.terrain || null;
+let terrainGrid = null;
+if (T) {
+  try { const res = await fetch(BASE + T.file); if (res.ok) terrainGrid = new Uint16Array(await res.arrayBuffer()); } catch (err) { /* stays flat */ }
+  if (terrainGrid && terrainGrid.length !== T.width * T.height) terrainGrid = null;
+}
+const T_STEP = terrainGrid ? (T.max_m - T.min_m) / 65535 : 0;
+let EXAG = terrainGrid ? T.default_exaggeration || 1 : 1;
+// 2D = the same model seen straight from above and flattened: no relief, flat roofs and crowns, no
+// curtains, north up, pan instead of rotate. Everything else (layers, names, legend) stays the same.
+let FLAT = new URLSearchParams(location.search).get('view') === '2d';
+let exag3d = EXAG;
+if (FLAT) EXAG = 0;
+
+// ---------------------------------------------------------------- geometry
+// Local frame in metres: X east, Y up, Z south; the AOI centre is the origin.
+const [W_LON, S_LAT, E_LON, N_LAT] = META.bbox, [SX, SZ] = META.size_m;
+const R = Math.max(SX, SZ);
+const BIG = R > 12000;                 // city-scale scene: lighter detail, merged and instanced geometry
+const K = Math.max(1, R / 5000);       // symbols (pipes, outlines, label heights) grow with the scene so they stay visible
+const KL = Math.min(K, 6);              // ... but labels, pipes and outlines no bigger than in a 30 km scene (Portuguese Bend)
+const toXZ = ([lon, lat]) => [((lon - W_LON) / (E_LON - W_LON) - 0.5) * SX, (0.5 - (lat - S_LAT) / (N_LAT - S_LAT)) * SZ];
+/** Real height in metres above the lowest point of the area. */
+function elevAt(x, z) {
+  if (!terrainGrid) return 0;
+  const gx = Math.min(Math.max((x / SX + 0.5) * (T.width - 1), 0), T.width - 1.001), gz = Math.min(Math.max((z / SZ + 0.5) * (T.height - 1), 0), T.height - 1.001);
+  const x0 = Math.floor(gx), z0 = Math.floor(gz), fx = gx - x0, fz = gz - z0, i = z0 * T.width + x0, g = terrainGrid;
+  // the same two triangles per cell as the terrain mesh (THREE.PlaneGeometry splits a cell along b-d),
+  // so anything placed with this lies exactly on the visible surface
+  const a = g[i], d = g[i + 1], b = g[i + T.width], c = g[i + T.width + 1];
+  return (fx + fz <= 1 ? a + (d - a) * fx + (b - a) * fz : c + (b - c) * (1 - fx) + (d - c) * (1 - fz)) * T_STEP;
+}
+// On the flat 2D map everything that lies on the ground is lifted by one fixed amount: seen from straight above
+// it changes nothing, but with a camera tens of km away a few cm are too little to keep layers apart.
+const FLAT_LIFT = Math.max(2, R * 1e-4);
+const H = (x, z) => (FLAT ? FLAT_LIFT : elevAt(x, z) * EXAG);  // height in the model
+const STEP = BIG ? 30 : 10;  // spacing of extra points; about one terrain cell
+/** Extra points so that a long straight segment follows the ground instead of cutting through it. */
+function dense(pts, step = STEP) {
+  if (!terrainGrid) return pts;
+  const out = [pts[0]];
+  for (let i = 1; i < pts.length; i++) {
+    const a = pts[i - 1], b = pts[i], n = Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / step);
+    for (let k = 1; k <= n; k++) out.push([a[0] + (b[0] - a[0]) * k / n, a[1] + (b[1] - a[1]) * k / n]);
+  }
+  return out;
+}
+const pathLen = (pts) => pts.reduce((s, p, i) => (i ? s + Math.hypot(p[0] - pts[i - 1][0], p[1] - pts[i - 1][1]) : 0), 0);
+const lines = (g) => (g.type === 'LineString' ? [g.coordinates] : g.type === 'MultiLineString' ? g.coordinates : []);
+const polygons = (g) => (g.type === 'Polygon' ? [g.coordinates] : g.type === 'MultiPolygon' ? g.coordinates : []);
+function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+
+/** Strip along a path. `yAt(t, x, z)` gives the height (t = 0..1 of the length, x/z = centre line), `side` shifts it left/right. */
+function ribbon(pts, width, yAt, side = 0) {
+  const n = pts.length, pos = new Float32Array(n * 6), idx = [], total = pathLen(pts);
+  let run = 0;
+  for (let i = 0; i < n; i++) {
+    const a = pts[Math.max(0, i - 1)], b = pts[Math.min(n - 1, i + 1)];
+    const len = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1, nx = -(b[1] - a[1]) / len, nz = (b[0] - a[0]) / len;
+    if (i) run += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+    const y = yAt(total ? run / total : 0, pts[i][0], pts[i][1]), cx = pts[i][0] + nx * side, cz = pts[i][1] + nz * side;
+    pos.set([cx + nx * width / 2, y, cz + nz * width / 2, cx - nx * width / 2, y, cz - nz * width / 2], i * 6);
+    if (i < n - 1) idx.push(2 * i, 2 * i + 1, 2 * i + 2, 2 * i + 1, 2 * i + 3, 2 * i + 2);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  geo.setIndex(idx);
+  return geo;
+}
+/** Points every `step` metres along a path: [x, z, heading, t]. */
+function walk(pts, step, start = 0) {
+  const out = [], total = pathLen(pts);
+  let next = start, run = 0;
+  for (let i = 1; i < pts.length; i++) {
+    const dx = pts[i][0] - pts[i - 1][0], dz = pts[i][1] - pts[i - 1][1], seg = Math.hypot(dx, dz);
+    while (next <= run + seg && seg > 0) { const f = (next - run) / seg; out.push([pts[i - 1][0] + dx * f, pts[i - 1][1] + dz * f, Math.atan2(dz, dx), next / total]); next += step; }
+    run += seg;
+  }
+  return out;
+}
+/** Smallest rectangle around a footprint (points as [x, north]): centre, long-axis angle, half sizes. */
+function boundingRect(pts) {
+  let best = null;
+  for (let i = 0; i < pts.length; i++) {
+    const p = pts[i], q = pts[(i + 1) % pts.length], ang = Math.atan2(q[1] - p[1], q[0] - p[0]), c = Math.cos(ang), s = Math.sin(ang);
+    let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+    for (const [x, y] of pts) { const u = x * c + y * s, v = -x * s + y * c; x0 = Math.min(x0, u); x1 = Math.max(x1, u); y0 = Math.min(y0, v); y1 = Math.max(y1, v); }
+    const area = (x1 - x0) * (y1 - y0);
+    if (!best || area < best.area) best = { area, ang, mu: (x0 + x1) / 2, mv: (y0 + y1) / 2, a: (x1 - x0) / 2, b: (y1 - y0) / 2 };
+  }
+  const c = Math.cos(best.ang), s = Math.sin(best.ang), r = { cx: best.mu * c - best.mv * s, cy: best.mu * s + best.mv * c, ang: best.ang, a: best.a, b: best.b };
+  if (r.b > r.a) { [r.a, r.b] = [r.b, r.a]; r.ang += Math.PI / 2; }
+  return r;
+}
+function shapeOf(rings) {  // GeoJSON polygon rings -> THREE.Shape in (x, north)
+  const ringPts = (ring) => ring.slice(0, -1).map((c) => { const [x, z] = toXZ(c); return new THREE.Vector2(x, -z); });
+  const shape = new THREE.Shape(ringPts(rings[0]));
+  rings.slice(1).forEach((hole) => shape.holes.push(new THREE.Path(ringPts(hole))));
+  return shape;
+}
+const lay = (geo) => geo.rotateX(-Math.PI / 2);  // (x, north) plane -> ground plane, extrusion -> up
+/** Pitched roof 1 x 1 x 1: ridge along X at height 1, eaves at height 0. Scaled per building. */
+function gableGeometry() {
+  const E = (sx, sz) => [sx * 0.5, 0, sz * 0.5], Rg = (sx) => [sx * 0.5, 1, 0];
+  const tri = [E(1, 1), E(-1, 1), Rg(-1), E(1, 1), Rg(-1), Rg(1), E(1, -1), Rg(1), Rg(-1), E(1, -1), Rg(-1), E(-1, -1), E(1, 1), Rg(1), E(1, -1), E(-1, 1), E(-1, -1), Rg(-1)];
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(tri.flat(), 3));
+  geo.computeVertexNormals();
+  return geo;
+}
+
+// ------------------------------------------------------------------- scene
+const stage = $('stage');
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, logarithmicDepthBuffer: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+stage.insertBefore(renderer.domElement, stage.firstChild);
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(38, 1, Math.max(2, R / 3000), R * 8);
+scene.add(new THREE.HemisphereLight(0xf2f7ff, 0x6b7a52, 1.9));
+const sun = new THREE.DirectionalLight(0xfff4e0, 2.3);
+sun.position.set(-0.55, 1, 0.45);  // late-morning sun from the south-east side, matches the photo's shading well enough
+scene.add(sun);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+Object.assign(controls, { enableDamping: true, dampingFactor: 0.09, screenSpacePanning: false, minDistance: 40, maxDistance: R * 3,
+  maxPolarAngle: THREE.MathUtils.degToRad(86), autoRotateSpeed: 0.9, zoomToCursor: true });
+controls.addEventListener('change', () => {  // keep the model in view: the orbit centre stays on the AOI
+  controls.target.x = THREE.MathUtils.clamp(controls.target.x, -SX / 2, SX / 2);
+  controls.target.z = THREE.MathUtils.clamp(controls.target.z, -SZ / 2, SZ / 2);
+  controls.target.y = H(controls.target.x, controls.target.z);
+  dirty = true;
+});
+let dirty = true;
+const HOME = { az: THREE.MathUtils.degToRad(-28), polar: THREE.MathUtils.degToRad(56), dist: R * 1.45, target: new THREE.Vector3(0, 0, 0) };
+function place({ az, polar, dist, target }) {  // azimuth 0 = looking north
+  controls.target.copy(target);
+  camera.position.set(target.x + dist * Math.sin(polar) * Math.sin(az), target.y + dist * Math.cos(polar), target.z + dist * Math.sin(polar) * Math.cos(az));
+  controls.update();
+}
+const viewNow = () => ({ az: controls.getAzimuthalAngle(), polar: controls.getPolarAngle(), dist: camera.position.distanceTo(controls.target), target: controls.target.clone() });
+let flight = null;
+function flyTo(to, ms = 900) {
+  const from = viewNow();
+  to = { ...from, ...to };
+  to.az = from.az + Math.atan2(Math.sin(to.az - from.az), Math.cos(to.az - from.az));  // shortest way round
+  flight = { from, to, t0: performance.now(), ms };
+}
+place(HOME);
+
+const lineMats = new Set();  // fat-line materials: their width is in screen pixels and needs the canvas size
+/** Many line segments as one object with a constant width in screen pixels. `segs` = [x1, y1, z1, x2, y2, z2, ...], `cols` = [r, g, b, r, g, b, ...] per vertex. */
+function fatLines(segs, cols, px, extra = {}) {
+  const geo = new LineSegmentsGeometry();
+  geo.setPositions(segs); geo.setColors(cols);
+  const mat = new LineMaterial({ linewidth: px, vertexColors: true, transparent: true, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4, ...extra });
+  mat.resolution.set(stage.clientWidth, stage.clientHeight);
+  lineMats.add(mat);
+  return new LineSegments2(geo, mat);
+}
+const groups = {};
+const group = (id) => (groups[id] = groups[id] || scene.add(new THREE.Group()).children.at(-1));
+const pickables = [];
+const tipped = (mesh, tip) => { mesh.userData.tip = tip; pickables.push(mesh); return mesh; };
+const OFFSET = { polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 };
+const flat = (color, extra = {}) => new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide, ...OFFSET, ...extra });
+const lit = (color, extra = {}) => new THREE.MeshLambertMaterial({ color, side: THREE.DoubleSide, flatShading: true, ...extra });
+
+/** Many small geometries drawn as one mesh (one draw call). Each part keeps its colour and its tooltip. */
+class Batch {
+  constructor(material, withNormals = false) { this.material = material; this.withNormals = withNormals; this.parts = []; }
+  /** `cap` = { count, color }: the first `count` vertices get another colour (the roof of an extruded footprint). */
+  add(geo, color, tip = null, cap = null) { this.parts.push({ geo: geo.index ? geo.toNonIndexed() : geo, color, tip, cap }); }
+  mesh() {
+    if (!this.parts.length) return null;
+    const total = this.parts.reduce((s, p) => s + p.geo.attributes.position.count, 0);
+    const pos = new Float32Array(total * 3), col = new Float32Array(total * 3), nor = this.withNormals ? new Float32Array(total * 3) : null;
+    const ends = [], tips = [], c = new THREE.Color(), c2 = new THREE.Color();
+    let o = 0;
+    for (const p of this.parts) {
+      const n = p.geo.attributes.position.count, capN = p.cap ? p.cap.count : 0;
+      pos.set(p.geo.attributes.position.array.subarray(0, n * 3), o * 3);
+      if (nor) nor.set(p.geo.attributes.normal.array.subarray(0, n * 3), o * 3);
+      c.set(p.color); if (p.cap) c2.set(p.cap.color);
+      for (let i = 0; i < n; i++) { const k = i < capN ? c2 : c, j = (o + i) * 3; col[j] = k.r; col[j + 1] = k.g; col[j + 2] = k.b; }
+      o += n; ends.push(o / 3); tips.push(p.tip);
+      p.geo.dispose();
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    if (nor) geo.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
+    const mesh = new THREE.Mesh(geo, this.material);
+    if (tips.some(Boolean)) {
+      mesh.userData.tipAt = (face) => { let lo = 0, hi = ends.length - 1; while (lo < hi) { const mid = (lo + hi) >> 1; if (ends[mid] > face) hi = mid; else lo = mid + 1; } return tips[lo]; };
+      pickables.push(mesh);
+    }
+    return mesh;
+  }
+}
+
+// Ground: the aerial photo on a slab, like a physical site model.
+const photo = await new THREE.TextureLoader().loadAsync(BASE + META.ground.file).catch(() => null);
+if (photo) { photo.colorSpace = THREE.SRGBColorSpace; photo.anisotropy = renderer.capabilities.getMaxAnisotropy(); }
+// The terrain keeps real heights in its geometry and is stretched with scale.y = EXAG. Relief is
+// shaded into vertex colours (the photo has no relief shading of its own on flat ground).
+const terrain = new THREE.Group();
+scene.add(terrain);
+const GW = terrainGrid ? T.width : 2, GH = terrainGrid ? T.height : 2;
+const groundGeo = lay(new THREE.PlaneGeometry(SX, SZ, GW - 1, GH - 1));  // vertex i = row (north -> south) * GW + column
+if (terrainGrid) {
+  const pos = groundGeo.attributes.position;
+  for (let i = 0; i < pos.count; i++) pos.setY(i, terrainGrid[i] * T_STEP);
+  groundGeo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(pos.count * 3).fill(1), 3));
+  // side walls down to the slab, so the model has no gap at its edges
+  const wall = [], edge = [];
+  for (let c = 0; c < GW; c++) edge.push(c);
+  for (let r = 1; r < GH; r++) edge.push(r * GW + GW - 1);
+  for (let c = GW - 2; c >= 0; c--) edge.push((GH - 1) * GW + c);
+  for (let r = GH - 2; r >= 0; r--) edge.push(r * GW);
+  for (let k = 0; k < edge.length - 1; k++) {
+    const a = edge[k], b = edge[k + 1], ax = pos.getX(a), ay = pos.getY(a), az = pos.getZ(a), bx = pos.getX(b), by = pos.getY(b), bz = pos.getZ(b);
+    wall.push(ax, ay, az, ax, 0, az, bx, by, bz, bx, by, bz, ax, 0, az, bx, 0, bz);
+  }
+  const wallGeo = new THREE.BufferGeometry();
+  wallGeo.setAttribute('position', new THREE.Float32BufferAttribute(wall, 3));
+  terrain.add(new THREE.Mesh(wallGeo, new THREE.MeshBasicMaterial({ color: 0x5a4b3b, side: THREE.DoubleSide })));
+}
+const groundMat = new THREE.MeshBasicMaterial({ ...(photo ? { map: photo } : { color: 0x4f6b3c }), vertexColors: !!terrainGrid });
+if (photo && (META.ground.resolution_m || 0) >= 5) {
+  // A coarse satellite photo (10 m pixels) turns into a blur when seen close. A faint fine-grained brightness
+  // pattern (three scales of value noise, only the brightness, fading out with distance) gives the ground a
+  // surface again without changing its colours - the same trick as a detail map in a game.
+  groundMat.onBeforeCompile = (sh) => {
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vWorld;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvWorld = (modelMatrix * vec4(position, 1.0)).xyz;');
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
+      varying vec3 vWorld;
+      float hash21(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
+      float vnoise(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+        return mix(mix(hash21(i), hash21(i + vec2(1, 0)), f.x), mix(hash21(i + vec2(0, 1)), hash21(i + vec2(1, 1)), f.x), f.y); }`)
+      .replace('#include <map_fragment>', `#include <map_fragment>
+      { float d = distance(cameraPosition, vWorld);
+        float fade = 1.0 - smoothstep(600.0, 5000.0, d);
+        float n = vnoise(vWorld.xz * 0.35) * 0.5 + vnoise(vWorld.xz * 1.1) * 0.3 + vnoise(vWorld.xz * 3.2) * 0.2;
+        diffuseColor.rgb *= 1.0 + (n - 0.5) * 0.55 * fade; }`);
+  };
+}
+const ground = new THREE.Mesh(groundGeo, groundMat);
+terrain.add(ground);
+let detailTiles = null;  // close-up photo tiles, set up below once the terrain exists
+function shadeTerrain() {
+  terrain.scale.y = Math.max(EXAG, 1e-4);
+  if (!terrainGrid) return;
+  const col = groundGeo.attributes.color, g = terrainGrid, dx = SX / (GW - 1), dz = SZ / (GH - 1), k = T_STEP * (FLAT ? exag3d : EXAG);
+  const L = sun.position.clone().normalize();
+  for (let r = 0; r < GH; r++) {
+    const rn = Math.max(r - 1, 0), rs = Math.min(r + 1, GH - 1);
+    for (let c = 0; c < GW; c++) {
+      const cw = Math.max(c - 1, 0), ce = Math.min(c + 1, GW - 1), i = r * GW + c;
+      const sx = (g[r * GW + ce] - g[r * GW + cw]) * k / ((ce - cw) * dx), sz = (g[rs * GW + c] - g[rn * GW + c]) * k / ((rs - rn) * dz);
+      const light = (-sx * L.x + L.y - sz * L.z) / Math.hypot(sx, 1, sz) / L.y;  // 1 on flat ground
+      const v = Math.min(1.3, Math.max(0.5, 1 + 0.8 * (light - 1)));
+      col.setXYZ(i, v, v, v);
+    }
+  }
+  col.needsUpdate = true;
+  if (detailTiles) detailTiles.reshade();
+}
+shadeTerrain();
+
+// Close-up photo tiles (city-scale scenes): sharper aerial photo near the camera. Each tile is a patch of the
+// terrain lattice itself (same heights and relief shading) with its own texture, drawn over the base photo.
+detailTiles = (() => {
+  const TI = META.ground?.tiles;
+  if (!TI || !terrainGrid || T.width !== TI.grid * TI.cells + 1) return null;
+  const N = TI.grid, C = TI.cells, n = C + 1, have = new Set(TI.list.map(([r, c]) => `${r}_${c}`));
+  const loader = new THREE.TextureLoader(), live = new Map(), wanted = new Set();
+  const MAX_LIVE = 16, NEAR = Math.min(6000, R * 0.22), gpos = groundGeo.attributes.position;
+  const tw = SX / N, th = SZ / N, box = new THREE.Box3(), frustum = new THREE.Frustum(), pm = new THREE.Matrix4();
+  let loading = 0, last = 0;
+  // shared index for every tile patch (same layout as THREE.PlaneGeometry)
+  const index = [];
+  for (let i = 0; i < C; i++) for (let j = 0; j < C; j++) { const a = i * n + j, b = a + n; index.push(a, b, a + 1, b, b + 1, a + 1); }
+  const uv = new Float32Array(n * n * 2);
+  for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) uv.set([j / C, 1 - i / C], (i * n + j) * 2);
+  const gi = (r, c, i, j) => (r * C + i) * GW + (c * C + j);
+  function shadeOf(r, c, col) {
+    const g = groundGeo.attributes.color;
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) { const k = gi(r, c, i, j), q = (i * n + j) * 3; col[q] = g.getX(k); col[q + 1] = g.getY(k); col[q + 2] = g.getZ(k); }
+  }
+  function add(key, tex) {
+    const [r, c] = key.split('_').map(Number), pos = new Float32Array(n * n * 3), col = new Float32Array(n * n * 3);
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) { const k = gi(r, c, i, j); pos.set([gpos.getX(k), gpos.getY(k), gpos.getZ(k)], (i * n + j) * 3); }
+    shadeOf(r, c, col);
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+    geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    geo.setIndex(index);
+    const mesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ map: tex, vertexColors: true, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }));
+    terrain.add(mesh);
+    live.set(key, { mesh, r, c, used: performance.now() });
+    dirty = true;
+  }
+  function drop(key) {
+    const t = live.get(key);
+    terrain.remove(t.mesh); t.mesh.geometry.dispose(); t.mesh.material.map.dispose(); t.mesh.material.dispose();
+    live.delete(key);
+  }
+  return {
+    reshade() { for (const t of live.values()) { shadeOf(t.r, t.c, t.mesh.geometry.attributes.color.array); t.mesh.geometry.attributes.color.needsUpdate = true; } },
+    update(now) {
+      if (now - last < 250) return;
+      last = now;
+      frustum.setFromProjectionMatrix(pm.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse));
+      const cam = camera.position, list = [];
+      for (const key of have) {
+        const [r, c] = key.split('_').map(Number), x0 = -SX / 2 + c * tw, z0 = -SZ / 2 + r * th;
+        const dx = Math.max(x0 - cam.x, 0, cam.x - (x0 + tw)), dz = Math.max(z0 - cam.z, 0, cam.z - (z0 + th));
+        const d = Math.hypot(dx, dz, Math.max(0, cam.y - H(x0 + tw / 2, z0 + th / 2)));
+        if (d > NEAR) continue;
+        box.min.set(x0, -10, z0); box.max.set(x0 + tw, (T.max_m - T.min_m) * Math.max(EXAG, 0.01) + 50, z0 + th);
+        if (frustum.intersectsBox(box)) list.push([d, key]);
+      }
+      list.sort((a, b) => a[0] - b[0]);
+      wanted.clear();
+      list.slice(0, MAX_LIVE).forEach(([, key]) => wanted.add(key));
+      for (const key of wanted) {
+        if (live.has(key)) { live.get(key).used = now; continue; }
+        if (loading >= 3 || live.has(key + '…')) continue;
+        loading++; live.set(key + '…', null);
+        loader.load(BASE + TI.dir + '/' + key + '.jpg', (tex) => {
+          loading--; live.delete(key + '…');
+          tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+          add(key, tex);
+        }, undefined, () => { loading--; live.delete(key + '…'); have.delete(key); });
+      }
+      // free the tiles that are not wanted any more, the longest unused first
+      const extra = [...live.entries()].filter(([k, t]) => t && !wanted.has(k)).sort((a, b) => a[1].used - b[1].used);
+      while (live.size > MAX_LIVE && extra.length) drop(extra.shift()[0]);
+      for (const [k, t] of extra) if (now - t.used > 20000) drop(k);
+    },
+    count: () => [...live.values()].filter(Boolean).length,
+  };
+})();
+const slab = new THREE.Mesh(new THREE.BoxGeometry(SX, R * 0.012, SZ), new THREE.MeshLambertMaterial({ color: 0x4a3f33 }));
+slab.position.y = -R * 0.006 - 0.05;
+scene.add(slab);
+
+/** The sea sheet's colour and opacity as one texture (one texel per terrain cell).
+ *  Opacity: see-through along the shore, where the photo shows surf, kelp and harbour basins, and fully
+ *  solid from a few hundred metres out, where the aerial photo is only a patchwork of flight strips with
+ *  visible seams and sun glint. Colour: lighter near the coast, deeper blue offshore, with a faint slow
+ *  variation so the open water does not look like flat paint. */
+let seaTex = null;
+function seaTexture() {
+  if (seaTex) return seaTex;
+  const cell = SX / (GW - 1), level = (T.sea_level_m - T.min_m) / T_STEP + 0.3 / T_STEP, n = GW * GH;
+  const land = new Float32Array(n);
+  for (let i = 0; i < n; i++) land[i] = terrainGrid[i] > level ? 1 : 0;
+  const blurred = (src, metres) => {  // two passes of a running mean along rows and columns ~ a soft gaussian
+    const reach = Math.max(1, Math.round(metres / cell)), a = Float32Array.from(src), tmp = new Float32Array(n);
+    const run = (from, to, step, count, lines) => {
+      for (let l = 0; l < lines; l++) {
+        const base = step === 1 ? l * GW : l;
+        let sum = 0;
+        for (let k = -reach; k <= reach; k++) sum += from[base + Math.min(count - 1, Math.max(0, k)) * step];
+        for (let k = 0; k < count; k++) {
+          to[base + k * step] = sum / (2 * reach + 1);
+          sum += from[base + Math.min(count - 1, k + reach + 1) * step] - from[base + Math.max(0, k - reach) * step];
+        }
+      }
+    };
+    for (let pass = 0; pass < 2; pass++) { run(a, tmp, 1, GW, GH); run(tmp, a, GW, GH, GW); }
+    return a;
+  };
+  const near = blurred(land, 160), coast = blurred(land, 1500);
+  const deep = new THREE.Color(0x2a6587), shallow = new THREE.Color(0x4a92ad), c = new THREE.Color();
+  const px = new Uint8Array(n * 4);
+  for (let r = 0; r < GH; r++) for (let col = 0; col < GW; col++) {
+    const i = r * GW + col, j = ((GH - 1 - r) * GW + col) * 4;  // texture rows run south -> north
+    const x = col * cell, z = r * cell;
+    const ripple = 0.035 * (Math.sin(x * 0.0021 + z * 0.0013) + Math.sin(x * -0.0009 + z * 0.0027 + 1.7)) / 2;  // slow, faint swell
+    c.copy(deep).lerp(shallow, Math.min(1, coast[i] * 3.5)).multiplyScalar(1 + ripple);
+    const u = THREE.MathUtils.smoothstep(near[i], 0.05, 0.45);  // 1 at the waterline, 0 from ~150-250 m offshore
+    px[j] = Math.round(255 * c.r); px[j + 1] = Math.round(255 * c.g); px[j + 2] = Math.round(255 * c.b);
+    px[j + 3] = terrainGrid[i] > level ? 0 : Math.round(255 * (1 - 0.78 * u));
+  }
+  seaTex = new THREE.DataTexture(px, GW, GH, THREE.RGBAFormat);
+  seaTex.colorSpace = THREE.SRGBColorSpace;
+  seaTex.magFilter = THREE.LinearFilter; seaTex.minFilter = THREE.LinearFilter;
+  seaTex.needsUpdate = true;
+  return seaTex;
+}
+
+const tipRow = (k, v) => (v || v === 0 ? `<br><span class="k">${k}:</span> ${esc(v)}` : '');
+const SLOPE_COLOR = { edge: 0xc8742c, edgeTick: 0x8f4d1c, wall: 0xd8d3c7, wallTick: 0x77736b };
+const SLOPE_KIND = { retaining_wall: 'Mur oporowy', cliff: 'Klif', scarp: 'Krawędź skarpy' };
+const MATERIAL_PL = { concrete: 'beton', stone: 'kamień', brick: 'cegła', cement: 'cement', concrete_block: 'bloczki betonowe', wood: 'drewno', metal: 'metal', gabion: 'gabiony' };
+function slopeTip(p) {
+  const mm = p.motion_mm, moved = mm != null && Math.abs(mm) >= 20;
+  return `<b>${esc(p.name || SLOPE_KIND[p.kind] || 'Skarpa')}</b>${p.name ? '<br>' + SLOPE_KIND[p.kind] : ''}`
+    + tipRow('Materiał', p.material && p.material.split(';').map((m) => MATERIAL_PL[m] || m).join(', '))
+    + (p.relief_m ? `<br>wysokość ok. ${p.relief_m} m, nachylenie ok. ${p.slope_deg}°` : '')
+    + tipRow('Długość', p.length_m ? `${p.length_m.toLocaleString('pl-PL')} m` : '')
+    + (mm != null ? `<br><span class="k">Ruch gruntu:</span> ${moved ? `${mm < 0 ? '−' : '+'}${(Math.abs(mm) / 10).toLocaleString('pl-PL', { maximumFractionDigits: 0 })} cm` : 'brak wyraźnego'}` : '')
+    + `<br><span class="k">${p.kind === 'scarp' ? 'wyznaczona z lidaru USGS' : 'OpenStreetMap'}</span>`;
+}
+const layerFile = (name) =>(META.layers?.[name]?.count ? getJSON(BASE + META.layers[name].file).then((g) => g.features).catch(() => []) : Promise.resolve([]));
+const binFile = (info) => (info?.count ? fetch(BASE + info.file).then((r) => (r.ok ? r.arrayBuffer() : null)).catch(() => null) : null);
+const EXTRAS = META.extras?.file ? await getJSON(BASE + META.extras.file).catch(() => null) : null;  // section profiles and a GNSS station
+const [roads, rail, water, pipes, areas, places, buildings, hazards, power, slopes, treeBuf, bldBuf, fpBuf] = await Promise.all([
+  ...['roads', 'rail', 'water', 'pipelines', 'areas', 'places', 'buildings', 'hazards', 'power', 'slopes'].map(layerFile), binFile(META.trees), binFile(META.buildings_fp ? null : META.buildings_bin), binFile(META.buildings_fp),
+]);
+
+// Building footprints (city-scale scenes): decoded and triangulated once, every build() only places them.
+const FP = fpBuf && (() => {
+  const dv = new DataView(fpBuf), n = META.buildings_fp.count, len = fpBuf.byteLength;
+  const start = new Uint32Array(n + 1), height = new Float32Array(n), pitched = new Uint8Array(n), roof = new Float32Array(n * 3);
+  let o = 0, total = 0;
+  for (let i = 0; i < n && o < len; i++) { const k = dv.getUint8(o); start[i] = total; total += k; o += 6 + 4 * k; }
+  start[n] = total;
+  const X = new Float32Array(total), Z = new Float32Array(total), triStart = new Uint32Array(n + 1), tris = [];
+  const c = new THREE.Color(), CH = 12, chunkOf = new Uint16Array(n);
+  o = 0;
+  for (let i = 0; i < n; i++) {
+    const k = dv.getUint8(o), s0 = start[i];
+    height[i] = dv.getUint8(o + 1) / 2; pitched[i] = dv.getUint8(o + 2) & 1;
+    c.setRGB(dv.getUint8(o + 3) / 255, dv.getUint8(o + 4) / 255, dv.getUint8(o + 5) / 255, THREE.SRGBColorSpace);
+    roof.set([c.r, c.g, c.b], i * 3);
+    o += 6;
+    let cx = 0, cz = 0;
+    const contour = [];
+    for (let j = 0; j < k; j++, o += 4) {
+      const x = (dv.getUint16(o, true) / 65535 - 0.5) * SX, z = (dv.getUint16(o + 2, true) / 65535 - 0.5) * SZ;
+      X[s0 + j] = x; Z[s0 + j] = z; cx += x; cz += z;
+      contour.push(new THREE.Vector2(x, -z));
+    }
+    triStart[i] = tris.length;
+    for (const t of THREE.ShapeUtils.triangulateShape(contour, [])) tris.push(t[0], t[1], t[2]);
+    chunkOf[i] = Math.min(CH - 1, Math.floor((cz / k / SZ + 0.5) * CH)) * CH + Math.min(CH - 1, Math.floor((cx / k / SX + 0.5) * CH));
+  }
+  triStart[n] = tris.length;
+  return { n, start, X, Z, height, pitched, roof, tris: Uint32Array.from(tris), triStart, chunkOf, CH };
+})();
+
+const labels = [];
+let labelOrder = null;  // labels sorted by importance, for placeLabels()
+const LABEL_PRIO = { hazard: 0, place: 2, road: 3, area: 3, biz: 5 };  // lower = kept when labels overlap
+const addLabel = (text, x, z, y, cls, maxDist = Infinity, prio = LABEL_PRIO[cls] ?? 4) => {
+  const el = document.createElement('div');
+  el.className = 'lbl ' + cls; el.textContent = text; $('labels').appendChild(el);
+  labels.push({ el, pos: new THREE.Vector3(x, y, z), maxDist, prio, w: 0, h: 0 });
+};
+const centre = (ring) => { const p = ring.map(toXZ); return [p.reduce((s, q) => s + q[0], 0) / p.length, p.reduce((s, q) => s + q[1], 0) / p.length]; };
+const spots = [];  // named places for the "go to" buttons
+const TREE_CH = 16, TREE_FAR = 18000, treeChunks = [];
+function updateTreeChunks() {  // hide tree chunks too far away to see (cheap: a few hundred distance checks)
+  const cam = camera.position;
+  for (const t of treeChunks) t.mesh.visible = Math.hypot(Math.max(0, Math.hypot(t.x - cam.x, t.z - cam.z) - t.r), cam.y) < TREE_FAR;
+}
+const pipeKinds = new Map();
+// An analysis that rated the pipelines (risk class per segment): colour by class instead of by medium; the long
+// network of low / no-data segments is drawn as thin flat ribbons, the rated-at-risk ones as tubes with a glow.
+const RISK_MODE = pipes.some((f) => f.properties.risk);
+const RISK_COL = { wysokie: 0xe03131, 'średnie': 0xf08c00, niskie: 0x37b24d, 'brak danych': 0x8a96a3 };
+const NET_COL = 0x8a96a3;  // the whole network underneath the classes
+const PIPE_GROUP = { wysokie: 'pipes_high', 'średnie': 'pipes_mid', niskie: 'pipes_low' };  // one layer switch per class
+const hex = (n) => '#' + n.toString(16).padStart(6, '0');
+// pipeline geometry in metres, for the click test (does not depend on the terrain exaggeration)
+const pipeLines = RISK_MODE ? pipes.flatMap((f) => lines(f.geometry).map((c) => ({ f, pts: c.map(toXZ) }))) : [];
+const riskTip = (p) => `<b>${esc(p.name || p.kind || 'Rurociąg')}</b><br><span class="k">Zagrożenie:</span> <b style="color:${hex(RISK_COL[p.risk] || 0xf2c230)}">${esc(p.risk || 'brak danych')}</b>`
+  + `${p.reason ? '<br>' + esc(p.reason) : ''}${tipRow('Medium', p.medium)}${tipRow('Średnica', p.diameter_in ? p.diameter_in + '″' : '')}<br><span class="k">kliknij – szczegóły</span>`;
+
+// ------------------------------------------------------------ hazard zones
+/** Smooth a closed ring by corner cutting (Chaikin): the pixel staircase of a raster-derived zone
+ *  becomes a soft curve. Display only - the zone data itself is not changed. */
+function chaikin(pts, iterations = 3) {
+  for (let k = 0; k < iterations; k++) {
+    const out = [];
+    for (let i = 0; i < pts.length; i++) {
+      const p = pts[i], q = pts[(i + 1) % pts.length];
+      out.push([0.75 * p[0] + 0.25 * q[0], 0.75 * p[1] + 0.25 * q[1]], [0.25 * p[0] + 0.75 * q[0], 0.25 * p[1] + 0.75 * q[1]]);
+    }
+    pts = out;
+  }
+  return pts;
+}
+// zone colours can come from the data (Tabasco: violet, so the zones do not mix with the red / orange pipelines)
+const HAZ_EDGE = new THREE.Color(META.hazard_colors?.[0] ?? 0xff4a2a), HAZ_CORE = new THREE.Color(META.hazard_colors?.[1] ?? 0xffb347);
+if (META.hazard_colors) { document.documentElement.style.setProperty('--haz-bg', META.hazard_colors[0]); document.documentElement.style.setProperty('--haz-ink', '#fff'); }
+const hazardMat = () => new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false, side: THREE.DoubleSide,
+  polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 });
+/**
+ * A hazard zone drawn as a soft shape that follows the ground:
+ *  - a glow draped on the terrain: strongest at the edge, fading towards the middle (red -> amber) and
+ *    a short way outside, so the zone reads as an area, not a hard frame;
+ *  - a thin edge line;
+ *  - a low curtain on the edge that fades upwards, so slopes and height changes along the edge are visible.
+ * `rings` = GeoJSON rings (lon, lat). With `fill: false` (a sinkhole lake) the inside is left to the water.
+ */
+function hazardZone(group, rings, { fill = true, tip = '' } = {}) {
+  const smooth = rings.filter((r) => r.length >= 4).map((r) => chaikin(r.slice(0, -1).map(toXZ)));
+  if (!smooth.length) return;
+  const all = smooth.flat(), xs = all.map((p) => p[0]), zs = all.map((p) => p[1]);
+  const x0 = Math.min(...xs), x1 = Math.max(...xs), z0 = Math.min(...zs), z1 = Math.max(...zs), S = Math.max(x1 - x0, z1 - z0);
+  const clamp = THREE.MathUtils.clamp, dIn = clamp(S * 0.15, 25, 450), dOut = clamp(S * 0.05, 12, 150);
+  const wallH = clamp(S * 0.06, 15, 150), lineW = clamp(S * 0.005, 2.5, 10), lift = 0.3;
+  const segs = [];
+  smooth.forEach((r) => r.forEach((p, i) => segs.push([p, r[(i + 1) % r.length]])));
+  const inside = (x, z) => { let c = false; for (const [p, q] of segs) if ((p[1] > z) !== (q[1] > z) && x < (q[0] - p[0]) * (z - p[1]) / (q[1] - p[1]) + p[0]) c = !c; return c; };
+  const dist = (x, z) => {
+    let m = Infinity;
+    for (const [p, q] of segs) {
+      const dx = q[0] - p[0], dz = q[1] - p[1], t = clamp(((x - p[0]) * dx + (z - p[1]) * dz) / (dx * dx + dz * dz || 1), 0, 1);
+      const ex = p[0] + t * dx - x, ez = p[1] + t * dz - z;
+      m = Math.min(m, ex * ex + ez * ez);
+    }
+    return Math.sqrt(m);
+  };
+
+  // glow on the ground: a patch of the terrain lattice itself, so every triangle lies on the surface
+  const cx = terrainGrid ? SX / (GW - 1) : Math.max(2, S / 120), cz = terrainGrid ? SZ / (GH - 1) : cx;
+  const maxC = Math.floor(SX / cx), maxR = Math.floor(SZ / cz);
+  const c0 = clamp(Math.floor((x0 - dOut + SX / 2) / cx), 0, maxC), c1 = clamp(Math.ceil((x1 + dOut + SX / 2) / cx), 0, maxC);
+  const r0 = clamp(Math.floor((z0 - dOut + SZ / 2) / cz), 0, maxR), r1 = clamp(Math.ceil((z1 + dOut + SZ / 2) / cz), 0, maxR);
+  const nc = c1 - c0 + 1, nr = r1 - r0 + 1, pos = new Float32Array(nc * nr * 3), col = new Float32Array(nc * nr * 4), alpha = new Float32Array(nc * nr), tmp = new THREE.Color();
+  for (let r = 0; r < nr; r++) for (let c = 0; c < nc; c++) {
+    const k = r * nc + c, x = -SX / 2 + (c0 + c) * cx, z = -SZ / 2 + (r0 + r) * cz, d = dist(x, z), inZone = inside(x, z);
+    let a = 0;
+    if (inZone) { if (fill) { const u = Math.min(1, d / dIn); a = 0.1 + 0.4 * (1 - u) ** 1.8; tmp.copy(HAZ_EDGE).lerp(HAZ_CORE, u); } }
+    else { a = 0.38 * (1 - Math.min(1, d / dOut)) ** 2; tmp.copy(HAZ_EDGE); }
+    alpha[k] = a;
+    pos.set([x, H(x, z) + lift, z], k * 3);
+    col.set([tmp.r, tmp.g, tmp.b, a], k * 4);
+  }
+  const idx = [];
+  for (let r = 0; r < nr - 1; r++) for (let c = 0; c < nc - 1; c++) {
+    const a = r * nc + c, b = a + nc, cc = b + 1, d = a + 1;
+    if (alpha[a] + alpha[b] + alpha[cc] + alpha[d] > 0.004) idx.push(a, b, d, b, cc, d);
+  }
+  if (idx.length) {
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(col, 4));
+    geo.setIndex(idx);
+    group.add(tipped(new THREE.Mesh(geo, hazardMat()), tip));
+  }
+
+  // edge line and fading curtain, following the ground along the smoothed edge
+  for (const ring of smooth) {
+    const pts = dense([...ring, ring[0]], Math.max(1.5, Math.min(cx, cz) / 2));
+    group.add(tipped(new THREE.Mesh(ribbon(pts, lineW, (t, x, z) => H(x, z) + lift + 0.4),
+      flat(HAZ_EDGE.getHex(), { transparent: true, opacity: 0.95, polygonOffsetFactor: -6, polygonOffsetUnits: -6 })), tip));
+    if (FLAT) continue;  // no curtain on a flat map
+    const wall = [], wcol = [];
+    for (let i = 1; i < pts.length; i++) {
+      const [ax, az] = pts[i - 1], [bx, bz] = pts[i], ay = H(ax, az) + lift, by = H(bx, bz) + lift;
+      wall.push(ax, ay, az, bx, by, bz, bx, by + wallH, bz, ax, ay, az, bx, by + wallH, bz, ax, ay + wallH, az);
+      const lo = [HAZ_EDGE.r, HAZ_EDGE.g, HAZ_EDGE.b, 0.55], hi = [HAZ_EDGE.r, HAZ_EDGE.g, HAZ_EDGE.b, 0];
+      wcol.push(...lo, ...lo, ...hi, ...lo, ...hi, ...hi);
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(wall, 3));
+    geo.setAttribute('color', new THREE.Float32BufferAttribute(wcol, 4));
+    group.add(new THREE.Mesh(geo, hazardMat()));
+  }
+}
+
+/** Everything that stands on the ground. Runs again when the exaggeration changes. */
+function build() {
+for (const g of Object.values(groups)) {
+  g.traverse((o) => { if (o.geometry) o.geometry.dispose(); [].concat(o.material || []).forEach((m) => m.dispose()); });
+  scene.remove(g);
+}
+Object.keys(groups).forEach((k) => delete groups[k]);
+pickables.length = 0; labels.length = 0; labelOrder = null; spots.length = 0; pipeKinds.clear();
+$('labels').innerHTML = '';
+const addBatch = (id, batch) => { const mesh = batch.mesh(); if (mesh) group(id).add(mesh); };
+
+// ---- hazard zones (e.g. an active landslide): soft glow on the ground, edge line, fading curtain + label
+for (const f of hazards) {
+  for (const rings of polygons(f.geometry)) {
+    const ring = rings[0].map(toXZ), [cx, cz] = centre(rings[0]);
+    const size = Math.max(...ring.map(([x, z]) => Math.hypot(x - cx, z - cz)));
+    hazardZone(group('hazards'), rings, { tip: `<b>${esc(f.properties.name || 'Strefa zagrożenia')}</b>${f.properties.note ? '<br>' + esc(f.properties.note) : ''}` });
+    if (f.properties.label !== false && !spots.some((s) => s.name === f.properties.name)) {  // label:false = just an outline
+      addLabel(f.properties.name || 'Strefa zagrożenia', cx, cz, H(cx, cz) + 30 * KL, 'hazard');
+      spots.push({ name: f.properties.name || 'Strefa zagrożenia', x: cx, z: cz, dist: Math.max(900, size * 4) });
+    }
+  }
+}
+
+// ---- water (a sinkhole is the hazard there, so it gets an outline and a label)
+const waterB = new Batch(new THREE.MeshPhongMaterial({ vertexColors: true, transparent: true, opacity: 0.76, shininess: 40, specular: 0x24343c, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }), true);
+for (const f of water) {
+  const hazard = f.properties.kind === 'sinkhole';
+  for (const rings of polygons(f.geometry)) {
+    if (rings[0].length < 4) continue;
+    // one level per water body: the lowest ground along its shore (the terrain is cut to water level there)
+    const shore = rings[0].map(toXZ), mid = centre(rings[0]);
+    const level = FLAT ? FLAT_LIFT * 0.8 : shore.reduce((m, [x, z]) => Math.min(m, elevAt(x, z)), elevAt(mid[0], mid[1])) * EXAG;
+    const geo = lay(new THREE.ShapeGeometry(shapeOf(rings))).translate(0, level + 0.15, 0);
+    waterB.add(geo, hazard ? 0x1d5068 : 0x3f86a3, f.properties.name ? `<b>${esc(f.properties.name)}</b>${hazard ? '<br>Zapadlisko nad zawaloną komorą solną (od 2012 r.)' : ''}` : null);
+    if (hazard) {
+      hazardZone(group('hazards'), rings, { fill: false, tip: `<b>${esc(f.properties.name || 'Zapadlisko')}</b><br>Zapadlisko nad zawaloną komorą solną (od 2012 r.)` });
+      addLabel(f.properties.name || 'Zapadlisko', mid[0], mid[1], level + 30, 'hazard');
+      spots.push({ name: 'Zapadlisko', x: mid[0], z: mid[1], dist: 900 });
+    }
+  }
+}
+addBatch('water', waterB);
+if (T && T.sea_level_m != null && terrainGrid) {  // the sea: one sheet at sea level, the land rises through it
+  const sea = new THREE.Mesh(lay(new THREE.PlaneGeometry(SX, SZ)), new THREE.MeshBasicMaterial({ map: seaTexture(), transparent: true, depthWrite: false, ...OFFSET })  /* unlit: a lit sheet this big shows one huge sun glare */);
+  // on the flat map a fixed gap keeps the sheet clear of the ground even for a camera 100+ km away
+  sea.position.y = FLAT ? FLAT_LIFT * 0.6 : (T.sea_level_m - T.min_m) * EXAG + 0.25;
+  group('water').add(sea);  // no name on hover: under the land it would answer for the ground
+}
+
+// ---- industrial areas: outline + name
+const areaB = new Batch(flat(0xffffff, { vertexColors: true, transparent: true, opacity: 0.9 }));
+for (const f of areas) {
+  for (const rings of polygons(f.geometry)) {
+    const ring = dense(rings[0].map(toXZ));
+    if (ring.length < 3) continue;
+    areaB.add(ribbon([...ring, ring[1]], 4 * Math.sqrt(KL), (t, x, z) => H(x, z) + 0.7), 0xffb347, f.properties.name ? `<b>${esc(f.properties.name)}</b>${tipRow('Operator', f.properties.operator)}` : null);
+    if (f.properties.name) {
+      const [cx, cz] = centre(rings[0]);
+      addLabel(f.properties.name, cx, cz, H(cx, cz) + 25, 'area', BIG ? R * 0.12 : Infinity);
+      if (!BIG) spots.push({ name: f.properties.name, x: cx, z: cz, dist: 1100 });
+    }
+  }
+}
+addBatch('areas', areaB);
+
+// ---- roads: asphalt or gravel strips, a dashed centre line on main roads, arched bridges
+const ROAD = { asphalt: 0x3a3d42, gravel: 0xcfc8b8, track: 0xa59474, dash: 0xf2c94c, parapet: 0xd9dcdf };
+const ROAD_PL = { motorway: 'Autostrada', trunk: 'Droga ekspresowa', primary: 'Droga główna', secondary: 'Droga drugorzędna', tertiary: 'Droga lokalna',
+  residential: 'Ulica osiedlowa', unclassified: 'Droga lokalna', service: 'Droga dojazdowa', track: 'Droga gruntowa' };
+const roadB = new Batch(flat(0xffffff, { vertexColors: true })), dashPos = [], refBest = {};
+for (const f of roads) {
+  const p = f.properties, main = ['motorway', 'trunk', 'primary', 'secondary'].includes(p.kind);
+  if (p.tunnel) continue;
+  const color = p.kind === 'track' ? ROAD.track : p.kind === 'service' ? ROAD.gravel : ROAD.asphalt;
+  const tip = (p.ref || (main && p.name)) ? `<b>${esc(p.name || ROAD_PL[p.kind] || 'Droga')}</b>${p.ref ? ' · ' + esc(p.ref) : ''}${p.name ? '<br>' + esc(ROAD_PL[p.kind] || '') : ''}${p.bridge ? '<br>most' : ''}` : null;
+  for (const coords of lines(f.geometry)) {
+    const pts = dense(coords.map(toXZ)), len = pathLen(pts);
+    if (pts.length < 2) continue;
+    // a bridge spans from bank to bank with a slight arch; a road lies on the ground
+    const y0 = H(...pts[0]), y1 = H(...pts.at(-1));
+    const yAt = p.bridge ? (t) => y0 + (y1 - y0) * t + 0.6 + Math.min(4, len * 0.06) * Math.sin(Math.PI * t) : (t, x, z) => H(x, z) + 0.6;
+    roadB.add(ribbon(pts, p.width_m || 4, yAt), color, tip);
+    if (p.bridge && !BIG) [-1, 1].forEach((s) => roadB.add(ribbon(pts, 0.3, (t, x, z) => yAt(t, x, z) + 0.55, s * (p.width_m || 4) / 2), ROAD.parapet));
+    if (main && (!BIG || p.kind !== 'secondary')) for (const [x, z, h, t] of walk(pts, 14, 4)) {  // 7 m dash, 7 m gap
+      const y = yAt(t, x, z) + 0.15, c = Math.cos(h) * 3.5, s = Math.sin(h) * 3.5, nx = -Math.sin(h) * 0.22, nz = Math.cos(h) * 0.22;
+      dashPos.push(x - c + nx, y, z - s + nz, x - c - nx, y, z - s - nz, x + c + nx, y, z + s + nz, x - c - nx, y, z - s - nz, x + c - nx, y, z + s - nz, x + c + nx, y, z + s + nz);
+    }
+    const ref = p.ref && (!BIG || ['motorway', 'trunk', 'primary'].includes(p.kind)) ? p.ref.split(';')[0] : null;
+    if (ref && len > 0) { const best = refBest[ref] || (refBest[ref] = { len: 0, total: 0 }); best.total += len; if (len > best.len) { const [x, z] = walk(pts, len / 2, len / 2)[0] || pts[0]; Object.assign(best, { len, x, z }); } }
+  }
+}
+if (dashPos.length) {
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(dashPos, 3));
+  roadB.add(geo, ROAD.dash);
+}
+addBatch('roads', roadB);
+Object.entries(refBest).sort((a, b) => b[1].total - a[1].total).slice(0, BIG ? 10 : 99).forEach(([ref, r]) => addLabel(ref, r.x, r.z, H(r.x, r.z) + 14 * KL, 'road'));
+
+// ---- rail: one textured strip per track (ballast, sleepers every 0.65 m, two steel rails)
+const railTexture = (() => {
+  const cv = document.createElement('canvas'); cv.width = 64; cv.height = 128;
+  const g = cv.getContext('2d');
+  g.fillStyle = '#857b70'; g.fillRect(0, 0, 64, 128);
+  for (let k = 0; k < 200; k++) { g.fillStyle = `rgba(${40 + Math.random() * 60},${38 + Math.random() * 50},${35 + Math.random() * 40},.35)`; g.fillRect(Math.random() * 64, Math.random() * 128, 2, 2); }
+  g.fillStyle = '#4f3b2b';
+  for (let y = 4; y < 128; y += 16) g.fillRect(6, y, 52, 8);  // 8 sleepers per 5.2 m
+  g.fillStyle = '#c9ced3'; g.fillRect(19, 0, 4, 128); g.fillRect(41, 0, 4, 128);
+  const t = new THREE.CanvasTexture(cv);
+  t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8;
+  return t;
+})();
+/** Like ribbon(), with texture coordinates: u across the strip, v along it (one unit per `repeat` metres). */
+function ribbonUV(pts, width, yAt, repeat) {
+  const geo = ribbon(pts, width, yAt), n = pts.length, uv = new Float32Array(n * 4);
+  let run = 0;
+  for (let i = 0; i < n; i++) {
+    if (i) run += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+    uv.set([0, run / repeat, 1, run / repeat], i * 4);
+  }
+  geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+  return geo;
+}
+if (rail.length) {
+  const parts = [], tips = [];
+  for (const f of rail) {
+    const p = f.properties, dead = ['disused', 'abandoned'].includes(p.kind);
+    if (p.tunnel || dead) continue;
+    for (const coords of lines(f.geometry)) {
+      const pts = dense(coords.map(toXZ));
+      if (pts.length < 2) continue;
+      parts.push(ribbonUV(pts, 3.2, (t, x, z) => H(x, z) + 0.55, 5.2));
+      tips.push(p.name ? `<b>${esc(p.name)}</b>${tipRow('Operator', p.operator)}` : null);
+    }
+  }
+  const deadB = new Batch(flat(0xffffff, { vertexColors: true }));  // disused track: just a faded bed
+  for (const f of rail) {
+    if (!['disused', 'abandoned'].includes(f.properties.kind) || f.properties.tunnel) continue;
+    for (const coords of lines(f.geometry)) { const pts = dense(coords.map(toXZ)); if (pts.length > 1) deadB.add(ribbon(pts, 2.6, (t, x, z) => H(x, z) + 0.5), 0x7d756b); }
+  }
+  addBatch('rail', deadB);
+  if (parts.length) {
+    // merge into one mesh; a face index finds its track for the tooltip
+    let nv = 0, ni = 0;
+    parts.forEach((g) => { nv += g.attributes.position.count; ni += g.index.count; });
+    const pos = new Float32Array(nv * 3), uv = new Float32Array(nv * 2), idx = new Uint32Array(ni), ends = [];
+    let v = 0, q = 0;
+    parts.forEach((g) => {
+      pos.set(g.attributes.position.array, v * 3); uv.set(g.attributes.uv.array, v * 2);
+      const ix = g.index.array;
+      for (let k = 0; k < ix.length; k++) idx[q + k] = ix[k] + v;
+      v += g.attributes.position.count; q += ix.length; ends.push(q / 3);
+      g.dispose();
+    });
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+    geo.setIndex(new THREE.BufferAttribute(idx, 1));
+    const mesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ map: railTexture, side: THREE.DoubleSide, ...OFFSET }));
+    if (tips.some(Boolean)) {
+      mesh.userData.tipAt = (face) => { let lo = 0, hi = ends.length - 1; while (lo < hi) { const mid = (lo + hi) >> 1; if (ends[mid] > face) hi = mid; else lo = mid + 1; } return tips[lo]; };
+      pickables.push(mesh);
+    }
+    group('rail').add(mesh);
+  }
+}
+
+// ---- pipelines: tubes coloured by what they carry when the data says so, otherwise all in one colour
+const PIPE_COLOR = 0xf2c230;
+const SUBSTANCE = {
+  gas: ['Gaz ziemny', 0xf2c230], ngl: ['NGL (ciekłe frakcje gazu)', 0xf08a24], lpg: ['LPG', 0xf08a24], 'y-grade': ['NGL (ciekłe frakcje gazu)', 0xf08a24],
+  ethylene: ['Etylen', 0xc86be0], ammonia: ['Amoniak', 0x3fd0de], oil: ['Ropa', 0x8d5a3b], water: ['Woda / solanka', 0x4aa3e0], brine: ['Woda / solanka', 0x4aa3e0],
+  hydrogen: ['Wodór', 0x7fe0c0], oil_gas: ['Ropa i gaz z odwiertów', 0xc77d3a], products: ['Paliwa (benzyna)', 0xe0607e], nitrogen: ['Azot', 0x9aa6b2],
+};
+const PIPE_ONE = 'Rurociągi i gazociągi';
+// meta.pipe_style "thin": tubes as thin as in a small scene (Bayou Corne) + a 1 px line, so the network still shows from afar
+const PIPE_THIN = META.pipe_style === 'thin', PIPE_SCALE = PIPE_THIN ? 1 : KL ** 0.8, pipeLine = [];
+const pipeB = new Batch(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.45, metalness: 0.25 }), true);
+const riskNet = { pos: [], col: [] }, tmpC = new THREE.Color();
+const riskCls = Object.fromEntries(Object.values(PIPE_GROUP).map((g) => [g, { core: { pos: [], col: [] }, halo: { pos: [], col: [] }, tube: new Batch(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.45, metalness: 0.25 }), true) }]));
+const addSegs = (acc, xz, lift, colour) => {  // consecutive points -> pairs of vertices
+  tmpC.set(colour);
+  for (let i = 1; i < xz.length; i++) {
+    const [ax, az] = xz[i - 1], [bx, bz] = xz[i];
+    acc.pos.push(ax, H(ax, az) + lift, az, bx, H(bx, bz) + lift, bz);
+    acc.col.push(tmpC.r, tmpC.g, tmpC.b, tmpC.r, tmpC.g, tmpC.b);
+  }
+};
+// a whole oil field (thousands of km of pipes) gets lighter tubes: fewer points along and around each pipe
+const pipeKm = pipes.reduce((s, f) => s + lines(f.geometry).reduce((t, c) => t + pathLen(c.map(toXZ)), 0), 0) / 1000;
+const PIPE_LIGHT = pipeKm > 800, PIPE_STEP = PIPE_LIGHT ? STEP * 3 : STEP * 2, PIPE_SEG = PIPE_LIGHT ? 1 : 3, PIPE_RADIAL = PIPE_LIGHT ? 5 : 7;
+for (const f of pipes) {
+  const p = f.properties;
+  if (RISK_MODE) {
+    const col = RISK_COL[p.risk] || PIPE_COLOR, atRisk = p.risk === 'wysokie' || p.risk === 'średnie';
+    const tip = riskTip(p);
+    const radius = THREE.MathUtils.clamp(((p.diameter_in || 12) * 0.0254 / 2) * 9, 1.3, 4.2) * K ** 0.8;
+    for (const coords of lines(f.geometry)) {
+      const xz = dense(coords.map(toXZ), STEP * 2);
+      if (xz.length < 2) continue;
+      addSegs(riskNet, xz, 0.6, NET_COL);  // every segment belongs to the grey network
+      const cls = riskCls[PIPE_GROUP[p.risk]];
+      if (!cls) continue;
+      addSegs(cls.core, xz, 1.0, col);
+      if (!atRisk) continue;
+      addSegs(cls.halo, xz, 0.5, col);
+      const pts = xz.map(([x, z]) => new THREE.Vector3(x, H(x, z) + radius + 0.7, z));
+      if (!FLAT) cls.tube.add(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts, false, 'catmullrom', 0.05), Math.min(900, pts.length * 3), radius, 7, false), col, tip);  // the flat map has the lines
+    }
+    continue;
+  }
+  const [medium, kindColor] = SUBSTANCE[p.substance] || ['Inne', PIPE_COLOR];
+  // meta.pipes_one_class: one colour and one legend entry for all pipes (the medium stays in the tooltip)
+  const color = META.pipes_one_class ? PIPE_COLOR : kindColor;
+  if (META.pipes_one_class) {
+    const one = pipeKinds.get(PIPE_ONE) || pipeKinds.set(PIPE_ONE, { color, n: 0, ids: new Set() }).get(PIPE_ONE);
+    one.ids.add(p.id ?? f); one.n = one.ids.size;
+  } else if (p.substance) pipeKinds.set(medium, { color, n: (pipeKinds.get(medium)?.n || 0) + 1 });
+  const radius = THREE.MathUtils.clamp(((p.diameter_in || 12) * 0.0254 / 2) * 9, 1.3, 4.2) * PIPE_SCALE;
+  const tip = `<b>${esc(p.name || p.kind || 'Rurociąg')}</b>${tipRow('Medium', medium === 'Inne' ? '' : medium)}${tipRow('Średnica', p.diameter_in ? p.diameter_in + '″' : '')}${tipRow('Operator', p.operator)}${tipRow('Stan', p.status)}`
+    + `${tipRow('Położenie', p.location === 'underground' ? 'pod ziemią' : p.location)}${tipRow('Od', p.start_date)}`;
+  for (const coords of lines(f.geometry)) {
+    const pts = dense(coords.map(toXZ), PIPE_STEP).map(([x, z]) => new THREE.Vector3(x, H(x, z) + radius + 0.7, z));
+    if (pts.length < 2) continue;
+    const curve = new THREE.CatmullRomCurve3(pts, false, 'catmullrom', 0.05);
+    pipeB.add(new THREE.TubeGeometry(curve, Math.min(900, Math.max(2, pts.length * PIPE_SEG)), radius, PIPE_RADIAL, false), color, tip);
+    if (PIPE_THIN) for (let i = 1; i < pts.length; i++) pipeLine.push(pts[i - 1].x, pts[i - 1].y, pts[i - 1].z, pts[i].x, pts[i].y, pts[i].z);
+  }
+}
+if (riskNet.pos.length) group('pipes').add(fatLines(riskNet.pos, riskNet.col, 1.5, { opacity: 0.8 }));
+for (const [id, cls] of Object.entries(riskCls)) {
+  if (!cls.core.pos.length) continue;
+  const w = id === 'pipes_low' ? 2.4 : 4, casing = fatLines(cls.core.pos, new Array(cls.core.col.length).fill(0.02), w + 3, { opacity: 0.6 });
+  casing.renderOrder = 4; group(id).add(casing);
+  if (cls.halo.pos.length) { const halo = fatLines(cls.halo.pos, cls.halo.col, 14, { opacity: 0.28, depthWrite: false }); halo.renderOrder = 5; group(id).add(halo); }
+  const core = fatLines(cls.core.pos.map((v, i) => (i % 3 === 1 ? v + 0.3 : v)), cls.core.col, w, { opacity: 1 });
+  core.renderOrder = 6; group(id).add(core);
+  addBatch(id, cls.tube);
+}
+addBatch('pipes', pipeB);
+if (pipeLine.length) {
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pipeLine, 3));
+  group('pipes').add(new THREE.LineSegments(geo, new THREE.LineBasicMaterial({ color: PIPE_COLOR, transparent: true, opacity: 0.85 })));
+}
+
+// ---- results of the analysis: section profiles (a thin white line with its end points)
+if (EXTRAS?.profiles?.length) {
+  for (const pr of EXTRAS.profiles) {
+    const pts = dense(pr.coords.map(toXZ), STEP * 4);
+    group('extras').add(tipped(new THREE.Mesh(ribbon(pts, 5 * Math.sqrt(K), (t, x, z) => H(x, z) + 1.2),
+      flat(0xffffff, { transparent: true, opacity: 0.95, polygonOffsetFactor: -7, polygonOffsetUnits: -7 })), `<b>${esc(pr.title || pr.name)}</b><br><span class="k">kliknij – wykres ruchu wzdłuż linii</span>`));
+    [['A', pts[0]], ['B', pts.at(-1)]].forEach(([t, [x, z]]) => addLabel(t, x, z, H(x, z) + 8 * K, 'biz'));
+  }
+}
+
+// ---- power network: a violet corridor on the ground (names on hover), pylons, and in 3D sagging wires
+if (power.length) {
+  const POWER = 0xa66bff, CABLE = 0xc9a8ff, corridor = new Batch(flat(0xffffff, { vertexColors: true, transparent: true, opacity: 0.9, polygonOffsetFactor: -5, polygonOffsetUnits: -5 }));
+  const towers = [], wire = [];
+  for (const f of power) {
+    const p = f.properties, kv = p.kv || 0;
+    const tip = `<b>${esc(p.name || (p.kind === 'cable' ? 'Kabel energetyczny' : p.kind === 'station' ? 'Stacja elektroenergetyczna' : 'Linia energetyczna'))}</b>${kv ? ' · ' + kv + ' kV' : ''}${tipRow('Operator', p.operator)}${p.kind === 'cable' ? '<br>pod ziemią' : ''}`;
+    for (const coords of lines(f.geometry)) {
+      const pts = coords.map(toXZ);
+      if (pts.length < 2) continue;
+      corridor.add(ribbon(dense(pts), (p.kind === 'station' ? 1.2 : 2.2) * Math.sqrt(K), (t, x, z) => H(x, z) + 0.8), p.kind === 'cable' ? CABLE : POWER, tip);
+      if (p.kind !== 'line') continue;
+      const h = kv >= 200 ? 32 : kv >= 100 ? 25 : 16;  // typical lattice tower heights
+      pts.forEach((q, i) => {
+        const a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)];
+        towers.push({ x: q[0], z: q[1], h, heading: Math.atan2(b[1] - a[1], b[0] - a[0]) });
+      });
+      if (FLAT) continue;
+      for (let i = 1; i < pts.length; i++) {  // three conductors per span, hanging between the cross-arms
+        const [ax, az] = pts[i - 1], [bx, bz] = pts[i], len = Math.hypot(bx - ax, bz - az), nx = -(bz - az) / (len || 1), nz = (bx - ax) / (len || 1);
+        const ya = H(ax, az) + h * 0.86, yb = H(bx, bz) + h * 0.86, sag = Math.min(12, Math.max(1, len * 0.025));
+        for (const off of [-5, 0, 5]) {
+          let prev = null;
+          for (let k = 0; k <= 10; k++) {
+            const t = k / 10, pt = [ax + (bx - ax) * t + nx * off, ya + (yb - ya) * t - sag * 4 * t * (1 - t), az + (bz - az) * t + nz * off];
+            if (prev) wire.push(...prev, ...pt);
+            prev = pt;
+          }
+        }
+      }
+    }
+  }
+  addBatch('power', corridor);
+  if (towers.length) {  // pyramid mast + cross-arm; on the flat map just a small dark diamond
+    const mast = new THREE.InstancedMesh(new THREE.ConeGeometry(1, 1, 4), lit(0x55595e), towers.length);
+    const arm = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), lit(0x55595e), towers.length);
+    const m = new THREE.Matrix4(), q = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0), v = new THREE.Vector3(), sc = new THREE.Vector3();
+    towers.forEach((t, i) => {
+      const base = H(t.x, t.z);
+      q.setFromAxisAngle(up, -t.heading + Math.PI / 4);
+      mast.setMatrixAt(i, m.compose(v.set(t.x, base + (FLAT ? 1 : t.h / 2), t.z), q, FLAT ? sc.set(5 * Math.sqrt(K), 1, 5 * Math.sqrt(K)) : sc.set(3.2, t.h, 3.2)));
+      q.setFromAxisAngle(up, -t.heading + Math.PI / 2);
+      arm.setMatrixAt(i, m.compose(v.set(t.x, base + t.h * 0.86, t.z), q, FLAT ? sc.set(0, 0, 0) : sc.set(0.7, 0.6, 12)));
+    });
+    [mast, arm].forEach((mesh) => { mesh.frustumCulled = false; group('power').add(mesh); });
+  }
+  if (wire.length) {
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(wire, 3));
+    group('power').add(new THREE.LineSegments(geo, new THREE.LineBasicMaterial({ color: 0x2e3135, transparent: true, opacity: 0.85 })));
+  }
+}
+
+// ---- retaining walls, cliffs and scarp edges: the map symbol of a slope edge - a line with short ticks
+// pointing downhill (every line has its lower side on the right, the OSM rule). A wall also stands up in 3D.
+if (slopes.length) {
+  const slopeB = new Batch(flat(0xffffff, { vertexColors: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 }));
+  const wallB = new Batch(lit(0xffffff, { vertexColors: true }), true);
+  const w = Math.sqrt(K);
+  for (const f of slopes) {
+    const p = f.properties, wall = p.kind === 'retaining_wall';
+    const color = wall ? SLOPE_COLOR.wall : SLOPE_COLOR.edge, tick = wall ? SLOPE_COLOR.wallTick : SLOPE_COLOR.edgeTick;
+    for (const coords of lines(f.geometry)) {
+      const pts = dense(coords.map(toXZ), STEP / 2);
+      if (pts.length < 2) continue;
+      const tip = slopeTip(p);
+      slopeB.add(ribbon(pts, (wall ? 1.6 : 2.4) * w, (t, x, z) => H(x, z) + 0.9), color, tip);
+      const step = (wall ? 6 : 14) * w, len = (wall ? 3 : 9) * w;
+      for (const [x, z, h] of walk(pts, step, step / 2)) {  // ticks to the right = downhill
+        const nx = -Math.sin(h), nz = Math.cos(h), seg = dense([[x, z], [x + nx * len, z + nz * len]], STEP / 2);
+        slopeB.add(ribbon(seg, (wall ? 0.7 : 1.1) * w, (t, sx, sz) => H(sx, sz) + 0.9), tick, tip);
+      }
+      if (wall && !FLAT) {  // the wall itself: a thin vertical face standing on the ground
+        const hm = Math.max(1.5, parseFloat(p.height_m) || 2.5), pos = [];
+        for (let i = 1; i < pts.length; i++) {
+          const [ax, az] = pts[i - 1], [bx, bz] = pts[i], ay = H(ax, az), by = H(bx, bz);
+          pos.push(ax, ay, az, bx, by, bz, bx, by + hm, bz, ax, ay, az, bx, by + hm, bz, ax, ay + hm, az);
+        }
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+        geo.computeVertexNormals();
+        wallB.add(geo, SLOPE_COLOR.wall, tip);
+      }
+    }
+  }
+  addBatch('slopes', slopeB);
+  addBatch('slopes', wallB);
+}
+
+// ---- buildings from footprints (small areas): walls from the outline, pitched roof on small ones
+const WALLS = [0xece5d3, 0xdcd0bb, 0xcdd6da, 0xe8d5c2, 0xc3ccd0, 0xf2ecdb], ROOFS = [0x8f4b3a, 0x5d646b, 0x75594a, 0x414c57, 0x9b6b50];
+const bldB = new Batch(new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide, flatShading: true }), true);
+buildings.forEach((f, i) => {
+  const p = f.properties, rand = rng(i * 7919 + 13), h = p.height || 4;
+  for (const rings of polygons(f.geometry)) {
+    const foot = rings[0].slice(0, -1).map((c) => { const [x, z] = toXZ(c); return [x, -z]; });
+    if (foot.length < 3) continue;
+    const small = (p.area_m2 || 100) < 450, wall = small ? WALLS[Math.floor(rand() * WALLS.length)] : 0xcfd3d6, roofCol = small ? ROOFS[Math.floor(rand() * ROOFS.length)] : 0xaab0b5;
+    const base = foot.reduce((sum, [x, north]) => sum + H(x, -north), 0) / foot.length, sunk = FLAT ? 0 : 4;  // walls continue below ground on slopes
+    const tip = p.name ? `<b>${esc(p.name)}</b>${tipRow('Powierzchnia', p.area_m2 ? p.area_m2 + ' m²' : '')}` : null;
+    const body = lay(new THREE.ExtrudeGeometry(shapeOf(rings), { depth: (FLAT ? 0.6 : h) + sunk, bevelEnabled: false })).translate(0, base - sunk, 0);
+    bldB.add(body, wall, tip, { count: body.groups[0] ? body.groups[0].count : 0, color: roofCol });
+    if (!small || FLAT) continue;  // a flat map shows the roof colour on the footprint
+    const r = boundingRect(foot), ux = Math.cos(r.ang), uy = Math.sin(r.ang), over = 0.5, rise = Math.min(3.2, r.b * 0.75);
+    const at = (su, sv, y) => [r.cx + ux * su * r.a - uy * sv * (r.b + over), y, -(r.cy + uy * su * r.a + ux * sv * (r.b + over))];
+    const E = (su, sv) => at(su, sv, base + h), Rg = (su) => at(su, 0, base + h + rise);
+    const tri = [E(1, 1), E(-1, 1), Rg(-1), E(1, 1), Rg(-1), Rg(1), E(1, -1), Rg(1), Rg(-1), E(1, -1), Rg(-1), E(-1, -1), E(1, 1), Rg(1), E(1, -1), E(-1, 1), E(-1, -1), Rg(-1)];
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(tri.flat(), 3));
+    geo.computeVertexNormals();
+    bldB.add(geo, roofCol, tip);
+  }
+});
+
+// ---- buildings from footprints (a whole city): real outlines, roof colour from the aerial photo, pitched
+// roofs on small houses. Merged per area chunk (so the camera can skip chunks it does not see).
+if (FP) {
+  const { n, start, X, Z, height, pitched, roof, tris, triStart, chunkOf, CH } = FP;
+  const members = Array.from({ length: CH * CH }, () => []);
+  for (let i = 0; i < n; i++) members[chunkOf[i]].push(i);
+  const wallCols = WALLS.map((h) => new THREE.Color(h)), bigWall = [0xd5d7d6, 0xc9cccd, 0xdcd6cb, 0xbfc5c9].map((h) => new THREE.Color(h));
+  const mat = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true, side: THREE.DoubleSide });
+  const sunk = FLAT ? 0 : 4;
+  for (const ids of members) {
+    if (!ids.length) continue;
+    let nv = 0, ni = 0;
+    for (const i of ids) {
+      const k = start[i + 1] - start[i], gable = pitched[i] && !FLAT;
+      nv += 2 * k + (gable ? 6 : k); ni += 6 * k + (gable ? 18 : triStart[i + 1] - triStart[i]);
+    }
+    const pos = new Float32Array(nv * 3), col = new Float32Array(nv * 3), idx = new Uint32Array(ni);
+    let v = 0, q = 0;
+    const put = (x, y, z, cr) => { pos[v * 3] = x; pos[v * 3 + 1] = y; pos[v * 3 + 2] = z; col[v * 3] = cr.r; col[v * 3 + 1] = cr.g; col[v * 3 + 2] = cr.b; return v++; };
+    const wc = new THREE.Color(), rc = new THREE.Color();
+    for (const i of ids) {
+      const s0 = start[i], k = start[i + 1] - s0, rand = rng(i * 7919 + 13);
+      let base = 0;
+      for (let j = 0; j < k; j++) base += H(X[s0 + j], Z[s0 + j]);
+      base /= k;
+      const h = FLAT ? 0.6 : height[i], top = base + h, gable = pitched[i] && !FLAT;
+      rc.setRGB(roof[i * 3], roof[i * 3 + 1], roof[i * 3 + 2]).multiplyScalar(1.08);
+      wc.copy(pitched[i] ? wallCols[Math.floor(rand() * wallCols.length)] : bigWall[Math.floor(rand() * bigWall.length)]);
+      // walls: bottom ring + top ring, two triangles per edge
+      const b0 = v;
+      for (let j = 0; j < k; j++) put(X[s0 + j], base - sunk, Z[s0 + j], wc);
+      for (let j = 0; j < k; j++) put(X[s0 + j], top, Z[s0 + j], wc);
+      for (let j = 0; j < k; j++) {
+        const a = b0 + j, b = b0 + (j + 1) % k, ta = a + k, tb = b + k;
+        idx.set([a, b, tb, a, tb, ta], q); q += 6;
+      }
+      if (!gable) {  // flat roof in the photo's roof colour
+        const r0 = v;
+        for (let j = 0; j < k; j++) put(X[s0 + j], top + 0.05, Z[s0 + j], rc);
+        for (let t = triStart[i]; t < triStart[i + 1]; t++) idx[q++] = r0 + tris[t];
+        continue;
+      }
+      // pitched roof over the footprint's smallest rectangle, with a small overhang
+      const foot = [];
+      for (let j = 0; j < k; j++) foot.push([X[s0 + j], -Z[s0 + j]]);
+      const r = boundingRect(foot), ux = Math.cos(r.ang), uy = Math.sin(r.ang), over = 0.5, rise = Math.min(3.2, r.b * 0.75);
+      const at = (su, sv, y) => put(r.cx + ux * su * r.a - uy * sv * (r.b + over), y, -(r.cy + uy * su * r.a + ux * sv * (r.b + over)), rc);
+      const e11 = at(1, 1, top), e01 = at(-1, 1, top), e10 = at(1, -1, top), e00 = at(-1, -1, top), r1 = at(1, 0, top + rise), r0 = at(-1, 0, top + rise);
+      idx.set([e11, e01, r0, e11, r0, r1, e10, r1, r0, e10, r0, e00, e11, r1, e10, e01, e00, r0], q); q += 18;
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    geo.setIndex(new THREE.BufferAttribute(idx, 1));
+    geo.computeBoundingSphere();
+    group('buildings').add(new THREE.Mesh(geo, mat));
+  }
+}
+
+// ---- buildings as oriented boxes (older city packages): one instanced mesh for walls, one per roof type
+if (bldBuf) {
+  const n = META.buildings_bin.count, u16 = new Uint16Array(bldBuf, 0, 4 * n), u8 = new Uint8Array(bldBuf, 8 * n, 3 * n);
+  let small = 0;
+  for (let i = 0; i < n; i++) if (!u8[2 * n + i]) small++;
+  const mat = () => new THREE.MeshLambertMaterial({ flatShading: true, side: THREE.DoubleSide });
+  const walls = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), mat(), n);
+  const gables = new THREE.InstancedMesh(gableGeometry(), mat(), small), slabs = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), mat(), n - small);
+  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0), v = new THREE.Vector3(), sc = new THREE.Vector3(), col = new THREE.Color(), rand = rng(11);
+  const wallCols = WALLS.map((c) => new THREE.Color(c)), roofCols = ROOFS.map((c) => new THREE.Color(c)), bigWall = new THREE.Color(0xcfd3d6), bigRoof = new THREE.Color(0xaab0b5);
+  let ig = 0, is = 0;
+  const sunk = FLAT ? 0 : 5;  // walls continue below ground on slopes
+  for (let i = 0; i < n; i++) {
+    const x = (u16[i] / 65535 - 0.5) * SX, z = (u16[n + i] / 65535 - 0.5) * SZ, len = u16[2 * n + i] / 5, wid = u16[3 * n + i] / 5;  // stored as half sizes in dm
+    const h = FLAT ? 0.6 : u8[n + i] / 2, flatRoof = u8[2 * n + i], base = H(x, z);
+    q.setFromAxisAngle(up, (u8[i] / 255) * Math.PI);
+    walls.setMatrixAt(i, m.compose(v.set(x, base + (h - sunk) / 2, z), q, sc.set(len, h + sunk, wid)));
+    walls.setColorAt(i, flatRoof ? bigWall : wallCols[Math.floor(rand() * wallCols.length)]);
+    if (flatRoof) { slabs.setMatrixAt(is, m.compose(v.set(x, base + h + 0.2, z), q, sc.set(len + 0.4, 0.4, wid + 0.4))); slabs.setColorAt(is++, bigRoof); }
+    else { gables.setMatrixAt(ig, m.compose(v.set(x, base + h, z), q, sc.set(len, FLAT ? 0.05 : Math.min(3.2, wid * 0.38), FLAT ? wid : wid + 1))); gables.setColorAt(ig++, col.copy(roofCols[Math.floor(rand() * roofCols.length)])); }
+  }
+  [walls, gables, slabs].forEach((mesh) => { if (mesh.count) { mesh.instanceColor.needsUpdate = true; mesh.frustumCulled = false; group('buildings').add(mesh); } });
+}
+
+// ---- trees: two low-poly crown shapes, coloured from the aerial photo. In chunks (TREE_CH x TREE_CH):
+// the camera draws only the chunks in view, and none farther than TREE_FAR, where a crown is under a pixel.
+treeChunks.length = 0;
+if (treeBuf) {
+  const n = META.trees.count, u16 = new Uint16Array(treeBuf, 0, 2 * n), u8 = new Uint8Array(treeBuf, 4 * n, 5 * n);
+  const kinds = [new THREE.IcosahedronGeometry(1, 0), new THREE.ConeGeometry(1, 2, 6, 1)], count = new Uint32Array(TREE_CH * TREE_CH * 2);
+  const chunkOf = (i) => Math.min(TREE_CH - 1, Math.floor(u16[n + i] / 65536 * TREE_CH)) * TREE_CH + Math.min(TREE_CH - 1, Math.floor(u16[i] / 65536 * TREE_CH));
+  for (let i = 0; i < n; i++) count[chunkOf(i) * 2 + (u8[4 * n + i] ? 1 : 0)]++;
+  const mats = [new THREE.MeshLambertMaterial({ flatShading: true }), new THREE.MeshLambertMaterial({ flatShading: true })];
+  const slots = [...count].map((c, j) => (c ? new THREE.InstancedMesh(kinds[j % 2], mats[j % 2], c) : null)), fill = new Uint32Array(count.length);
+  const meshes = { setMatrixAt: (i, k, mtx) => slots[chunkOf(i) * 2 + k].setMatrixAt(fill[chunkOf(i) * 2 + k], mtx),
+    setColorAt: (i, k, c) => slots[chunkOf(i) * 2 + k].setColorAt(fill[chunkOf(i) * 2 + k]++, c) };
+  const seaElev = T && T.sea_level_m != null && terrainGrid ? T.sea_level_m - T.min_m : null;
+  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0), col = new THREE.Color(), rand = rng(7);
+  for (let i = 0; i < n; i++) {
+    const k = u8[4 * n + i] ? 1 : 0, h = u8[i] / 10, x = (u16[i] / 65535 - 0.5) * SX, z = (u16[n + i] / 65535 - 0.5) * SZ;
+    const wet = seaElev != null && elevAt(x, z) <= seaElev + 0.4;  // kelp near the shore looks like canopy in the photo
+    const rad = wet ? 0 : h * (k ? 0.2 : 0.33), half = h * (k ? 0.43 : 0.45);  // crown reaches from near the ground to the top
+    if (FLAT) m.compose(new THREE.Vector3(x, H(x, z) + 1.2, z), q.setFromAxisAngle(up, rand() * Math.PI * 2), new THREE.Vector3(rad, 0.6, rad));
+    else m.compose(new THREE.Vector3(x, H(x, z) + h - half, z), q.setFromAxisAngle(up, rand() * Math.PI * 2), new THREE.Vector3(rad, half, rad));
+    meshes.setMatrixAt(i, k, m);
+    meshes.setColorAt(i, k, col.setRGB(u8[n + i] / 255, u8[2 * n + i] / 255, u8[3 * n + i] / 255, THREE.SRGBColorSpace));
+  }
+  slots.forEach((mesh, j) => {
+    if (!mesh) return;
+    mesh.instanceColor.needsUpdate = true;
+    mesh.computeBoundingSphere();  // frustum culling per chunk
+    group('trees').add(mesh);
+    const sp = mesh.boundingSphere;
+    treeChunks.push({ mesh, x: sp.center.x, z: sp.center.z, r: sp.radius });
+  });
+  updateTreeChunks();
+}
+
+// ---- points: place names, businesses (visible from close up), masts
+const MAIN_PLACES = ['city', 'town'];
+let masts = 0;
+for (const f of places) {
+  const p = f.properties, [x, z] = toXZ(f.geometry.coordinates);
+  const y = H(x, z);
+  if (p.kind === 'place') {
+    // villages and suburbs only from close up (at most ~25 km away), so a 100 km map is not covered in names
+    addLabel(p.name, x, z, y + 40 * KL, 'place', !BIG || MAIN_PLACES.includes(p.place) ? Infinity : (META.place_label_m || Math.min(R * 0.8, 25000)),
+      { city: 1, town: 2 }[p.place] ?? 4);
+    if (!BIG || MAIN_PLACES.includes(p.place)) spots.push({ name: p.name, x, z, dist: 700 * KL });
+  } else if (p.kind === 'business') addLabel(p.name, x, z, y + 14, 'biz', 1500);
+  else if (p.kind === 'mast' && masts++ < 150) {
+    const height = p.height || (BIG ? 45 : 90), bands = 6;
+    for (let b = 0; b < bands; b++) bldB.add(new THREE.CylinderGeometry(0.9, 0.9, height / bands, 6).translate(x, y + (b + 0.5) * height / bands, z), b % 2 ? 0xf2f2f2 : 0xd8392b, p.name ? `<b>${esc(p.name)}</b>` : null);
+  }
+}
+addBatch('buildings', bldB);
+spots.splice(8);
+
+document.querySelectorAll('#toggles [data-layer]').forEach((box) => {  // keep switched-off layers off
+  if (groups[box.dataset.layer]) groups[box.dataset.layer].visible = box.checked;
+});
+dirty = true;
+}
+build();
+if (META.home) {  // the data set says where to open: { lon, lat, dist_m, [polar_deg] } (a big area is mostly empty at first sight)
+  const [hx, hz] = toXZ([META.home.lon, META.home.lat]);
+  HOME.target.set(hx, 0, hz);
+  HOME.dist = META.home.dist_m;
+  if (META.home.polar_deg) HOME.polar = THREE.MathUtils.degToRad(META.home.polar_deg);
+  place(HOME);
+} else if (BIG && spots.length && hazards.length) {  // a big area with one hot spot: open on it, not on the whole box (often mostly sea)
+  HOME.target.set(spots[0].x, 0, spots[0].z);
+  HOME.dist = R * 0.62;
+  place(HOME);
+}
+
+// ------------------------------------------------------------- layer panel
+const hasSinkhole = water.some((f) => f.properties.kind === 'sinkhole');
+// a scene built with a chosen set of layers (meta.only_layers) lists just those; place names = the labels
+const SHOWN = META.only_layers && new Set(META.only_layers.map((l) => ({ places: 'labels', pipelines: 'pipes' }[l] || l)));
+const LAYERS = [  // id, name, count, colour, switched on at start, optional (hidden when the data set has none)
+  ['hazards', RISK_MODE ? 'Strefy osiadania' : 'Strefa zagrożenia', hazards.length + water.filter((f) => f.properties.kind === 'sinkhole').length, META.hazard_colors?.[0] || '#ff6b4a', true, true],
+  ['buildings', 'Budynki', buildings.length || META.buildings_fp?.count || META.buildings_bin?.count || 0, '#ece5d3', true], ['roads', 'Drogi', roads.length, '#3a3d42', true],
+  ['rail', 'Tory kolejowe', rail.length, '#d5dade', true], ...(RISK_MODE ? [  // the classes as separate switches over the grey network
+    ['pipes_high', 'Rurociągi – wysokie zagrożenie', pipes.filter((f) => f.properties.risk === 'wysokie').length, '#e03131', true],
+    ['pipes_mid', 'Rurociągi – średnie zagrożenie', pipes.filter((f) => f.properties.risk === 'średnie').length, '#f08c00', true],
+    ['pipes_low', 'Rurociągi – niskie zagrożenie', pipes.filter((f) => f.properties.risk === 'niskie').length, '#37b24d', true],
+    ['pipes', 'Sieć rurociągów (cała)', pipes.length, '#8a96a3', true]] : [['pipes', 'Rurociągi i gazociągi', new Set(pipes.map((f) => f.properties.id ?? f)).size, '#f2c230', true]]),
+  ['power', 'Sieć energetyczna', power.length, '#a66bff', true, true],
+  ['slopes', 'Mury oporowe i skarpy', slopes.length, '#c8742c', true, true],
+  ['extras', 'Przekroje i stacja GNSS', (EXTRAS?.profiles?.length || 0) + (EXTRAS?.stations?.length || 0), '#ffffff', true, true],
+  ['water', hasSinkhole ? 'Woda i zapadlisko' : 'Woda', water.length + (T?.sea_level_m != null && !META.hide_empty_layers ? 1 : 0), '#3f86a3', true],
+  ['trees', BIG ? 'Drzewa' : 'Las (drzewa)', META.trees?.count || 0, '#3f7a35', true], ['areas', 'Tereny przemysłowe', areas.length, '#ffb347', true],
+  ['labels', 'Etykiety', labels.length, '#f2f3f0', true],
+].filter(([id, , n, , , optional]) => (n || (!optional && !META.hide_empty_layers)) && (!SHOWN || SHOWN.has(id)));  // hide_empty_layers: no "brak" rows
+$('toggles').innerHTML = LAYERS.map(([id, name, n, color, on]) => n
+  ? `<label class="row"><input type="checkbox" data-layer="${id}" ${on ? 'checked' : ''}><span class="sw" style="background:${color}"></span>${name}<span class="n">${n.toLocaleString('pl-PL')}</span></label>`
+  : `<span class="row off" title="Brak takich obiektów w źródłach dla tego obszaru"><input type="checkbox" disabled><span class="sw" style="background:${color};opacity:.4"></span>${name}<span class="n">brak</span></span>`).join('');
+function applyLayer(id, on) {
+  if (id === 'extras' && typeof extras !== 'undefined' && extras) extras.setVisible(on);
+  if (id === 'labels') $('labels').hidden = !on;
+  else if (groups[id]) groups[id].visible = on;
+  dirty = true;
+}
+if (LAYERS.every(([id, , n]) => id === 'labels' || id === 'water' || !n)) {  // a map that has only the photo and the terrain so far
+  $('toggles').insertAdjacentHTML('afterbegin', '<p class="note" style="margin:0 0 4px">Na razie tylko zdjęcie satelitarne i rzeźba terenu. Budynki, drogi i pozostałe obiekty zostaną dodane później.</p>');
+}
+$('toggles').addEventListener('change', (e) => applyLayer(e.target.dataset.layer, e.target.checked));
+LAYERS.forEach(([id, , n, , on]) => { if (n && !on) applyLayer(id, false); });
+if (terrainGrid) {
+  const steps = T.exaggerations || [1, 5, 15, 30];
+  $('exagWrap').hidden = false;
+  $('exag').innerHTML = steps.map((v) => `<button data-x="${v}" aria-pressed="${v === EXAG}">×${v}</button>`).join('');
+  const span = T.max_m - T.min_m;
+  const note = () => { $('exagNote').textContent = `Prawdziwa różnica wysokości w tym obszarze to ${span < 20 ? span.toFixed(1).replace('.', ',') : Math.round(span)} m. ${EXAG > 1 ? `Wysokości terenu pomnożono ×${EXAG}, żeby rzeźbę było widać.` : 'Teren w prawdziwej skali.'}`; };
+  note();
+  $('exag').addEventListener('click', (e) => {
+    const v = +e.target.dataset.x;
+    if (!v || v === EXAG) return;
+    EXAG = v;
+    $('exag').querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(+b.dataset.x === v)));
+    note(); shadeTerrain(); build();
+    controls.target.y = H(controls.target.x, controls.target.z); controls.update();
+  });
+}
+if (META.summary) {  // numbers and notes from the analysis, collapsed at the start
+  const S = META.summary;
+  $('sumWrap').hidden = false;
+  $('sumWrap').innerHTML = `<details class="sum"><summary>${esc(S.title || 'Wyniki analizy')}</summary>`
+    + (S.stats?.length ? `<div class="sum-stats">${S.stats.map(([n, l]) => `<div><b>${esc(n)}</b><span>${esc(l)}</span></div>`).join('')}</div>` : '')
+    + (S.notes?.length ? `<ul class="vnotes" style="margin-top:8px">${S.notes.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>` : '') + `</details>`;
+}
+if (RISK_MODE && META.summary?.legend) {  // the class switches above are the legend; here only how to read them
+  $('pipeLegend').hidden = false;
+  $('pipeKeys').hidden = true;
+  $('pipeTitle').textContent = 'Zagrożenie rurociągów';
+  $('pipeNote').textContent = 'Klasy leżą na szarej sieci; wysokie i średnie są pogrubione i mają poświatę. Kliknij odcinek – szczegóły; kliknij w inne miejsce – lokalny pomiar osiadania.';
+  $('pipeKeys').innerHTML = META.summary.legend.map(([c, t]) => `<span><span class="sw" style="background:${c}"></span>${esc(t)}</span>`).join('');
+} else if (pipeKinds.size) {  // only when the data says what the pipelines carry
+  $('pipeLegend').hidden = false;
+  if (META.pipes_one_class) $('pipeLegend').querySelector('.lg-h').textContent = 'Rurociągi i gazociągi';
+  $('pipeNote').textContent = 'Biegną pod ziemią. W modelu leżą na powierzchni i są pogrubione, żeby było je widać.';
+  $('pipeKeys').innerHTML = [...pipeKinds].map(([k, v]) => `<span><span class="sw" style="background:#${v.color.toString(16).padStart(6, '0')}"></span>${esc(k)} (${v.n})</span>`).join('');
+}
+const PIPE_RANK = (META.timeline?.anomalies || []).filter((a) => a.title);  // markers that are pipeline places (Tabasco)
+if (PIPE_RANK.length) {  // the ranking of the strongest subsidence under the pipelines - the same numbers as on the map
+  $('gotoWrap').hidden = false;
+  $('gotoWrap').querySelector('.lg-h').textContent = 'Największe osiadania pod rurociągami';
+  $('goto').className = 'goto rank';
+  $('goto').innerHTML = PIPE_RANK.map((a, i) => `<button data-rank="${i}" title="${esc(a.title)}${a.note ? ' – ' + esc(a.note) : ''}"><b>${a.rank}</b>`
+    + `<span>${esc(a.title.replace('Rurociąg: ', ''))}</span><em style="color:${a.risk === 'wysokie' ? '#ff6b6b' : '#f5a623'}">${a.v < 0 ? '−' : ''}${Math.abs(a.v)} mm/rok</em></button>`).join('');
+  $('goto').addEventListener('click', (e) => {
+    const a = PIPE_RANK[e.target.closest('button')?.dataset.rank];
+    if (!a) return;
+    const [x, z] = toXZ([a.lon, a.lat]);
+    flyTo({ target: new THREE.Vector3(x, 0, z), dist: 2500, ...(FLAT ? { polar: TOP, az: 0 } : { polar: THREE.MathUtils.degToRad(58) }) }, 1400);
+    if (typeof extras !== 'undefined' && extras) extras.openPipeAt(a.lon, a.lat);  // and its card
+  });
+} else if (spots.length) {
+  $('gotoWrap').hidden = false;
+  $('goto').innerHTML = spots.map((s, i) => `<button data-spot="${i}">${esc(s.name)}</button>`).join('');
+  $('goto').addEventListener('click', (e) => {
+    const s = spots[e.target.dataset.spot];
+    if (s) flyTo({ target: new THREE.Vector3(s.x, 0, s.z), dist: s.dist, ...(FLAT ? { polar: TOP, az: 0 } : { polar: THREE.MathUtils.degToRad(58) }) }, 1400);
+  });
+}
+
+// ----------------------------------------------------------- ground-motion timeline (2D view only)
+// One frame per measurement date: cumulative change since the first date. Red = down, blue = up,
+// clear = no change or within the noise. The frames cross-fade between dates.
+// With `timeline.phase` there is a second view of the same dates: the phase analysis of one area (interferometric
+// fringes - one colour cycle is one fringe - and contour lines of the displacement with labels).
+const TL = META.timeline || null;
+const timeline = TL && (() => {
+  const MONTHS = ['sty', 'lut', 'mar', 'kwi', 'maj', 'cze', 'lip', 'sie', 'wrz', 'paź', 'lis', 'gru'];
+  const dLong = (d) => `${+d.slice(6, 8)} ${MONTHS[+d.slice(4, 6) - 1]} ${d.slice(0, 4)}`;
+  const dShort = (d) => `${+d.slice(6, 8)} ${MONTHS[+d.slice(4, 6) - 1]}`;
+  const loader = new THREE.TextureLoader(), N = TL.dates.length, PH = TL.phase && TL.phase.files.length === N ? TL.phase : null;
+  const loadFrames = (dir, files) => files.map((f) => { const t = loader.load(BASE + dir + '/' + f, (img) => { renderer.initTexture(img); dirty = true; });  /* upload now, not on first play */ t.colorSpace = THREE.SRGBColorSpace; return t; });
+  const tex = { move: loadFrames(TL.dir, TL.files), phase: null };
+  const framesOf = (m) => (tex[m] = tex[m] || loadFrames(PH.dir, PH.files));  // the phase frames are fetched when first needed
+  // One sheet, two textures: the shader mixes the frames pixel by pixel (premultiplied), so a change of
+  // date never dims what stays the same (two stacked half-transparent sheets did, and that flickered).
+  const makeSheet = (bbox) => {
+    const mat = new THREE.ShaderMaterial({
+      uniforms: { a: { value: null }, b: { value: null }, k: { value: 0 } },
+      vertexShader: `#include <common>
+        #include <logdepthbuf_pars_vertex>
+        varying vec2 vUv;
+        void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        #include <logdepthbuf_vertex>
+        }`,
+      fragmentShader: `uniform sampler2D a; uniform sampler2D b; uniform float k; varying vec2 vUv;
+        #include <logdepthbuf_pars_fragment>
+        void main() {
+          #include <logdepthbuf_fragment>
+          vec4 ca = texture2D(a, vUv), cb = texture2D(b, vUv);
+          float alpha = mix(ca.a, cb.a, k);
+          if (alpha < 0.002) discard;
+          vec3 rgb = (ca.rgb * ca.a * (1.0 - k) + cb.rgb * cb.a * k) / alpha;
+          gl_FragColor = vec4(rgb, alpha);
+          #include <colorspace_fragment>
+        }`,
+      transparent: true, depthWrite: false, ...OFFSET,
+    });
+    const [w, sLat, e, nLat] = bbox, [x0, z0] = toXZ([w, nLat]), [x1, z1] = toXZ([e, sLat]);
+    const mesh = new THREE.Mesh(lay(new THREE.PlaneGeometry(x1 - x0, z1 - z0)).translate((x0 + x1) / 2, 0.5, (z0 + z1) / 2), mat);
+    mesh.renderOrder = 2; mesh.visible = false; scene.add(mesh);
+    return { mat, mesh, box: [x0, x1, z0, z1] };
+  };
+  const sheets = { move: makeSheet(TL.bbox), phase: PH ? makeSheet(PH.bbox) : null };
+  let idx = N - 1, fade = null, timer = null, on = false, mode = 'move';
+  const cur = () => sheets[mode];
+  const track = $('tlTrack');
+  track.insertAdjacentHTML('beforeend', TL.dates.map((d, i) => `<span class="tl-tick" data-i="${i}" style="left:${(i / (N - 1)) * 100}%"></span>`).join('')
+    + [0, Math.round((N - 1) / 2), N - 1].map((i) => `<span class="tl-lbl" style="left:${(i / (N - 1)) * 100}%">${dShort(TL.dates[i])}</span>`).join(''));
+  const PLAY = '<svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z"/></svg>', PAUSE = '<svg viewBox="0 0 24 24"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"/></svg>';
+  // main anomalies: numbered pulsing markers, each shown from the date it first appears (lime = new at this date)
+  const ANOS = (TL.anomalies || []).map((a) => {
+    const [x, z] = toXZ([a.lon, a.lat]), down = a.direction === 'down', first = Math.max(0, TL.dates.indexOf(a.first_date));
+    const el = document.createElement('div');
+    el.className = 'amark off';
+    el.style.setProperty('--c', down ? 'rgb(214,39,40)' : 'rgb(31,104,196)');
+    el.innerHTML = `<span class="ring"></span><span class="ring"></span><span class="dot">${a.rank}</span>`;
+    const mm = (v) => `${v > 0 ? '+' : v < 0 ? '−' : ''}${Math.abs(v)} mm`;
+    const tipHtml = () => {
+      const now = a.series_mm[idx];
+      return `<b>${a.title ? `${a.rank}. ${esc(a.title)}` : `Anomalia ${a.rank}: ${down ? 'osiadanie / osuwanie' : 'wypiętrzanie'}`}</b>${idx > 0 && idx === first ? ' · <b style="color:var(--accent)">nowa w tym pomiarze</b>' : ''}<br>`
+        + (a.area_ha ? `<span class="k">Obszar:</span> ok. ${a.area_ha} ha<br>` : '') + `<span class="k">${a.title ? 'Osiadanie ponad szum od' : 'Widoczna od'}:</span> ${dLong(TL.dates[first])}<br>`
+        + `<span class="k">Zmiana na ${dLong(TL.dates[idx])}:</span> ${mm(now)} (${a.title ? 'pod rurą, w linii widzenia satelity' : 'typowo w obszarze'})<br>`
+        + `<span class="k">Największa zmiana do ${dLong(TL.dates[N - 1])}:</span> ${mm(down ? -a.peak_mm : a.peak_mm)}${a.peak_saturated ? ' lub więcej' : ''}`
+        + (a.note ? `<br><span class="k">Z analizy:</span> ${esc(a.note)}` : '');
+    };
+    el.addEventListener('pointerenter', (ev) => { const t = $('tip'); t.innerHTML = tipHtml(); t.style.display = 'block'; t.style.left = (ev.clientX + 14) + 'px'; t.style.top = (ev.clientY + 14) + 'px'; });
+    el.addEventListener('pointerleave', () => { $('tip').style.display = 'none'; });
+    el.addEventListener('click', () => {
+      flyTo({ target: new THREE.Vector3(x, 0, z), dist: a.area_ha ? Math.max(900, Math.sqrt(a.area_ha * 1e4) * 4) : 2500 }, 900);
+      if (a.title && typeof extras !== 'undefined' && extras) extras.openPipeAt(a.lon, a.lat);  // a pipeline point: its card too
+    });
+    $('marks').appendChild(el);
+    return { el, first, pos: new THREE.Vector3(x, 0, z) };
+  });
+  if (ANOS.length) $('tlAno').hidden = false;
+  if (TL.anomaly_label) {  // Tabasco: its own name of the markers; new ones are lime
+    $('tlAno').lastChild.textContent = `${TL.anomaly_label} (nowe: limonkowe)`;
+    $('tlAno').title = 'Numerowane znaczniki; limonkowy = anomalia, która pojawiła się w tym pomiarze';
+  }
+  if (RISK_MODE) {  // pipeline classes in the timeline key too (both views; over the fringes they are easy to lose)
+    $('tlThr').insertAdjacentHTML('beforebegin', `<span class="tl-pipes">${[['#e03131', 'wysokie'], ['#f08c00', 'średnie'], ['#37b24d', 'niskie'], ['#8a96a3', 'sieć']]
+      .map(([c, t]) => `<span><i style="background:${c}"></i>${t}</span>`).join('')}</span>`);
+  }
+
+  // contour lines of the phase analysis, drawn for the shown date only; labels are HTML like the other names
+  const contours = PH && PH.contours && (() => {
+    const byDate = [];  // per date: { line, labels: [{ el, pos }] }
+    let loading = false, shown = -1;
+    const mat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9 });
+    function build(features) {
+      const y = FLAT_LIFT * 0.95;
+      for (let i = 0; i < N; i++) byDate[i] = { pos: [], labels: [], line: null };
+      for (const f of features) {
+        const i = TL.dates.indexOf(f.properties.date), d = byDate[i];
+        if (!d || f.geometry.type !== 'LineString') continue;
+        const pts = f.geometry.coordinates.map(toXZ);
+        for (let j = 1; j < pts.length; j++) d.pos.push(pts[j - 1][0], y, pts[j - 1][1], pts[j][0], y, pts[j][1]);
+        const [cx, cz] = pts[pts.length >> 1], [bx0, bx1, bz0, bz1] = sheets.phase.box;
+        if (pts.length >= 12 && f.properties.label && cx > bx0 && cx < bx1 && cz > bz0 && cz < bz1) {  // only over the fringe picture
+          const m = pts[pts.length >> 1], el = document.createElement('div');
+          el.className = 'lbl contour'; el.textContent = f.properties.label; el.style.display = 'none';
+          $('marks').appendChild(el);
+          d.labels.push({ el, pos: new THREE.Vector3(m[0], y, m[1]), len: pts.length, mm: Math.abs(f.properties.mm || 0) });
+        }
+      }
+      byDate.forEach((d) => {
+        d.labels.sort((a, b) => b.mm - a.mm || b.len - a.len);  // the deepest levels first, then the longest lines
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.Float32BufferAttribute(d.pos, 3));
+        d.line = new THREE.LineSegments(geo, mat); d.line.visible = false; d.line.renderOrder = 3; scene.add(d.line);
+      });
+      loading = false; set(shown); dirty = true;
+    }
+    function set(i) {  // i = date index to show, -1 = none
+      shown = i;
+      byDate.forEach((d, k) => { if (d.line) d.line.visible = k === i; if (k !== i) d.labels.forEach((l) => { l.el.style.display = 'none'; }); });
+      if (i >= 0 && !byDate.length && !loading) { loading = true; getJSON(BASE + PH.contours).then((g) => build(g.features)).catch(() => { loading = false; }); }
+    }
+    return {
+      set,
+      place(w, h) {
+        const d = byDate[shown];
+        if (!d) return;
+        const near = camera.position.y < R * 0.35, placed = [], GAP = 150, MAX = 8;  // a few names, well apart
+        for (const l of d.labels) {
+          v3.copy(l.pos).project(camera);
+          const sx = (v3.x + 1) / 2 * w, sy = (1 - v3.y) / 2 * h;
+          const vis = near && placed.length < MAX && v3.z < 1 && Math.abs(v3.x) < 0.95 && Math.abs(v3.y) < 0.95 && placed.every(([px, py]) => Math.hypot(px - sx, py - sy) > GAP);
+          l.el.style.display = vis ? '' : 'none';
+          if (vis) { placed.push([sx, sy]); l.el.style.transform = `translate(-50%, -50%) translate(${sx.toFixed(1)}px, ${sy.toFixed(1)}px)`; }
+        }
+      },
+    };
+  })();
+
+  // a colour bar for the fringes: one cycle = the phase colours, from 0 to one fringe
+  if (PH) {
+    const stops = Array.from({ length: 9 }, (_, i) => `hsl(${(180 + (i / 8) * 360) % 360} 85% 55%)`);
+    $('tlFringeBar').style.background = `linear-gradient(90deg, ${stops.join(', ')})`;
+    $('tlFringeTxt').textContent = `0 → ${Math.round(PH.cycle_mm)} mm (jeden prążek)`;
+    $('tlMode').hidden = false;
+  }
+  function render() {
+    ANOS.forEach((m) => {
+      m.el.classList.toggle('off', !on || mode !== 'move' || idx < m.first);
+      m.el.classList.toggle('fresh', !!TL.anomaly_label && idx > 0 && idx === m.first);
+    });
+    const pct = (idx / (N - 1)) * 100;
+    $('tlFill').style.width = pct + '%'; $('tlKnob').style.left = pct + '%';
+    track.querySelectorAll('.tl-tick').forEach((t) => t.classList.toggle('on', +t.dataset.i <= idx));
+    track.setAttribute('aria-valuetext', dLong(TL.dates[idx]));
+    $('tlDate').textContent = dLong(TL.dates[idx]);
+    $('tlThr').textContent = mode === 'phase'
+      ? `kontury co ${PH.contour_step_mm} mm · ruch w linii widzenia satelity${idx ? '' : ' · pierwszy pomiar = punkt odniesienia'}`
+      : `zmiany poniżej ${Array.isArray(TL.threshold_mm) ? TL.threshold_mm.at(-1) : TL.threshold_mm} mm są przezroczyste${idx ? '' : ' · pierwszy pomiar = punkt odniesienia'}`;
+    $('tlPrev').disabled = idx === 0; $('tlNext').disabled = idx === N - 1;
+    if (contours) contours.set(on && mode === 'phase' ? idx : -1);
+  }
+  function setDate(i, animate = true) {
+    i = Math.max(0, Math.min(N - 1, i));
+    const sh = cur(), u = sh.mat.uniforms;
+    if (i === idx && u.b.value) return;
+    const frames = framesOf(mode), shown = fade && u.k.value > 0.5 ? u.b.value : u.a.value || frames[idx];
+    idx = i; render();
+    if (animate && on) { u.a.value = shown; u.b.value = frames[idx]; u.k.value = 0; fade = { t0: performance.now(), ms: 450 }; }
+    else { u.a.value = u.b.value = frames[idx]; u.k.value = 1; fade = null; }
+    dirty = true;
+  }
+  /** Shows the sheet of the current mode (move or phase), its legend and title. */
+  function applyMode() {
+    const ph = mode === 'phase';
+    fade = null;
+    for (const [k, sh] of Object.entries(sheets)) if (sh) { sh.mesh.visible = on && k === mode; sh.mesh.position.y = FLAT_LIFT * 0.75 - 0.5; }  // above the sea sheet, below the objects on the ground
+    $('tlModeMove').setAttribute('aria-pressed', String(!ph)); $('tlModePhase').setAttribute('aria-pressed', String(ph));
+    $('tlKeyMove').hidden = ph; $('tlKeyPhase').hidden = !ph;
+    $('tlTitle').textContent = ph ? `${PH.title} · zmiana od ${dLong(TL.dates[0])}` : `Zmiana terenu od ${dLong(TL.dates[0])}`;
+    if (on && !cur().mat.uniforms.b.value) setDate(idx, false);
+    render();
+    dirty = true;
+  }
+  function stop() { clearInterval(timer); timer = null; $('tlPlay').innerHTML = PLAY; $('tlPlay').setAttribute('aria-label', 'Odtwórz'); }
+  $('tlPlay').innerHTML = PLAY;
+  $('tlPlay').addEventListener('click', () => {
+    if (timer) return stop();
+    $('tlPlay').innerHTML = PAUSE; $('tlPlay').setAttribute('aria-label', 'Pauza');
+    if (idx === N - 1) setDate(0);  // from the end: back to the start with the same soft change, then play
+    timer = setInterval(() => { if (idx >= N - 1) return stop(); setDate(idx + 1); }, 900);
+  });
+  $('tlPrev').addEventListener('click', () => { stop(); setDate(idx - 1); });
+  $('tlNext').addEventListener('click', () => { stop(); setDate(idx + 1); });
+  const fromPointer = (ev) => { const b = track.getBoundingClientRect(); return Math.round(((ev.clientX - b.left) / b.width) * (N - 1)); };
+  track.addEventListener('pointerdown', (ev) => { stop(); track.setPointerCapture(ev.pointerId); setDate(fromPointer(ev)); });
+  track.addEventListener('pointermove', (ev) => { if (track.hasPointerCapture(ev.pointerId)) setDate(fromPointer(ev)); });
+  track.addEventListener('keydown', (ev) => {
+    const to = { ArrowLeft: idx - 1, ArrowRight: idx + 1, Home: 0, End: N - 1 }[ev.key];
+    if (to !== undefined) { ev.preventDefault(); stop(); setDate(to); }
+  });
+  /** Switch between the change of the ground and the phase analysis; the camera moves to the area of that view. */
+  function setView(m) {
+    if (!PH || m === mode || !on) return;
+    stop(); mode = m; applyMode();
+    const box = m === 'phase' ? sheets.phase.box : null, spot = box ? fitBox(...box) : hazardFrame();
+    if (spot) flyTo({ az: 0, polar: TOP, dist: spot.dist, target: new THREE.Vector3(spot.x, 0, spot.z) }, 1000);
+  }
+  $('tlModeMove').addEventListener('click', () => setView('move'));
+  $('tlModePhase').addEventListener('click', () => setView('phase'));
+  return {
+    show(visible) {
+      on = visible;
+      $('timeline').hidden = !visible;
+      if (!visible) { mode = 'move'; stop(); }
+      applyMode();
+    },
+    place(w, h) {  // keep the markers on their spots, called after each render
+      for (const m of ANOS) {
+        v3.copy(m.pos).project(camera);
+        m.el.style.transform = `translate(${((v3.x + 1) / 2 * w).toFixed(1)}px, ${((1 - v3.y) / 2 * h).toFixed(1)}px)`;
+      }
+      if (contours) contours.place(w, h);
+    },
+    tick(now) {  // cross-fade step, called from the render loop
+      if (!fade) return false;
+      const u = cur().mat.uniforms, k = Math.min(1, (now - fade.t0) / fade.ms);
+      u.k.value = k * k * (3 - 2 * k);  // smoothstep
+      if (k >= 1) { u.a.value = u.b.value; fade = null; }
+      return true;
+    },
+  };
+})();
+
+// ----------------------------------------------------------------- controls
+// 2D / 3D switch: the same model, flattened and seen from above, or in 3D. It keeps the place in view.
+const TOP = 1e-4;  // polar angle of "straight down" (exactly 0 makes the orbit math degenerate)
+const AUTO_OFF = ['hazards', 'labels'];  // switched off on entering the 2D timeline view
+/** Centre and camera distance that fit the main hazard zone (the biggest one plus the parts touching it,
+ *  not small separate zones kilometres away) with some room around it, seen from straight above. */
+function hazardFrame() {
+  const ph = META.timeline?.phase;  // an analysis area is where the pipelines meet the anomalies: open on it
+  if (ph) {
+    const [x0, z0] = toXZ([ph.bbox[0], ph.bbox[3]]), [x1, z1] = toXZ([ph.bbox[2], ph.bbox[1]]), px = (x1 - x0) * 0.3, pz = (z1 - z0) * 0.3;
+    return fitBox(x0 - px, x1 + px, z0 - pz, z1 + pz);
+  }
+  const boxes = hazards.flatMap((f) => polygons(f.geometry)).map((rings) => {
+    const pts = rings[0].map(toXZ), xs = pts.map((q) => q[0]), zs = pts.map((q) => q[1]);
+    return [Math.min(...xs), Math.max(...xs), Math.min(...zs), Math.max(...zs)];
+  });
+  if (!boxes.length) return null;
+  const size = (b) => (b[1] - b[0]) * (b[3] - b[2]), main = boxes.reduce((a, b) => (size(b) > size(a) ? b : a)), near = 500;
+  const group = boxes.filter((b) => b[0] < main[1] + near && b[1] > main[0] - near && b[2] < main[3] + near && b[3] > main[2] - near);
+  // anomaly markers close to the zone (within 3 km) belong in the same picture
+  for (const a of (timeline?.anomalies?.() || META.timeline?.anomalies || [])) {
+    const [ax, az] = toXZ([a.lon, a.lat]), pad = 250;
+    if (ax > main[0] - 3000 && ax < main[1] + 3000 && az > main[2] - 3000 && az < main[3] + 3000) group.push([ax - pad, ax + pad, az - pad, az + pad]);
+  }
+  return fitBox(Math.min(...group.map((b) => b[0])), Math.max(...group.map((b) => b[1])), Math.min(...group.map((b) => b[2])), Math.max(...group.map((b) => b[3])));
+}
+/** Camera centre and distance (seen from straight above) that fit a box of the model with some room around it. */
+function fitBox(x0, x1, z0, z1) {
+  // the open layer panel covers the left edge: fit the picture into the free part and centre it there
+  const panel = $('layers').open ? Math.min(stage.clientWidth * 0.4, $('layers').getBoundingClientRect().right - stage.getBoundingClientRect().left + 12) : 0;
+  const freeW = stage.clientWidth - panel, freeH = Math.max(1, stage.clientHeight - ($('timeline').hidden ? 52 : 0));
+  const k = 2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+  const dist = Math.max((x1 - x0) / (freeW / freeH), z1 - z0) * 1.3 / k;
+  const mPerPx = (dist * k) / freeH;  // ground metres per screen pixel at that distance
+  return { x: (x0 + x1) / 2 - (panel / 2) * mPerPx, z: (z0 + z1) / 2, dist: Math.max(controls.minDistance, dist) };
+}
+let savedLayers = null;
+const home2d = () => ({ az: 0, polar: TOP, dist: HOME.dist, target: HOME.target.clone() });  // same place as the 3D start, from above
+function setMode(flat, animate = true) {
+  FLAT = flat;
+  stopSpin();
+  if (flat) { exag3d = EXAG || exag3d; EXAG = 0; } else EXAG = exag3d;
+  slab.visible = !flat;  // seen from straight above the base slab only fights with the flattened ground
+  shadeTerrain(); build();
+  Object.assign(controls, flat
+    ? { enableRotate: false, screenSpacePanning: true, minPolarAngle: TOP, maxPolarAngle: TOP, minAzimuthAngle: 0, maxAzimuthAngle: 0 }
+    : { enableRotate: true, screenSpacePanning: false, minPolarAngle: 0, maxPolarAngle: THREE.MathUtils.degToRad(86), minAzimuthAngle: -Infinity, maxAzimuthAngle: Infinity });
+  controls.mouseButtons.LEFT = flat ? THREE.MOUSE.PAN : THREE.MOUSE.ROTATE;
+  controls.touches.ONE = flat ? THREE.TOUCH.PAN : THREE.TOUCH.ROTATE;
+  ['rotL', 'rotR', 'tiltBtn', 'spin', 'compass', 'exagWrap'].forEach((id) => { $(id).hidden = flat || (id === 'exagWrap' && !terrainGrid); });
+  $('hint').textContent = (flat ? 'Przeciągnij – przesuwanie · kółko – zoom' : 'Przeciągnij – obrót · prawy przycisk lub Shift – przesuwanie · kółko – zoom') + (typeof verify !== 'undefined' && verify ? ' · kliknij obiekt – sygnał z analizy' : typeof extras !== 'undefined' && extras ? ' · kliknij rurociąg lub dowolne miejsce – pomiar osiadania' : '');
+  $('dim2').setAttribute('aria-pressed', String(flat));
+  $('dim3').setAttribute('aria-pressed', String(!flat));
+  if (timeline) timeline.show(flat);
+  document.body.classList.toggle('flat', flat);
+  const v = viewNow();
+  v.target.y = 0;
+  // With a ground-motion timeline the 2D view is about the hazard: open on it and hide its outline and
+  // the labels, so nothing covers the coloured change. Going back to 3D restores those switches.
+  const spot = flat && timeline ? hazardFrame() : null;
+  if (spot) { v.target.set(spot.x, 0, spot.z); v.dist = spot.dist; }
+  if (flat && timeline) {
+    savedLayers = savedLayers || {};
+    AUTO_OFF.forEach((id) => {
+      const box = document.querySelector(`#toggles [data-layer="${id}"]`);
+      if (!box) return;
+      if (!(id in savedLayers)) savedLayers[id] = box.checked;
+      box.checked = false; applyLayer(id, false);
+    });
+  } else if (!flat && savedLayers) {
+    Object.entries(savedLayers).forEach(([id, checked]) => { const box = document.querySelector(`#toggles [data-layer="${id}"]`); if (box) { box.checked = checked; applyLayer(id, checked); } });
+    savedLayers = null;
+  }
+  if (animate) flyTo(flat ? { az: 0, polar: TOP, dist: v.dist, target: v.target } : { polar: HOME.polar, dist: v.dist }, spot ? 1100 : 700);
+  else place(flat ? { ...v, az: 0, polar: TOP } : { ...v, polar: HOME.polar });
+  controls.target.y = H(controls.target.x, controls.target.z);
+  const url = new URL(location.href);
+  if (flat) url.searchParams.set('view', '2d'); else url.searchParams.delete('view');
+  history.replaceState(null, '', url);
+  dirty = true;
+}
+$('dims').hidden = false;
+$('dim2').addEventListener('click', () => { if (!FLAT) setMode(true); });
+$('dim3').addEventListener('click', () => { if (FLAT) setMode(false); });
+
+const stopSpin = () => { controls.autoRotate = false; $('spin').setAttribute('aria-pressed', 'false'); };
+$('rotL').addEventListener('click', () => { stopSpin(); flyTo({ az: viewNow().az - Math.PI / 4 }, 500); });
+$('rotR').addEventListener('click', () => { stopSpin(); flyTo({ az: viewNow().az + Math.PI / 4 }, 500); });
+$('zoomIn').addEventListener('click', () => flyTo({ dist: Math.max(controls.minDistance, viewNow().dist * 0.6) }, 400));
+$('zoomOut').addEventListener('click', () => flyTo({ dist: Math.min(controls.maxDistance, viewNow().dist * 1.6) }, 400));
+$('home').addEventListener('click', () => { stopSpin(); flyTo(FLAT ? home2d() : HOME); });
+$('tiltBtn').addEventListener('click', () => flyTo({ polar: viewNow().polar < THREE.MathUtils.degToRad(20) ? HOME.polar : 0.01 }, 700));
+$('compass').addEventListener('click', () => { stopSpin(); flyTo({ az: 0 }, 600); });
+$('spin').addEventListener('click', () => {
+  controls.autoRotate = !controls.autoRotate;
+  $('spin').setAttribute('aria-pressed', String(controls.autoRotate));
+});
+window.addEventListener('keydown', (e) => {
+  if (e.target.matches('input, select, button')) return;
+  if (FLAT && e.key.startsWith('Arrow')) return;  // nothing to rotate or tilt on a flat map
+  const v = viewNow(), step = THREE.MathUtils.degToRad(15);
+  const to = { ArrowLeft: { az: v.az - step }, ArrowRight: { az: v.az + step }, ArrowUp: { polar: Math.max(0.01, v.polar - step / 2) },
+    ArrowDown: { polar: Math.min(controls.maxPolarAngle, v.polar + step / 2) }, '+': { dist: v.dist * 0.8 }, '=': { dist: v.dist * 0.8 }, '-': { dist: v.dist * 1.25 } }[e.key];
+  if (to) { e.preventDefault(); flyTo(to, 250); }
+});
+renderer.domElement.addEventListener('pointerdown', () => { flight = null; $('hint').style.opacity = 0; hideTip(); dragging = true; });
+window.addEventListener('pointerup', () => { dragging = false; });
+
+// Tooltip: what is under the cursor. In a big scene the test is costly, so it waits until the pointer rests.
+const ray = new THREE.Raycaster(), mouse = new THREE.Vector2();
+let dragging = false, hoverAt = null, hoverTime = 0;
+const hideTip = () => { $('tip').style.display = 'none'; };
+renderer.domElement.addEventListener('pointermove', (e) => { hoverAt = dragging ? null : e; hoverTime = performance.now(); });
+renderer.domElement.addEventListener('pointerleave', () => { hoverAt = null; hideTip(); });
+/** Distance along a ray to the terrain surface (marching + bisection on the height function; much
+ *  cheaper than testing the ray against the million triangles of the terrain mesh). */
+const probe = new THREE.Vector3();
+function groundDistance(r) {
+  const below = (t) => { probe.copy(r.direction).multiplyScalar(t).add(r.origin); return Math.abs(probe.x) <= SX / 2 && Math.abs(probe.z) <= SZ / 2 && probe.y <= H(probe.x, probe.z); };
+  let prev = camera.near, t = prev;
+  while (t < R * 8) {
+    if (below(t)) {
+      let lo = prev, hi = t;
+      for (let k = 0; k < 24; k++) { const mid = (lo + hi) / 2; if (below(mid)) hi = mid; else lo = mid; }
+      return hi;
+    }
+    prev = t; t += Math.max(0.5, t * 0.004);
+  }
+  return Infinity;
+}
+function pick() {
+  const e = hoverAt; hoverAt = null;
+  const box = renderer.domElement.getBoundingClientRect();
+  mouse.set(((e.clientX - box.left) / box.width) * 2 - 1, -((e.clientY - box.top) / box.height) * 2 + 1);
+  ray.setFromCamera(mouse, camera);
+  let hit = ray.intersectObjects(pickables.filter((o) => o.parent && o.parent.visible), false)[0];
+  if (hit && hit.distance > groundDistance(ray.ray) + 2 + hit.distance * 0.004) hit = null;  // behind a hill or under the land
+  let html = hit && (hit.object.userData.tipAt ? hit.object.userData.tipAt(hit.faceIndex) : hit.object.userData.tip);
+  if (!html && typeof extras !== 'undefined' && extras) html = extras.tipAt(ray.ray);  // lines drawn with a fixed pixel width
+  if (!html) return hideTip();
+  const tip = $('tip');
+  tip.innerHTML = html; tip.style.display = 'block';
+  tip.style.left = Math.min(e.clientX + 14, window.innerWidth - tip.offsetWidth - 8) + 'px';
+  tip.style.top = Math.min(e.clientY + 14, window.innerHeight - tip.offsetHeight - 8) + 'px';
+}
+
+// ------------------------------------------- verification signal for a clicked object
+// Click a building, road, rail line, pipeline or power line (or the ground) to see what the team's InSAR
+// results say about the ground under it. Shown as a signal to verify, not as a danger rating:
+//  - the class describes ground motion under the object, not the condition of the structure;
+//  - the radar measures along its line of sight (LOS), not the full direction or the vertical alone;
+//  - the rate comes from ~6 months (one rainy season), so a seasonal part can be in it. A trend check
+//    on the time series of the point (both halves of the period, steps in the same direction) and the
+//    number of monitoring windows with motion tell a steady trend from a seasonal or one-off change.
+const ANALYSIS = SETS.find((d) => d.kind !== 'scene3d' && d.id === LOC.id);
+const verify = ANALYSIS && (() => {
+  const MONTHS = ['sty', 'lut', 'mar', 'kwi', 'maj', 'cze', 'lip', 'sie', 'wrz', 'paź', 'lis', 'gru'];
+  const dLong = (d) => `${+d.slice(6, 8)} ${MONTHS[+d.slice(4, 6) - 1]} ${d.slice(0, 4)}`;
+  const toLonLat = (x, z) => [W_LON + (x / SX + 0.5) * (E_LON - W_LON), S_LAT + (0.5 - z / SZ) * (N_LAT - S_LAT)];
+  const fmt = (v, d = 0) => (v == null || Number.isNaN(+v) ? '–' : (+v).toLocaleString('pl-PL', { maximumFractionDigits: d, minimumFractionDigits: 0 }));
+  const signed = (v, unit) => (v == null ? '–' : `${v > 0 ? '+' : v < 0 ? '−' : ''}${fmt(Math.abs(v))} ${unit}`);
+  const CELL = 250;
+  let data = null, loading = null;
+
+  function indexOf(features, kind) {  // features -> items with shapes in scene metres, in a coarse grid
+    const grid = new Map(), items = [];
+    for (const f of features || []) {
+      const g = f.geometry, shapes = kind === 'poly' ? polygons(g).map((rings) => rings[0].map(toXZ)) : lines(g).map((l) => l.map(toXZ));
+      if (!shapes.length) continue;
+      const all = shapes.flat(), x0 = Math.min(...all.map((q) => q[0])), x1 = Math.max(...all.map((q) => q[0])), z0 = Math.min(...all.map((q) => q[1])), z1 = Math.max(...all.map((q) => q[1]));
+      const item = { p: f.properties, shapes, kind };
+      items.push(item);
+      for (let cx = Math.floor(x0 / CELL); cx <= Math.floor(x1 / CELL); cx++) for (let cz = Math.floor(z0 / CELL); cz <= Math.floor(z1 / CELL); cz++) {
+        const key = cx + ',' + cz; (grid.get(key) || grid.set(key, []).get(key)).push(item);
+      }
+    }
+    return { grid, items };
+  }
+  function segDist(x, z, a, b) {
+    const dx = b[0] - a[0], dz = b[1] - a[1], t = THREE.MathUtils.clamp(((x - a[0]) * dx + (z - a[1]) * dz) / (dx * dx + dz * dz || 1), 0, 1);
+    return Math.hypot(a[0] + t * dx - x, a[1] + t * dz - z);
+  }
+  function inside(x, z, ring) {
+    let c = false;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const [xi, zi] = ring[i], [xj, zj] = ring[j];
+      if ((zi > z) !== (zj > z) && x < ((xj - xi) * (z - zi)) / (zj - zi) + xi) c = !c;
+    }
+    return c;
+  }
+  function nearest(idx, x, z, radius, filter = () => true) {
+    let best = null, bestD = radius;
+    const seen = new Set();
+    for (let cx = Math.floor((x - radius) / CELL); cx <= Math.floor((x + radius) / CELL); cx++) for (let cz = Math.floor((z - radius) / CELL); cz <= Math.floor((z + radius) / CELL); cz++) {
+      for (const it of idx.grid.get(cx + ',' + cz) || []) {
+        if (seen.has(it) || !filter(it.p)) continue;
+        seen.add(it);
+        for (const sh of it.shapes) {
+          let d = Infinity;
+          if (it.kind === 'poly' && inside(x, z, sh)) d = 0;
+          else for (let i = 1; i < sh.length; i++) d = Math.min(d, segDist(x, z, sh[i - 1], sh[i]));
+          if (d <= bestD) { bestD = d; best = it; }
+        }
+      }
+    }
+    return best && { p: best.p, d: bestD };
+  }
+
+  async function load() {
+    if (data) return data;
+    if (loading) return loading;
+    const B = ANALYSIS.base_url, get = (f) => getJSON(B + f).catch(() => null);
+    // a package with several orbits (meta.series) has tiled grids instead of one timeseries.json
+    loading = get('meta.json').then((m) => Promise.all([m, ...['buildings_risk.geojson', 'critical.geojson', 'roads_risk.geojson', 'pipelines.geojson',
+      Array.isArray(m?.series) ? null : 'timeseries.json'].map((f) => (f ? get(f) : null))]))
+      .then(([meta, bld, crit, roads, pipes, ts]) => {
+        let TS = null;
+        if (ts && meta?.focus) {
+          const bin = atob(ts.b64), u8 = new Uint8Array(bin.length);
+          for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+          TS = new Int16Array(u8.buffer);
+        }
+        data = { meta, ts, TS, tiles: new Map(), bld: indexOf(bld?.features, 'poly'), crit: indexOf(crit?.features, 'line'), roads: indexOf(roads?.features, 'line'), pipes: indexOf(pipes?.features, 'line'),
+          slopes: indexOf(slopes, 'line') };  // scene layer; its ground motion was read along each line when it was built
+        return data;
+      });
+    return loading;
+  }
+
+  /** Displacement series [mm since the first date] near a point: of the 3 x 3 pixels (100 m each) around
+   *  it, the one that moved most - like the classes, which also use the strongest point of an object. */
+  /** The orbit the panel uses: the one picked in the 2D timeline (packages with several orbits). */
+  let forced = null;  // an orbit used for this click because the chosen one has no measurement there
+  function current() {
+    const all = data.meta.series;
+    if (!all) return null;
+    if (forced) return forced;
+    const id = timeline?.seriesId?.();
+    return all.find((x) => x.id === id) || all[0];
+  }
+  async function tileOf(S, tr, tc) {  // one tile of int16 [row][col][date], loaded once
+    const key = `${S.id}/${tr}_${tc}`;
+    if (!data.tiles.has(key)) {
+      const have = S.grid.tiles.some(([r, c]) => r === tr && c === tc);
+      data.tiles.set(key, have ? fetch(`${ANALYSIS.base_url}${S.grid.dir}/${tr}_${tc}.bin`).then((r) => (r.ok ? r.arrayBuffer() : null)).then((b) => b && new Int16Array(b)).catch(() => null) : Promise.resolve(null));
+    }
+    return data.tiles.get(key);
+  }
+  async function seriesAt(lon, lat) {
+    const S = current();
+    if (S) {  // lon/lat grid in tiles: the strongest of the 3 x 3 pixels around the point
+      const G = S.grid, row0 = Math.floor((G.north - lat) / (G.north - G.south) * G.h), col0 = Math.floor((lon - G.west) / (G.east - G.west) * G.w);
+      let best = null, bestAbs = -1;
+      for (let row = row0 - 1; row <= row0 + 1; row++) for (let col = col0 - 1; col <= col0 + 1; col++) {
+        if (col < 0 || row < 0 || col >= G.w || row >= G.h) continue;
+        const tr = Math.floor(row / G.tile), tc = Math.floor(col / G.tile), t = await tileOf(S, tr, tc);
+        if (!t) continue;
+        const tw = Math.min(G.tile, G.w - tc * G.tile), base = ((row - tr * G.tile) * tw + (col - tc * G.tile)) * G.epochs, out = [];
+        for (let e = 0; e < G.epochs; e++) { const v = t[base + e]; out.push(v === G.nodata ? null : v); }
+        const valid = out.filter((v) => v !== null);
+        if (valid.length < G.epochs - 3) continue;
+        if (Math.abs(valid.at(-1)) > bestAbs) { bestAbs = Math.abs(valid.at(-1)); best = out; }
+      }
+      return best;
+    }
+    const { meta, ts, TS } = data;
+    if (!TS) return null;
+    const F = meta.focus, Rm = 6378137, x = (lon * Math.PI / 180) * Rm, y = Rm * Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI / 180) / 2));
+    const col0 = Math.floor((x - F.x0) / F.res), row0 = Math.floor((F.y1 - y) / F.res);
+    let best = null, bestAbs = -1;
+    for (let row = row0 - 1; row <= row0 + 1; row++) for (let col = col0 - 1; col <= col0 + 1; col++) {
+      if (col < 0 || row < 0 || col >= F.w || row >= F.h) continue;
+      const out = [];
+      for (let e = 0; e < F.epochs; e++) { const v = TS[(row * F.w + col) * F.epochs + e]; out.push(v === ts.nodata ? null : v); }
+      const valid = out.filter((v) => v !== null);
+      if (valid.length < F.epochs - 3) continue;
+      if (Math.abs(valid.at(-1)) > bestAbs) { bestAbs = Math.abs(valid.at(-1)); best = out; }
+    }
+    return best;
+  }
+
+  /** Is the motion a steady trend or concentrated in part of the period (season, one-off)? */
+  function trend(series) {
+    const dates = data.meta.dates, t = dates.map((d) => (Date.UTC(+d.slice(0, 4), +d.slice(4, 6) - 1, +d.slice(6, 8)) - Date.UTC(+dates[0].slice(0, 4), +dates[0].slice(4, 6) - 1, +dates[0].slice(6, 8))) / 864e5);
+    const pts = series.map((v, i) => [t[i], v]).filter(([, v]) => v !== null);
+    const last = pts.at(-1), total = last[1] - pts[0][1], LIM = lim();
+    if (Math.abs(total) < LIM) return { kind: 'none', html: `<b>Brak wyraźnego ruchu w tym punkcie</b> – przez cały okres zmiana mniejsza niż ${LIM} mm.` };
+    const midT = (pts[0][0] + last[0]) / 2, mid = pts.reduce((a, b) => (Math.abs(b[0] - midT) < Math.abs(a[0] - midT) ? b : a));
+    const r1 = ((mid[1] - pts[0][1]) / (mid[0] - pts[0][0])) * 365.25, r2 = ((last[1] - mid[1]) / (last[0] - mid[0])) * 365.25;
+    const sign = Math.sign(total);
+    let withTrend = 0, steps = 0;
+    for (let i = 1; i < pts.length; i++) { const d = pts[i][1] - pts[i - 1][1]; if (Math.abs(d) >= 2) { steps++; if (Math.sign(d) === sign) withTrend++; } }
+    const share = steps ? withTrend / steps : 0, halves = `1. połowa okresu: ${signed(Math.round(r1), 'mm/rok')}, 2. połowa: ${signed(Math.round(r2), 'mm/rok')}`;
+    if (Math.sign(r1) !== Math.sign(r2) && Math.min(Math.abs(r1), Math.abs(r2)) > 15)
+      return { kind: 'reversal', html: `<b>Ruch zmienił kierunek w trakcie okresu</b> (${halves}). Możliwy wpływ sezonowy albo szum – potrzebna dłuższa seria.` };
+    if (Math.sign(r1) === Math.sign(r2) && Math.min(Math.abs(r1), Math.abs(r2)) / Math.max(Math.abs(r1), Math.abs(r2)) >= 0.4 && share >= 0.6)
+      return { kind: 'steady', html: `<b>Ruch narasta w obu połowach okresu</b> (${halves}; ${Math.round(share * 100)}% kroków w tym samym kierunku). Wygląda na trwały trend – ale okres jest krótszy niż rok.` };
+    return { kind: 'uneven', html: `<b>Ruch skupiony w części okresu</b> (${halves}). Może to być wpływ pory deszczowej albo jednorazowe zdarzenie – do potwierdzenia na dłuższej serii.` };
+  }
+
+  /** Small chart of the series: value axis on the left, dates below, grey band = change too small to count.
+   *  Everything is inside one SVG that scales as a whole (width 100%, height from the aspect ratio). */
+  function sparkline(series) {
+    const W = 300, Hh = 118, L = 44, Rr = 8, T0 = 8, B = 22, LIM = lim();
+    const vals = series.filter((v) => v !== null);
+    // range fitted to the data (the grey band always fits), a few round ticks, one unit for all labels
+    const lo = Math.min(-LIM * 1.3, ...vals) * 1.1, hi = Math.max(LIM * 1.3, ...vals) * 1.1;
+    const nice = (v) => { const e = 10 ** Math.floor(Math.log10(v)), f = v / e; return (f >= 5 ? 5 : f >= 2 ? 2 : 1) * e; };
+    const step = nice((hi - lo) / 3), inCm = hi - lo >= 120;
+    const X = (i) => L + (i / (series.length - 1)) * (W - L - Rr), Y = (v) => T0 + ((hi - v) / (hi - lo)) * (Hh - T0 - B);
+    const end = vals.at(-1), colour = end < -LIM ? 'rgb(214,39,40)' : end > LIM ? 'rgb(31,104,196)' : '#A2A6AC';
+    const ticks = [];
+    for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) ticks.push(v);
+    const label = (v) => (Math.abs(v) < 1e-6 ? '0' : `${v > 0 ? '+' : '−'}${inCm ? +(Math.abs(v) / 10).toFixed(1) + ' cm' : Math.round(Math.abs(v)) + ' mm'}`);
+    const pts = series.map((v, i) => (v === null ? null : [X(i), Y(v)])).filter(Boolean);
+    return `<svg viewBox="0 0 ${W} ${Hh}" style="display:block;width:100%;height:auto;margin-top:4px" role="img" aria-label="Przemieszczenie gruntu w czasie" font-family="Inter, sans-serif">
+      <rect x="${L}" y="${Y(LIM)}" width="${W - L - Rr}" height="${Y(-LIM) - Y(LIM)}" fill="rgba(242,243,240,.07)"/>
+      ${ticks.map((v) => `<line x1="${L}" x2="${W - Rr}" y1="${Y(v)}" y2="${Y(v)}" stroke="${v === 0 ? '#4a4e55' : '#2B2E33'}" stroke-width="1"/>
+        <text x="${L - 6}" y="${Y(v) + 3.5}" text-anchor="end" font-size="10" fill="#A2A6AC">${label(v)}</text>`).join('')}
+      <polyline points="${pts.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' ')}" fill="none" stroke="${colour}" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+      ${pts.map(([x, y]) => `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.3" fill="${colour}"/>`).join('')}
+      <text x="${L}" y="${Hh - 6}" font-size="10" fill="#A2A6AC">${dLong(data.meta.dates[0])}</text>
+      <text x="${W - Rr}" y="${Hh - 6}" text-anchor="end" font-size="10" fill="#A2A6AC">${dLong(data.meta.dates.at(-1))}</text>
+    </svg>
+    <p class="vsub" style="margin:2px 0 0;font-size:11.5px">Szare pole: zmiana poniżej ${LIM} mm – za mała, by ją uznać.</p>`;
+  }
+  function lim() { const S = current(); return S?.noise_mm ? Math.round(2 * S.noise_mm) : 20; }  // 2 x the orbit's noise (PB: 20 mm)
+  const GEN = ['stycznia', 'lutego', 'marca', 'kwietnia', 'maja', 'czerwca', 'lipca', 'sierpnia', 'września', 'października', 'listopada', 'grudnia'];
+  function span() {  // "Od listopada do maja", the length in months
+    const d = data.meta.dates, m0 = +d[0].slice(4, 6) - 1, m1 = +d.at(-1).slice(4, 6) - 1;
+    const days = (Date.UTC(+d.at(-1).slice(0, 4), m1, +d.at(-1).slice(6, 8)) - Date.UTC(+d[0].slice(0, 4), m0, +d[0].slice(6, 8))) / 864e5;
+    return { from: `Od ${GEN[m0]} do ${GEN[m1]}`, months: Math.max(1, Math.round(days / 30.4)) };
+  }
+
+  const SIGNAL = {
+    wysokie: ['#c62a22', 'Silny sygnał ruchu gruntu', 'Priorytet weryfikacji w terenie.'],
+    'średnie': ['#e3871f', 'Umiarkowany sygnał ruchu gruntu', 'Do weryfikacji i dalszej obserwacji.'],
+    niskie: ['#2f8f57', 'Brak sygnału ponad szum pomiaru', 'Ruch gruntu w granicach dokładności pomiaru.'],
+    'brak danych': ['#98a3ab', 'Brak wiarygodnego pomiaru', 'Za mało dobrych pikseli (np. woda, utrata spójności).'],
+  };
+  const KIND = { building: 'Budynek', road: 'Droga', rail: 'Tory kolejowe', pipe: 'Rurociąg / gazociąg', power: 'Linia energetyczna', ground: 'Teren' };
+
+  async function show(kind, x, z, label) {
+    $('verify').hidden = false;
+    $('vBody').innerHTML = '<p class="vsub">Wczytywanie wyników analizy…</p>';
+    await load();
+    forced = null;
+    const [lon, lat] = toLonLat(x, z), D = data;
+    let S = current();
+    if (S) D.meta.dates = S.dates;  // the chart, trend and texts follow the chosen orbit
+    const isRail = (p) => String(p.typ).startsWith('kolej'), isPower = (p) => p.typ === 'linia energetyczna';
+    const hit = kind === 'building' ? nearest(D.bld, x, z, 12)
+      : kind === 'pipe' ? nearest(D.pipes, x, z, 120) : kind === 'power' ? nearest(D.crit, x, z, 45, isPower)
+      : kind === 'rail' ? nearest(D.crit, x, z, 35, isRail) : kind === 'road' ? nearest(D.roads, x, z, 25)
+      : kind === 'slope' ? nearest(D.slopes, x, z, 30)
+      : nearest(D.bld, x, z, 0);
+    const p = hit?.p, isSlope = kind === 'slope' && p, isWall = isSlope && p.kind === 'retaining_wall';
+    // a wall or scarp carries the series of its strongest point (read along the whole line)
+    let series = isSlope ? (p.series_mm || null) : await seriesAt(lon, lat);
+    if (!series && S) for (const other of D.meta.series.filter((o) => o !== S)) {  // no pixel in this orbit: the other one
+      forced = other;
+      series = await seriesAt(lon, lat);
+      if (series) { S = other; D.meta.dates = S.dates; break; }
+      forced = null;
+    }
+    // not listed: the building and road layers list only exposed objects (plus context near the active zone)
+    let cls = p?.klasa, note = '';
+    if (!p) {
+      if ((kind === 'building' || kind === 'road') && series) { cls = 'niskie'; note = `${kind === 'building' ? 'Budynku' : 'Drogi'} nie ma na liście narażonych w wynikach – grunt w granicach szumu.`; }
+      else if (kind === 'ground') cls = null;
+      else note = kind === 'building' || kind === 'road' ? 'Obiektu nie ma na liście narażonych, a szczegółowa seria pomiarów nie obejmuje tego miejsca.' : 'Tego miejsca nie udało się dopasować do obiektu w wynikach.';
+    }
+    const GENERIC = ['rurociąg', 'linia energetyczna', 'kabel energetyczny', 'stacja elektroenergetyczna', 'tory kolejowe', 'droga', 'budynek'];
+    const name = p?.nazwa || p?.name || (label && !GENERIC.includes(label.toLowerCase()) && !Object.values(SLOPE_KIND).includes(label) ? label : '');
+    const sig = cls && SIGNAL[cls];
+    const tr = series ? trend(series) : null;
+    const rows = p ? [
+      ['Tempo ruchu gruntu (LOS)', p.v != null ? signed(Math.round(p.v), 'mm/rok') : null],
+      ['Przemieszczenie w okresie', p.przem_mm != null ? signed(Math.round(p.przem_mm), 'mm') : null],
+      ['Ruch zróżnicowany', p.gradient != null ? `${fmt(p.gradient)} mm/100 m${S ? ' (w okresie)' : '/rok'}` : null],
+      ['Od strefy aktywnej', p.odl_m != null ? (p.odl_m === 0 ? 'w strefie' : `${fmt(p.odl_m >= 1000 ? p.odl_m / 1000 : p.odl_m, p.odl_m >= 1000 ? 1 : 0)} ${p.odl_m >= 1000 ? 'km' : 'm'}`) : null],
+      ['Okna monitoringu z ruchem', p.okna_ruch != null ? `${p.okna_ruch} z ${p.okna_n ?? 10}${p.okna_ruch >= 2 ? ' (ruch potwierdzony w czasie)' : ''}` : null],
+      ['Pewność danych', p.pewnosc || null],
+    ].filter(([, v]) => v) : [];
+    if (!p && series) rows.push(['Przemieszczenie w okolicy (LOS)', signed(series.filter((v) => v !== null).at(-1), 'mm')]);
+    if (isSlope) rows.push(...[
+      ['Przemieszczenie w okresie (LOS)', p.motion_mm != null ? signed(p.motion_mm, 'mm') + ' (najsilniejszy punkt)' : 'poza zasięgiem pomiaru'],
+      ['Wysokość skarpy', p.relief_m ? `ok. ${p.relief_m} m` : null], ['Nachylenie', p.slope_deg ? `ok. ${p.slope_deg}°` : null],
+      ['Materiał', p.material ? p.material.split(';').map((m) => MATERIAL_PL[m] || m).join(', ') : null],
+      ['Długość', p.length_m ? `${fmt(p.length_m)} m` : null], ['Punkty pomiaru wzdłuż', p.samples || null],
+      ['Źródło obiektu', p.kind === 'scarp' ? 'wyznaczona z lidaru USGS 3DEP' : 'OpenStreetMap'],
+    ].filter(([, v]) => v));
+    if (p?.typ && kind !== 'building') rows.unshift(['Rodzaj w wynikach', `${p.typ}${p.podtyp && p.podtyp !== '?' ? ' (' + p.podtyp + ')' : ''}`]);
+    const period = `${dLong(D.meta.dates[0])} – ${dLong(D.meta.dates.at(-1))}`;
+    // ---- plain-language summary first; the technical details stay one click away
+    const total = series ? series.filter((v) => v !== null).at(-1) : p?.przem_mm != null ? p.przem_mm : p?.v != null ? Math.round(p.v * 180 / 365.25) : null;
+    let level = cls;
+    const TH = S?.thresholds;  // the orbit's 3 / 4 sigma (PB: 20 / 50 mm)
+    if (!level && series) level = Math.abs(total) >= (TH?.przem_high_mm ?? 50) ? 'wysokie' : Math.abs(total) >= (TH?.przem_med_mm ?? 20) ? 'średnie' : 'niskie';
+    const WHERE = { building: 'pod tym budynkiem', road: 'pod tą drogą', rail: 'pod tymi torami', pipe: 'nad tym rurociągiem', power: 'pod tą linią', ground: 'w tym miejscu',
+      slope: isWall ? 'przy tym murze' : 'na tej skarpie' }[kind];
+    const OF = { building: 'budynku', road: 'drogi', rail: 'torów', pipe: 'rurociągu', power: 'linii', slope: isWall ? 'muru' : p?.kind === 'cliff' ? 'klifu' : 'skarpy' }[kind];
+    const PLAIN = {
+      wysokie: ['#c62a22', `Grunt ${WHERE} wyraźnie się przesuwa`, 'Warto to sprawdzić na miejscu.'],
+      'średnie': ['#e3871f', `Grunt ${WHERE} lekko się przesuwa`, 'Warto to sprawdzić i obserwować.'],
+      niskie: ['#2f8f57', `Grunt ${WHERE} jest spokojny`, 'Satelita nie widzi tu istotnego ruchu.'],
+      'brak danych': ['#98a3ab', 'Satelita nie zmierzył tu ruchu', 'Nie wiadomo, czy grunt się rusza.'],
+    }[level] || ['#5b6068', 'Brak dokładnego pomiaru w tym miejscu', 'Nie wiadomo, czy grunt się rusza.'];
+    const cm = (mm) => (Math.abs(mm) >= 10 ? `${(Math.abs(mm) / 10).toLocaleString('pl-PL', { maximumFractionDigits: 0 })} cm` : `${Math.abs(Math.round(mm))} mm`);
+    const moved = total != null && Math.abs(total) >= 20
+      ? `${span().from} ${total < 0 ? 'obniżył się lub zsunął' : 'podniósł się lub przesunął'} o ok. <b>${cm(total)}</b>.`
+      : total != null ? `${span().from} prawie się nie ruszył.` : '';
+    const active = level === 'wysokie' || level === 'średnie';
+    const uneven = isSlope ? (level === 'wysokie' ? (isWall ? 'Mur trzyma zbocze, które się przesuwa – warto obejrzeć, czy nie pęka i nie przechyla się.'
+      : 'Grunt przesuwa się przy krawędzi stromego zbocza – to może znaczyć, że zbocze się obsuwa.') : '')
+      : /gradient|zróżnicowany/.test(p?.powod || '') && active && kind !== 'ground'
+        ? 'Sąsiednie fragmenty gruntu przesuwają się różnie, a to może naprężać obiekt.' : '';
+    const steady = { steady: `Ruch trwał przez cały okres (${span().months === 6 ? 'pół roku' : `ok. ${span().months} mies.`}) – to raczej stały ruch, nie jednorazowy.`, uneven: 'Ruch był głównie w części okresu – może to skutek pory deszczowej.',
+      reversal: 'Grunt raz szedł w jedną, raz w drugą stronę – może to pora roku albo niedokładność pomiaru.' }[tr?.kind] || '';
+    $('vBody').innerHTML = `
+      <h3>${esc((isSlope ? SLOPE_KIND[p.kind] : KIND[kind]) || 'Obiekt')}${name ? ' · ' + esc(name) : ''}</h3>
+      <div class="vsig" style="--sig:${PLAIN[0]};margin-top:8px"><div><b>${PLAIN[1]}</b><span>${PLAIN[2]}</span></div></div>
+      ${moved || steady || uneven ? `<p class="vplain">${[moved, uneven, steady].filter(Boolean).join(' ')}</p>` : ''}
+      ${series ? sparkline(series) : ''}
+      <p class="vsub" style="margin:6px 0 0">Pomiar z satelity, ${esc(period)}. ${S ? ` Orbita ${esc(S.label)}.` : ''} Pokazuje ruch gruntu${OF ? `, a nie stan ${OF}` : ''}.</p>
+      <details class="vmore"><summary>Szczegóły dla specjalistów</summary>
+      ${sig ? `<p class="vsub" style="margin:8px 0 0">Klasa w wynikach: <b>${esc(cls)}</b> – ${esc(sig[1].toLowerCase())}.</p>` : ''}
+      ${note ? `<p class="vsub" style="margin:6px 0 0">${esc(note)}</p>` : ''}
+      ${p?.powod ? `<p class="vsub" style="margin:6px 0 0">Uzasadnienie z analizy: ${esc(p.powod)}</p>` : ''}
+      ${rows.length ? `<dl class="vgrid">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('')}</dl>` : ''}
+      ${series ? `<p class="vh">Czy to trwały ruch?</p><p class="vsub" style="margin:0 0 6px">${isSlope ? 'Wykres: ten z punktów co ok. 50 m wzdłuż obiektu, który ruszył się najbardziej' : `Wykres: piksel (${S ? 80 : 100} m), który w promieniu ok. ${S ? 120 : 150} m ruszył się najbardziej`}; szare pole = ±${lim()} mm.</p><div class="vtrend">${tr.html}${p?.okna_ruch != null ? `<br>Okna monitoringu z ruchem: ${p.okna_ruch} z ${p.okna_n ?? 10}${p.okna_ruch >= 2 ? ' – ruch powtarza się w czasie.' : ' – ruch nie powtarza się w kolejnych oknach.'}` : ''}</div>` : ''}
+      <p class="vh">Jak czytać ten wynik</p>
+      <ul class="vnotes">
+        <li>Klasa opisuje <b>ruch gruntu pod obiektem</b>, nie stan jego konstrukcji.</li>
+        <li>${D.meta.los_note ? esc(D.meta.los_note) : 'Radar mierzy ruch <b>wzdłuż linii widzenia satelity</b> (LOS, z zachodu, ok. 40° od pionu). Nie podaje pełnego kierunku ani samego ruchu pionowego; ujemne = od satelity.'}</li>
+        <li>Tempo to zmiana z <b>ok. ${span().months} miesięcy</b> przeliczona na rok. ${D.meta.season_note ? esc(D.meta.season_note) : 'Okres obejmuje porę deszczową, więc może zawierać wpływ sezonowy.'}</li>
+      </ul>
+      ${level === 'wysokie' || level === 'średnie' ? `<p class="vh">Co sprawdzić</p><p class="vnext">Oględziny na miejscu (pęknięcia, przechyły, nieszczelności), porównanie z pomiarem naziemnym (GNSS, niwelacja) i z wynikiem z drugiej ${S ? `orbity (${esc(D.meta.series.filter((o) => o !== S).map((o) => o.label).join(', '))})` : 'geometrii orbity (wznoszącej)'}.</p>` : ''}
+      </details>`;
+    selected = new THREE.Vector3(x, H(x, z), z);
+    selEl.classList.remove('off');
+    dirty = true;
+  }
+
+  // the clicked spot gets a small pulsing marker
+  const selEl = document.createElement('div');
+  selEl.className = 'amark sel off';
+  selEl.innerHTML = '<span class="ring"></span><span class="dot"></span>';
+  selEl.style.pointerEvents = 'none';
+  $('marks').appendChild(selEl);
+  let selected = null;
+  $('vClose').addEventListener('click', () => { $('verify').hidden = true; selEl.classList.add('off'); selected = null; });
+
+  const GROUPS = [['buildings', 'building'], ['slopes', 'slope'], ['pipes', 'pipe'], ['power', 'power'], ['rail', 'rail'], ['roads', 'road']];
+  const clickRay = new THREE.Raycaster();
+  return {
+    preload: () => load(),
+    click(ev) {
+      const box = renderer.domElement.getBoundingClientRect();
+      mouse.set(((ev.clientX - box.left) / box.width) * 2 - 1, -((ev.clientY - box.top) / box.height) * 2 + 1);
+      clickRay.setFromCamera(mouse, camera);
+      const ground = groundDistance(clickRay.ray);
+      let best = null;
+      for (const [g, kind] of GROUPS) {
+        if (!groups[g] || !groups[g].visible) continue;
+        const h = clickRay.intersectObjects(groups[g].children, false)[0];
+        if (h && h.distance <= ground + 2 + h.distance * 0.004 && (!best || h.distance < best.h.distance)) best = { h, kind };
+      }
+      let point, kind = 'ground', label = '';
+      if (best) {
+        point = best.h.point; kind = best.kind;
+        const o = best.h.object, html = o.userData.tipAt ? o.userData.tipAt(best.h.faceIndex) : o.userData.tip;
+        label = html ? html.replace(/<br>.*$/s, '').replace(/<[^>]+>/g, '').split(' · ')[0] : '';
+      } else if (Number.isFinite(ground)) point = clickRay.ray.at(ground, new THREE.Vector3());
+      else return;
+      if (!best && data) {
+        // thin lines are hard to hit: take the nearest line object within ~10 screen pixels
+        const mPerPx = (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * ground) / box.height, r = Math.max(8, 10 * mPerPx);
+        const cand = [
+          ['slope', groups.slopes?.visible ? nearest(data.slopes, point.x, point.z, r) : null],
+          ['pipe', nearest(data.pipes, point.x, point.z, r)],
+          ['power', nearest(data.crit, point.x, point.z, r, (q) => q.typ === 'linia energetyczna')],
+          ['rail', nearest(data.crit, point.x, point.z, r, (q) => String(q.typ).startsWith('kolej'))],
+          ['road', nearest(data.roads, point.x, point.z, r)],
+        ].filter(([, h]) => h).sort((a, b) => a[1].d - b[1].d)[0];
+        if (cand) kind = cand[0];
+      }
+      show(kind, point.x, point.z, label);
+    },
+    place(w, h) {
+      if (!selected) return;
+      selected.y = H(selected.x, selected.z);
+      v3.copy(selected).project(camera);
+      selEl.style.transform = `translate(${((v3.x + 1) / 2 * w).toFixed(1)}px, ${((1 - v3.y) / 2 * h).toFixed(1)}px)`;
+    },
+  };
+})();
+
+// ------------------------------------------- results of the analysis: pipeline classes, section profiles, GNSS station
+// Click a pipeline segment (class, reason, history of the ground under it), a section line (profile of the motion
+// along it, date by date) or the GNSS station (reference measurement compared with the satellite).
+const extras = (RISK_MODE || EXTRAS) && (() => {
+  const MONTHS = ['sty', 'lut', 'mar', 'kwi', 'maj', 'cze', 'lip', 'sie', 'wrz', 'paź', 'lis', 'gru'];
+  const dLong = (d) => `${+d.slice(6, 8)} ${MONTHS[+d.slice(4, 6) - 1]} ${d.slice(0, 4)}`;
+  const num = (v, d = 0) => (v == null ? '–' : (+v).toLocaleString('pl-PL', { maximumFractionDigits: d, minimumFractionDigits: 0 }));
+  const signed = (v, unit, d = 0) => (v == null ? '–' : `${v > 0 ? '+' : v < 0 ? '−' : ''}${num(Math.abs(v), d)} ${unit}`);
+  const dates = TL?.dates || [];
+  const noise = TL?.noise_mm ?? 17;
+  const CLS = {
+    wysokie: ['#e03131', 'Grunt pod rurociągiem wyraźnie osiada', 'Priorytet weryfikacji w terenie.'],
+    'średnie': ['#f08c00', 'Grunt pod rurociągiem osiada umiarkowanie', 'Do weryfikacji i dalszej obserwacji.'],
+    niskie: ['#c2a24a', 'Grunt pod rurociągiem jest raczej spokojny', 'Satelita nie widzi tu istotnego ruchu.'],
+    'brak danych': ['#8a96a3', 'Satelita nie zmierzył tu ruchu', 'Mokradła, woda lub utrata spójności radaru – nie wiadomo, czy grunt się rusza.'],
+  };
+
+  // ---- a small SVG line chart (axes, grid, shaded bands, vertical marks, several lines)
+  const nice = (v) => { const e = 10 ** Math.floor(Math.log10(v)), f = v / e; return (f >= 5 ? 5 : f >= 2 ? 2 : 1) * e; };
+  const ticksOf = (lo, hi, n = 4) => { const st = nice((hi - lo) / n), out = []; for (let v = Math.ceil(lo / st) * st; v <= hi + 1e-9; v += st) out.push(+v.toFixed(6)); return out; };
+  function chart(o) {
+    const W = 316, Hh = o.h || 150, L = 50, Rr = 10, T0 = 10, B = 24, px = (v) => L + ((v - o.x0) / (o.x1 - o.x0)) * (W - L - Rr), py = (v) => T0 + ((o.y1 - v) / (o.y1 - o.y0)) * (Hh - T0 - B);
+    const path = (xs, ys) => { let d = '', pen = false; xs.forEach((x, i) => { if (ys[i] == null) { pen = false; return; } d += `${pen ? 'L' : 'M'}${px(x).toFixed(1)},${py(ys[i]).toFixed(1)}`; pen = true; }); return d; };
+    return `<svg viewBox="0 0 ${W} ${Hh}" style="display:block;width:100%;height:auto;margin-top:6px" role="img" aria-label="${esc(o.label)}" font-family="Inter, sans-serif">
+      ${(o.shade || []).map(([a, b]) => `<rect x="${px(a).toFixed(1)}" y="${T0}" width="${(px(b) - px(a)).toFixed(1)}" height="${Hh - T0 - B}" fill="rgba(200,241,105,.13)"/>`).join('')}
+      ${o.band ? `<rect x="${L}" y="${py(o.band).toFixed(1)}" width="${W - L - Rr}" height="${(py(-o.band) - py(o.band)).toFixed(1)}" fill="rgba(242,243,240,.08)"/>` : ''}
+      ${ticksOf(o.y0, o.y1).map((v) => `<line x1="${L}" x2="${W - Rr}" y1="${py(v).toFixed(1)}" y2="${py(v).toFixed(1)}" stroke="${v === 0 ? '#4a4e55' : '#2B2E33'}"/><text x="${L - 6}" y="${(py(v) + 3.5).toFixed(1)}" text-anchor="end" font-size="10" fill="#A2A6AC">${o.yFmt(v)}</text>`).join('')}
+      ${(o.xTicks || []).map(([v, t]) => `<text x="${px(v).toFixed(1)}" y="${Hh - 6}" text-anchor="${v <= o.x0 ? 'start' : v >= o.x1 ? 'end' : 'middle'}" font-size="10" fill="#A2A6AC">${t}</text>`).join('')}
+      ${(o.vlines || []).map(([v, c]) => `<line x1="${px(v).toFixed(1)}" x2="${px(v).toFixed(1)}" y1="${T0}" y2="${Hh - B}" stroke="${c}" stroke-width="1.5" stroke-dasharray="3 3"/>`).join('')}
+      ${o.lines.map((l) => `<path d="${path(o.xs, l.ys)}" fill="none" stroke="${l.color}" stroke-width="${l.w || 2}" opacity="${l.op ?? 1}" stroke-linejoin="round" stroke-linecap="round"/>`).join('')}
+      ${(o.dots || []).map(([x, y, c]) => `<circle cx="${px(x).toFixed(1)}" cy="${py(y).toFixed(1)}" r="2.6" fill="${c}"/>`).join('')}
+    </svg>`;
+  }
+  const rangeOf = (arrs, pad = 0.12) => {
+    const v = arrs.flat().filter((q) => q != null), lo = Math.min(0, ...v), hi = Math.max(0, ...v), p = (hi - lo || 20) * pad;
+    return [lo - p, hi + p];
+  };
+  const mmFmt = (v) => (Math.abs(v) < 1e-6 ? '0' : `${v > 0 ? '+' : '−'}${Math.abs(v)} mm`);
+
+  // ---- panel
+  const selEl = document.createElement('div');
+  selEl.className = 'amark sel off';
+  selEl.innerHTML = '<span class="ring"></span><span class="dot"></span>';
+  selEl.style.pointerEvents = 'none';
+  $('marks').appendChild(selEl);
+  let selected = null;
+  function open(html, x, z) {
+    $('verify').hidden = false;
+    $('vBody').innerHTML = html;
+    $('verify').scrollTop = 0;
+    if (x != null) { selected = new THREE.Vector3(x, H(x, z), z); selEl.classList.remove('off'); } else { selected = null; selEl.classList.add('off'); }
+    dirty = true;
+  }
+  $('vClose').addEventListener('click', () => { $('verify').hidden = true; selEl.classList.add('off'); selected = null; });
+
+  function showPipe(f, x, z) {
+    const p = f.properties, cls = p.risk || 'brak danych', [col, head, sub] = CLS[cls] || CLS['brak danych'];
+    const v = p.v, rate = v == null ? '' : Math.abs(v) >= 100 ? `${num(Math.abs(v) / 10)} cm/rok` : `${num(Math.abs(v))} mm/rok`;
+    const moves = v == null ? '' : Math.abs(v) < 20 ? 'Grunt prawie się nie rusza.' : `Pionowo grunt ${v < 0 ? 'osiada' : 'podnosi się'} w tempie ok. <b>${rate}</b>.`;
+    const uneven = p.gradient >= 40 ? 'Sąsiednie fragmenty gruntu przesuwają się różnie, a to może naprężać rurę.' : '';
+    const series = p.series_mm, rows = [
+      ['Zagrożenie', cls], ['Medium', p.medium], ['Średnica', p.diameter_in ? p.diameter_in + '″' : null], ['Status', p.status],
+      ['Ruch pionowy', v != null ? signed(v, 'mm/rok') : null], ['Ruch zróżnicowany', p.gradient != null ? `${num(p.gradient)} mm/100 m/rok` : null],
+      ['Od strefy osiadania', p.dist_m != null ? (p.dist_m === 0 ? 'w strefie' : p.dist_m >= 1000 ? `${num(p.dist_m / 1000, 1)} km` : `${num(p.dist_m)} m`) : null],
+      ['Okna z ruchem', p.windows != null ? String(p.windows) : null], ['Pewność danych', p.confidence],
+    ].filter(([, q]) => q);
+    let svg = '';
+    if (series?.length > 1) {
+      const [lo, hi] = rangeOf([series, [-noise * 1.3, noise * 1.3]]), end = series.at(-1), c = end < -noise ? 'rgb(214,39,40)' : end > noise ? 'rgb(31,104,196)' : '#A2A6AC';
+      svg = chart({ label: 'Przemieszczenie gruntu w czasie', x0: 0, x1: series.length - 1, y0: lo, y1: hi, xs: series.map((_, i) => i), band: noise, yFmt: mmFmt,
+        xTicks: [[0, dLong(dates[0] || '20260101').slice(0, -5)], [series.length - 1, dLong(dates.at(-1) || '20261231').slice(0, -5)]],
+        lines: [{ ys: series, color: c, w: 2.2 }], dots: series.map((y, i) => [i, y, c]) })
+        + `<p class="vsub" style="margin:2px 0 0;font-size:11.5px">Ruch w linii widzenia satelity (LOS, orbita wznosząca). Szare pole: zmiana poniżej ${num(noise)} mm – za mała, by ją uznać.</p>`;
+    }
+    open(`<h3>Rurociąg · ${esc(p.name || p.kind || '')}</h3>
+      <div class="vsig" style="--sig:${col};margin-top:8px"><div><b>${head}</b><span>${sub}</span></div></div>
+      ${moves || uneven ? `<p class="vplain">${[moves, uneven].filter(Boolean).join(' ')}</p>` : ''}
+      ${p.reason ? `<p class="vsub" style="margin:0">Dlaczego tak: ${esc(p.reason)}.</p>` : ''}${svg}
+      <p class="vsub" style="margin:6px 0 0">Pomiar z satelity NISAR; pokazuje ruch gruntu pod rurą, a nie jej stan.</p>
+      <details class="vmore"><summary>Szczegóły dla specjalistów</summary>
+      ${rows.length ? `<dl class="vgrid">${rows.map(([k, q]) => `<dt>${k}</dt><dd>${esc(q)}</dd>`).join('')}</dl>` : ''}
+      <p class="vh">Jak czytać ten wynik</p>
+      <ul class="vnotes">
+        <li>Klasa wynika z <b>ruchu pionowego</b> gruntu pod rurociągiem (dwie orbity NISAR, ocena co 100 m), nie ze stanu konstrukcji.</li>
+        <li>Wykres pokazuje ruch w <b>linii widzenia satelity</b> (orbita wznosząca); ujemne = od satelity. To nie jest sam ruch pionowy.</li>
+        <li>Okres to ok. 4 miesięcy – tempo na rok jest przeliczone i może zawierać wpływ sezonowy.</li>
+      </ul>
+      ${cls === 'wysokie' || cls === 'średnie' ? '<p class="vh">Co sprawdzić</p><p class="vnext">Oględziny na miejscu (nieszczelności, odkształcenia), porównanie z pomiarem naziemnym (GNSS, niwelacja) i dłuższa seria pomiarów.</p>' : ''}
+      </details>`, x, z);
+  }
+
+  function showProfile(pr) {
+    const d = pr.distance_m, vals = pr.values_mm, n = vals.length, km = d.at(-1) / 1000;
+    const [lo, hi] = rangeOf(vals), mix = (t) => `rgb(${Math.round(91 + (200 - 91) * t)},${Math.round(96 + (241 - 96) * t)},${Math.round(104 + (105 - 104) * t)})`;
+    const dist = (m) => (m >= 1000 ? `${num(m / 1000, 1)} km` : `${num(m)} m`);
+    const xs = d.map((m) => m), ticks = ticksOf(0, d.at(-1), 4).map((m) => [m, dist(m)]);
+    const lines = vals.map((ys, i) => ({ ys, color: mix(n > 1 ? i / (n - 1) : 1), w: i === n - 1 ? 2.6 : 1.3, op: i === n - 1 ? 1 : 0.85 }));
+    const cross = (pr.crossings || []).map((c) => `<li>${dist(c.odleglosc_m)} od początku: ${esc(c.obiekt)} (zagrożenie ${esc(c.klasa)})</li>`).join('');
+    const last = vals.at(-1).filter((q) => q != null), deepest = last.length ? Math.min(...last) : null;
+    const mid = pr.coords[pr.coords.length >> 1], [mx, mz] = toXZ(mid);
+    open(`<h3>${esc(pr.title || pr.name)}</h3>
+      <p class="vsub" style="margin:0 0 4px">Linia o długości ${num(km, 1)} km – ruch gruntu wzdłuż niej, osobno dla każdego pomiaru.</p>
+      ${deepest != null ? `<p class="vplain">Największe obniżenie do ${dLong(dates.at(-1) || pr.dates.at(-1))}: <b>${num(Math.abs(deepest))} mm</b> w linii widzenia satelity.</p>` : ''}
+      ${chart({ label: 'Profil przemieszczenia wzdłuż przekroju', h: 170, x0: 0, x1: d.at(-1), y0: lo, y1: hi, xs, xTicks: ticks, yFmt: mmFmt, lines, vlines: (pr.crossings || []).map((c) => [c.odleglosc_m, '#e03131']) })}
+      <p class="vsub" style="margin:2px 0 0;font-size:11.5px">Jaśniejsza krzywa = późniejszy pomiar (${dLong(pr.dates[0])} → ${dLong(pr.dates.at(-1))}). Czerwona kreska: przecięcie z zagrożonym rurociągiem.</p>
+      ${cross ? `<p class="vh">Przecięcia</p><ul class="vnotes">${cross}</ul>` : ''}`, mx, mz);
+  }
+
+  const yearOf = (d) => { const y = +d.slice(0, 4), t = Date.UTC(y, +d.slice(4, 6) - 1, +d.slice(6, 8)); return y + (t - Date.UTC(y, 0, 1)) / (365.25 * 864e5); };
+  function showStation(st) {
+    const gp = st.rate?.ostatnie_5_lat?.pion, nv = st.nisar?.predkosc_pionowa, [x, z] = toXZ([st.lon, st.lat]);
+    const ser = (st.series || []).filter(([t]) => t >= 2021.5), lastT = ser.at(-1)?.[0] ?? 2026.5;
+    const ys = ser.map((q) => q[1]), [lo, hi] = rangeOf([ys], 0.15), x1 = Math.max(lastT, dates.length ? yearOf(dates.at(-1)) : lastT) + 0.05;
+    const years = [2022, 2023, 2024, 2025, 2026].map((y) => [y, String(y)]);
+    open(`<h3>Stacja GNSS · ${esc(st.name)}</h3>
+      <div class="vsig" style="--sig:#19b5a5;margin-top:8px"><div><b>Pomiar naziemny – punkt odniesienia</b><span>GNSS mierzy położenie stacji z dokładnością do milimetrów.</span></div></div>
+      <p class="vplain">${esc(st.conclusion)}</p>
+      ${chart({ label: 'Pionowa pozycja stacji GNSS', h: 160, x0: 2021.5, x1, y0: lo, y1: hi, xs: ser.map((q) => q[0]), xTicks: years, yFmt: mmFmt,
+        lines: [{ ys, color: '#19b5a5', w: 1.8 }], shade: dates.length ? [[yearOf(dates[0]), yearOf(dates.at(-1))]] : [] })}
+      <p class="vsub" style="margin:2px 0 0;font-size:11.5px">Pozycja pionowa stacji (średnie tygodniowe). Zielone pole: okres pomiarów NISAR.</p>
+      <details class="vmore"><summary>Szczegóły dla specjalistów</summary>
+      <dl class="vgrid">
+        ${gp ? `<dt>GNSS, ruch pionowy (5 lat)</dt><dd>${signed(gp.tempo, 'mm/rok', 1)} ± ${num(gp.sigma, 1)}</dd>` : ''}
+        ${nv ? `<dt>NISAR, ruch pionowy</dt><dd>${signed(nv.wartosc, 'mm/rok')} ± ${num(st.nisar_sigma)}</dd>` : ''}
+        ${st.nisar?.los_wznoszaca ? `<dt>NISAR, LOS orbity wznoszącej</dt><dd>${signed(st.nisar.los_wznoszaca.wartosc, 'mm/rok')}</dd>` : ''}
+        ${st.source ? `<dt>Źródło GNSS</dt><dd>${esc(st.source)}</dd>` : ''}
+      </dl></details>`, x, z);
+  }
+
+
+  // ---- click on the map: the local measurement (the team's grid, ~250 m cells) with a plain-language verdict
+  const POINTS = TL?.points || null;
+  let pointData = null;
+  const loadPoints = () => (pointData = pointData || fetch(BASE + POINTS.file).then((r) => r.arrayBuffer()).then((b) => new Int16Array(b)));
+  const toLonLat = (x, z) => [W_LON + (x / SX + 0.5) * (E_LON - W_LON), S_LAT + (0.5 - z / SZ) * (N_LAT - S_LAT)];
+  async function showPoint(x, z) {
+    if (!POINTS) return;
+    open('<p class="vsub">Wczytywanie pomiaru…</p>', x, z);
+    const A = await loadPoints(), Wd = POINTS.width, Hd = POINTS.height, HW = Wd * Hd, E = dates.length, [bw, bs, be, bn] = POINTS.bbox;
+    const [lon, lat] = toLonLat(x, z);
+    const c0 = Math.floor((lon - bw) / (be - bw) * Wd), r0 = Math.floor((bn - lat) / (bn - bs) * Hd);
+    const val = (k, i) => (A[k * HW + i] === -32768 ? null : A[k * HW + i]);
+    // the cell itself, or the nearest one with a measurement (a cell = ~250 m; water and wetlands have none)
+    let cell = null;
+    for (let ring = 0; ring <= 2 && cell === null; ring++) {
+      for (let dr = -ring; dr <= ring; dr++) for (let dc = -ring; dc <= ring; dc++) {
+        const r = r0 + dr, c = c0 + dc;
+        if (cell !== null || r < 0 || c < 0 || r >= Hd || c >= Wd || (Math.abs(dr) !== ring && Math.abs(dc) !== ring)) continue;
+        const i = r * Wd + c;
+        if (val(E, i) !== null || val(E - 1, i) !== null) cell = i;
+      }
+    }
+    const inside = c0 >= 0 && r0 >= 0 && c0 < Wd && r0 < Hd;
+    const series = cell === null ? null : dates.map((_, e) => val(e, cell)), v = cell === null ? null : val(E, cell), sigma = cell === null ? null : val(E + 1, cell);
+    const conf = cell === null ? null : val(E + 2, cell);
+    const end = series ? series.filter((q) => q !== null).at(-1) : null;
+    // verdict: vertical rate from both orbits, with the same thresholds as the pipeline classes
+    const T_ = POINTS, V = [
+      [(q) => q <= -T_.v_high, '#e03131', 'Grunt wyraźnie osiada', 'Ruch wyraźnie ponad szum pomiaru – jak pod rurociągami wysokiego zagrożenia.'],
+      [(q) => q <= -T_.v_mid, '#f08c00', 'Grunt osiada umiarkowanie', 'Ruch ponad szum – jak pod rurociągami średniego zagrożenia.'],
+      [(q) => q <= -T_.v_noise, '#f2c94c', 'Słaby sygnał osiadania', 'Na granicy dokładności pomiaru – warto obserwować dalej.'],
+      [(q) => q >= T_.v_mid, '#4dabf7', 'Grunt się podnosi', 'Ruch w górę ponad szum pomiaru.'],
+      [() => true, '#37b24d', 'Grunt jest spokojny', 'Ruch w granicach szumu pomiaru.'],
+    ];
+    let verdict = v !== null ? V.find(([t]) => t(v)) : null;
+    if (!verdict && end !== null) verdict = end <= -2 * noise ? [null, '#f08c00', 'Grunt się obniżył', 'Wynik tylko z jednej orbity – bez rozbicia na ruch pionowy.']
+      : end <= -noise ? [null, '#f2c94c', 'Słaby sygnał obniżenia', 'Wynik tylko z jednej orbity, na granicy dokładności.'] : [null, '#37b24d', 'Grunt jest spokojny', 'Ruch w granicach szumu pomiaru (jedna orbita).'];
+    if (!verdict) verdict = [null, '#98a3ab', 'Satelita nie zmierzył tu ruchu', inside ? 'Woda, mokradła albo słaba koherencja radaru – nie wiadomo, czy grunt się rusza.' : 'To miejsce leży poza obszarem analizy.'];
+    const rate = (q) => (Math.abs(q) >= 100 ? `${num(Math.abs(q) / 10)} cm/rok` : `${num(Math.abs(q))} mm/rok`);
+    const plain = [
+      v !== null ? (Math.abs(v) < T_.v_noise ? 'Pionowo grunt prawie się nie rusza.' : `Pionowo grunt ${v < 0 ? 'osiada' : 'podnosi się'} w tempie ok. <b>${rate(v)}</b>${sigma ? ` (± ${num(sigma)} mm/rok)` : ''}.`) : '',
+      end !== null ? `Od ${dLong(dates[0]).slice(0, -5)} do ${dLong(dates.at(-1)).slice(0, -5)} przesunął się o <b>${num(Math.abs(end))} mm</b> ${end < 0 ? 'od satelity' : 'w stronę satelity'}.` : '',
+    ].filter(Boolean).join(' ');
+    // the nearest pipeline: is this place about the network at all?
+    const near = nearestLine(pipeLines, x, z, 3000, riskBias(3000));
+    const pipeTxt = near ? `Najbliższy rurociąg: <b>${esc(near.it.f.properties.name || 'bez nazwy')}</b>, ok. ${near.d >= 1000 ? num(near.d / 1000, 1) + ' km' : Math.round(near.d / 10) * 10 + ' m'} stąd (zagrożenie: ${esc(near.it.f.properties.risk || 'brak danych')}).` : 'W promieniu 3 km nie ma rurociągu z sieci.';
+    let svg = '';
+    if (series && series.some((q) => q !== null)) {
+      const [lo, hi] = rangeOf([series, [-noise * 1.3, noise * 1.3]]), c = end < -noise ? 'rgb(214,39,40)' : end > noise ? 'rgb(31,104,196)' : '#A2A6AC';
+      svg = chart({ label: 'Przemieszczenie gruntu w czasie', x0: 0, x1: series.length - 1, y0: lo, y1: hi, xs: series.map((_, i) => i), band: noise, yFmt: mmFmt,
+        xTicks: [[0, dLong(dates[0]).slice(0, -5)], [series.length - 1, dLong(dates.at(-1)).slice(0, -5)]],
+        lines: [{ ys: series, color: c, w: 2.2 }], dots: series.map((y, i) => (y === null ? null : [i, y, c])).filter(Boolean) })
+        + `<p class="vsub" style="margin:2px 0 0;font-size:11.5px">Ruch w linii widzenia satelity (orbita wznosząca). Szare pole: zmiana poniżej ${num(noise)} mm – za mała, by ją uznać.</p>`;
+    }
+    const CONF = ['brak danych', 'część par albo jedna orbita', 'pełny szereg, obie orbity'];
+    open(`<h3>Pomiar w tym miejscu</h3>
+      <div class="vsig" style="--sig:${verdict[1]};margin-top:8px"><div><b>${verdict[2]}</b><span>${verdict[3]}</span></div></div>
+      ${plain ? `<p class="vplain">${plain}</p>` : ''}${svg}
+      <p class="vsub" style="margin:8px 0 0">${pipeTxt}</p>
+      <details class="vmore"><summary>Szczegóły dla specjalistów</summary>
+      <dl class="vgrid">
+        ${v !== null ? `<dt>Ruch pionowy (2 orbity)</dt><dd>${signed(v, 'mm/rok')}${sigma ? ` ± ${num(sigma)}` : ''}</dd>` : ''}
+        ${end !== null ? `<dt>Zmiana LOS w okresie</dt><dd>${signed(end, 'mm')}</dd>` : ''}
+        ${conf !== null ? `<dt>Pewność danych</dt><dd>${CONF[Math.round(conf)] || '–'}</dd>` : ''}
+        <dt>Komórka pomiaru</dt><dd>ok. ${POINTS.pixel_m} m</dd>
+        <dt>Współrzędne</dt><dd>${lat.toFixed(4)}, ${lon.toFixed(4)}</dd>
+      </dl>
+      <ul class="vnotes" style="margin-top:8px">
+        <li>Ocena wg ruchu pionowego z dwóch orbit NISAR i tych samych progów co klasy rurociągów (szum tła ok. ${num(T_.v_noise)} mm/rok).</li>
+        <li>Wykres to ruch w linii widzenia satelity z ok. 4 miesięcy – tempo na rok jest przeliczone i może zawierać wpływ pory roku.</li>
+      </ul></details>`, x, z);
+  }
+
+  // ---- the station as a marker on the map (both views)
+  const st0 = EXTRAS?.stations?.[0];
+  let stEl = null, stPos = null, visible = true;
+  if (st0) {
+    const [x, z] = toXZ([st0.lon, st0.lat]);
+    stPos = new THREE.Vector3(x, 0, z);
+    stEl = document.createElement('div');
+    stEl.className = 'amark gnss';
+    stEl.style.setProperty('--c', '#19b5a5');
+    stEl.innerHTML = '<span class="ring"></span><span class="dot">G</span>';
+    stEl.addEventListener('pointerenter', (ev) => { const t = $('tip'); t.innerHTML = `<b>Stacja GNSS ${esc(st0.name)}</b><br><span class="k">kliknij – porównanie z NISAR</span>`; t.style.display = 'block'; t.style.left = (ev.clientX + 14) + 'px'; t.style.top = (ev.clientY + 14) + 'px'; });
+    stEl.addEventListener('pointerleave', () => { $('tip').style.display = 'none'; });
+    stEl.addEventListener('click', () => showStation(st0));
+    $('marks').appendChild(stEl);
+  }
+
+  // ---- click: nearest section line or pipeline segment under the pointer
+  const clickRay = new THREE.Raycaster();
+  const profLines = (EXTRAS?.profiles || []).map((pr) => ({ pr, pts: pr.coords.map(toXZ) }));
+  const visiblePipes = () => pipeLines.filter((it) => groups.pipes?.visible || groups[PIPE_GROUP[it.f.properties.risk]]?.visible);
+  const riskBias = (r) => (it) => (it.f && (it.f.properties.risk === 'wysokie' || it.f.properties.risk === 'średnie') ? r * 0.6 : 0);  // among parallel pipes prefer the rated-at-risk one
+  function nearestLine(list, px, pz, r, bias = null) {
+    let best = null;
+    for (const it of list) {
+      for (let i = 1; i < it.pts.length; i++) {
+        const a = it.pts[i - 1], b = it.pts[i], dx = b[0] - a[0], dz = b[1] - a[1], l2 = dx * dx + dz * dz;
+        const t = l2 ? Math.min(1, Math.max(0, ((px - a[0]) * dx + (pz - a[1]) * dz) / l2)) : 0;
+        const qx = a[0] + t * dx, qz = a[1] + t * dz, d = Math.hypot(px - qx, pz - qz);
+        const score = d - (bias ? bias(it) : 0);
+        if (d <= r && (!best || score < best.score)) best = { it, d, score, x: qx, z: qz };
+      }
+    }
+    return best;
+  }
+  /** Ground point and tolerance (about 8 screen pixels) for a ray from the camera; null over the sky. */
+  function aimAt(ray) {
+    const ground = groundDistance(ray);
+    if (!Number.isFinite(ground)) return null;
+    return { pt: ray.at(ground, new THREE.Vector3()), r: Math.max(8, 8 * ((2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * ground) / renderer.domElement.clientHeight)) };
+  }
+  return {
+    openPipeAt(lon, lat) {  // the card of the at-risk pipeline segment at this place (timeline markers)
+      const [x, z] = toXZ([lon, lat]), hit = nearestLine(pipeLines, x, z, 300, riskBias(300));
+      if (hit) showPipe(hit.it.f, hit.x, hit.z);
+    },
+    /** Tooltip for a pipeline or section line under the pointer (these are not meshes the raycaster can hit). */
+    tipAt(ray) {
+      const aim = aimAt(ray);
+      if (!aim) return '';
+      const prof = visible ? nearestLine(profLines, aim.pt.x, aim.pt.z, aim.r) : null;
+      const pipe = RISK_MODE ? nearestLine(visiblePipes(), aim.pt.x, aim.pt.z, aim.r, riskBias(aim.r)) : null;
+      if (prof && (!pipe || prof.d <= pipe.d)) return `<b>${esc(prof.it.pr.title || prof.it.pr.name)}</b><br><span class="k">kliknij – wykres ruchu wzdłuż linii</span>`;
+      return pipe ? riskTip(pipe.it.f.properties) : '';
+    },
+    setVisible(v) { visible = v; if (stEl) stEl.style.display = v ? '' : 'none'; if (!v && !$('verify').hidden) { $('verify').hidden = true; selEl.classList.add('off'); selected = null; } },
+    click(ev) {  // true when the click was answered here
+      const box = renderer.domElement.getBoundingClientRect();
+      mouse.set(((ev.clientX - box.left) / box.width) * 2 - 1, -((ev.clientY - box.top) / box.height) * 2 + 1);
+      clickRay.setFromCamera(mouse, camera);
+      const ground = groundDistance(clickRay.ray);
+      if (!Number.isFinite(ground)) return false;
+      const pt = clickRay.ray.at(ground, new THREE.Vector3()), r = Math.max(8, 10 * ((2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * ground) / box.height));
+      const prof = visible ? nearestLine(profLines, pt.x, pt.z, r) : null;
+      const pipe = RISK_MODE ? nearestLine(visiblePipes(), pt.x, pt.z, r, riskBias(r)) : null;
+      if (prof && (!pipe || prof.d <= pipe.d)) { showProfile(prof.it.pr); return true; }
+      if (pipe) { showPipe(pipe.it.f, pipe.x, pipe.z); return true; }
+      if (POINTS) { showPoint(pt.x, pt.z); return true; }
+      return false;
+    },
+    place(w, h) {
+      if (stEl && stPos) {
+        stPos.y = H(stPos.x, stPos.z) + 2;
+        v3.copy(stPos).project(camera);
+        const ok = visible && v3.z < 1 && Math.abs(v3.x) < 1.1 && Math.abs(v3.y) < 1.1;
+        stEl.style.visibility = ok ? 'visible' : 'hidden';
+        stEl.style.transform = `translate(${((v3.x + 1) / 2 * w).toFixed(1)}px, ${((1 - v3.y) / 2 * h).toFixed(1)}px)`;
+      }
+      if (!selected) return;
+      selected.y = H(selected.x, selected.z);
+      v3.copy(selected).project(camera);
+      selEl.style.transform = `translate(${((v3.x + 1) / 2 * w).toFixed(1)}px, ${((1 - v3.y) / 2 * h).toFixed(1)}px)`;
+    },
+  };
+})();
+// a click (press and release without dragging) on the model asks for the verification signal
+let downAt = null;
+renderer.domElement.addEventListener('pointerdown', (e) => { downAt = { x: e.clientX, y: e.clientY, t: performance.now() }; });
+renderer.domElement.addEventListener('pointerup', (e) => {
+  if ((!verify && !extras) || !downAt || e.button !== 0) return;
+  if (Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y) < 5 && performance.now() - downAt.t < 600) { if (!(extras && extras.click(e)) && verify) verify.click(e); }
+  downAt = null;
+});
+if (verify) { $('hint').textContent += ' · kliknij obiekt – sygnał z analizy'; setTimeout(() => verify.preload(), 1500); }
+else if (extras) $('hint').textContent += ' · kliknij rurociąg lub dowolne miejsce – pomiar osiadania';
+
+// ------------------------------------------------------------------- frame
+function resize() {
+  const w = stage.clientWidth, h = stage.clientHeight;
+  renderer.setSize(w, h, false);
+  lineMats.forEach((m) => m.resolution.set(w, h));
+  camera.aspect = w / h; camera.updateProjectionMatrix();
+  dirty = true;
+}
+new ResizeObserver(resize).observe(stage);
+resize();
+const v3 = new THREE.Vector3();
+function placeLabels() {
+  const w = stage.clientWidth, h = stage.clientHeight, taken = [];
+  // the more important label wins when two would overlap (city before town before village)
+  if (!labelOrder || labelOrder.length !== labels.length) labelOrder = [...labels].sort((a, b) => a.prio - b.prio);
+  for (const l of labelOrder) {
+    v3.copy(l.pos).project(camera);
+    let show = v3.z < 1 && Math.abs(v3.x) < 1.05 && Math.abs(v3.y) < 1.05 && camera.position.distanceTo(l.pos) < l.maxDist;
+    const sx = (v3.x + 1) / 2 * w, sy = (1 - v3.y) / 2 * h;
+    if (show) {
+      if (!l.w) { l.el.style.display = ''; l.w = l.el.offsetWidth + 6; l.h = l.el.offsetHeight + 4; }  // measured once
+      const box = [sx - l.w / 2, sy - l.h / 2, sx + l.w / 2, sy + l.h / 2];
+      if (taken.some((t) => box[0] < t[2] && box[2] > t[0] && box[1] < t[3] && box[3] > t[1])) show = false;
+      else taken.push(box);
+    }
+    l.el.style.display = show ? '' : 'none';
+    if (show) l.el.style.transform = `translate(-50%, -50%) translate(${sx.toFixed(1)}px, ${sy.toFixed(1)}px)`;
+  }
+}
+const ease = (t) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2);
+function frame(now) {
+  requestAnimationFrame(frame);
+  if (flight) {
+    const k = Math.min(1, (now - flight.t0) / flight.ms), e = ease(k), { from, to } = flight, mix = THREE.MathUtils.lerp;
+    place({ az: mix(from.az, to.az, e), polar: mix(from.polar, to.polar, e), dist: mix(from.dist, to.dist, e), target: from.target.clone().lerp(to.target, e) });
+    if (k >= 1) flight = null;
+    dirty = true;
+  } else controls.update();  // damping and auto-rotation; fires 'change' when the camera moved
+  if (timeline && timeline.tick(now)) dirty = true;
+  if (detailTiles) detailTiles.update(now);
+  if (dirty && treeChunks.length) updateTreeChunks();
+  if (hoverAt && now - hoverTime > (BIG ? 90 : 0)) pick();
+  if (!dirty) return;
+  dirty = false;
+  $('needle').setAttribute('transform', `rotate(${THREE.MathUtils.radToDeg(controls.getAzimuthalAngle()).toFixed(1)} 20 20)`);
+  renderer.render(scene, camera);
+  placeLabels();
+  if (timeline) timeline.place(stage.clientWidth, stage.clientHeight);
+  if (verify) verify.place(stage.clientWidth, stage.clientHeight);
+  if (extras) extras.place(stage.clientWidth, stage.clientHeight);
+}
+$('status').hidden = true;
+['layers', 'nav', 'compass', 'hint'].forEach((id) => { $(id).hidden = false; });
+$('dim3').setAttribute('aria-pressed', 'true');
+if (FLAT) setMode(true, false);
+window.__scene3d = { detailTiles: () => detailTiles && detailTiles.count(), scene, camera, controls, flyTo, place, viewNow, groups, renderer, toXZ: (lon, lat) => toXZ([lon, lat]), H, groundDistance };  // handy in the browser console
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
