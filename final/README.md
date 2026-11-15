@@ -102,3 +102,34 @@ kafle szczegółowe, drzewa z podczerwieni i obrysy budynków (`build_scene_deta
 
 Sentinel-2 cloudless 2024 (EOX, CC BY-NC-SA 4.0) – tylko do użytku niekomercyjnego (Tabasco); Copernicus DEM GLO-30. USGS NAIP i USGS 3DEP (domena publiczna, USA), OpenStreetMap (ODbL), Overture Maps,
 ESA WorldCover 2021 (CC BY 4.0), OGIM, NISAR L2 GUNW (NASA/ISRO).
+
+## Użycie narzędzi SI (Super Intelligence)
+
+Zgodnie z zasadami NASA Space Apps Challenge informujemy, gdzie i jak użyliśmy narzędzi SI. Ta sama informacja
+jest w metadanych: plik `si_usage.json`, klucz `si_disclosure` w każdym `Dane/*/data/meta.json`, znacznik
+`<meta name="si-disclosure">` na stronie oraz opis API (`/docs`).
+
+**Narzędzia:** Claude Code i Claude (claude.ai) firmy Anthropic, ChatGPT firmy OpenAI.
+
+| Część projektu | Jak użyto SI |
+|---|---|
+| Kod strony (`frontend/`) | kod modelu 3D, widoku 2D, osi czasu i paneli pisany z pomocą SI (Claude Code, Claude) |
+| Backend (`backend/app`) | serwer FastAPI pisany z pomocą SI |
+| Skrypty danych (`backend/scripts`) | skrypty budujące modele 3D, oś czasu, wygładzanie klatek i import wyników zespołu pisane z pomocą SI |
+| Analiza InSAR i teksty | pomoc SI przy kodzie analizy danych NISAR, opisach w interfejsie i dokumentacji (w tym ten plik) |
+| GIF-y (`gify_pitch/`) | nagrania ekranu działającej aplikacji; agent SI pomagał je nagrać i obrobić (przycięcie, podpisy). Obraz pochodzi z aplikacji, nie z modelu generującego obrazy |
+| Dane (`Dane/`) | pliki zbudowane skryptami napisanymi z pomocą SI |
+
+**Czego SI nie generowało.** Pomiary nie są wygenerowane przez SI. Ruch gruntu pochodzi z prawdziwych danych
+satelitarnych NISAR (NASA/ISRO). Zdjęcia, ukształtowanie terenu i infrastruktura pochodzą ze źródeł wymienionych
+w sekcji „Źródła i licencje”. SI pomagało pisać kod, który te dane przetwarza i pokazuje. Wyniki sprawdzał zespół.
+
+**Marka NASA.** Treści przygotowane z pomocą SI nie używają, nie zawierają i nie przerabiają logo, flag, insygniów
+misji ani innych elementów marki NASA. Nazwy NASA i NISAR występują tylko jako tekstowe wskazanie źródła danych.
+
+*In English:* Super Intelligence (SI) tools – Claude Code and Claude (Anthropic), ChatGPT (OpenAI) – were used to
+help write the frontend, the FastAPI backend, the data-processing scripts, the InSAR analysis code, the interface
+texts and this documentation, and to record and edit the pitch GIFs (screen recordings of the real application,
+not generated imagery). The ground-motion measurements are real NISAR satellite data (NASA/ISRO), not SI-generated. No NASA
+logos, flags, mission insignia or other NASA branding are used in SI-generated content. Machine-readable
+disclosure: `si_usage.json`.

@@ -482,5 +482,6 @@
   "#d0b3ff"
  ],
  "hide_empty_layers": true,
- "place_label_m": 14000
+ "place_label_m": 14000,
+ "si_disclosure": "Data files built by scripts written with the help of Super Intelligence (SI) tools: Claude Code, Claude (Anthropic), ChatGPT (OpenAI). The measurements themselves are not SI-generated (see README.md, section SI, and si_usage.json)."
 }

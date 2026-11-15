@@ -300,5 +300,6 @@
   "Copernicus DEM GLO-30",
   "OpenStreetMap (ODbL)",
   "OGIM (Oil and Gas Infrastructure Mapping)"
- ]
+ ],
+ "si_disclosure": "Data files built by scripts written with the help of Super Intelligence (SI) tools: Claude Code, Claude (Anthropic), ChatGPT (OpenAI). The measurements themselves are not SI-generated (see README.md, section SI, and si_usage.json)."
 }

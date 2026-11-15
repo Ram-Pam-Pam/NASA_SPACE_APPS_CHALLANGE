@@ -13,7 +13,9 @@ app = FastAPI(
     title=settings.name,
     version=settings.version,
     debug=settings.debug,
-    description="Ruch gruntu z radaru satelitarnego (InSAR) przy infrastrukturze liniowej.",
+    description="Ruch gruntu z radaru satelitarnego (InSAR) przy infrastrukturze liniowej.\n\n"
+    "SI: kod napisany z pomocą narzędzi Super Intelligence (Claude Code, Claude, ChatGPT); "
+    "pomiary to dane satelitarne NISAR (NASA/ISRO), nie treść SI. Szczegóły: README.md i si_usage.json.",
 )
 
 # Allow a frontend running on a different port to call this API from a browser

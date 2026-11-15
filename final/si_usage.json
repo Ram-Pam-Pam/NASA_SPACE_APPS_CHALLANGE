@@ -1,0 +1,20 @@
+{
+ "project": "Corridor Watch",
+ "event": "NASA Space Apps Challenge",
+ "si_used": true,
+ "tools": [
+  {"name": "Claude Code", "vendor": "Anthropic", "url": "https://claude.com/claude-code"},
+  {"name": "Claude (claude.ai)", "vendor": "Anthropic", "url": "https://claude.ai"},
+  {"name": "ChatGPT", "vendor": "OpenAI", "url": "https://chatgpt.com"}
+ ],
+ "usage": [
+  {"part": "frontend/", "kind": "code", "how": "3D model, 2D view, timeline and panels written with SI assistance"},
+  {"part": "backend/app/", "kind": "code", "how": "FastAPI server written with SI assistance"},
+  {"part": "backend/scripts/", "kind": "code", "how": "data-processing scripts (3D scenes, timeline frames, smoothing, team results import) written with SI assistance"},
+  {"part": "InSAR analysis and texts", "kind": "code, text", "how": "SI assistance with NISAR analysis code, interface texts and documentation (README.md)"},
+  {"part": "gify_pitch/*.gif", "kind": "images / video", "how": "screen recordings of the real application; an SI agent helped record and edit them (cropping, captions); the pictures come from the application, not from an image-generation model"},
+  {"part": "Dane/", "kind": "data", "how": "data files built by SI-assisted scripts; each meta.json has a 'si_disclosure' key"}
+ ],
+ "not_si_generated": "Ground-motion measurements are real NISAR L2 GUNW satellite data (NASA/ISRO); imagery, terrain and infrastructure come from the sources listed in README.md.",
+ "nasa_branding": "No NASA logos, flags, mission insignia or other NASA branding are used, contained or modified in SI-generated content; NASA and NISAR are named only as data-source attribution."
+}
