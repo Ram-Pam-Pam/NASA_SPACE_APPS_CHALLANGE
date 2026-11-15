@@ -3,6 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 
+from app.api.auth import require_admin
 from app.config import get_settings
 from app.schemas.layer import Layer, LayerRole
 from app.services.geojson_reader import InvalidGeoJSONError, inspect_geojson
@@ -29,7 +30,7 @@ def get_layer(layer_id: str, registry: Registry) -> Layer:
     return layer
 
 
-@router.post("", response_model=Layer, status_code=201)
+@router.post("", response_model=Layer, status_code=201, dependencies=[Depends(require_admin)])
 def upload_layer(
     registry: Registry,
     file: Annotated[UploadFile, File(description="GeoJSON FeatureCollection in WGS84 (EPSG:4326)")],
@@ -62,7 +63,7 @@ def upload_layer(
     return registry.add_layer(layer, content)
 
 
-@router.delete("/{layer_id}", status_code=204)
+@router.delete("/{layer_id}", status_code=204, dependencies=[Depends(require_admin)])
 def delete_layer(layer_id: str, registry: Registry) -> None:
     """Delete a layer together with its data file."""
     if not registry.delete_layer(layer_id):

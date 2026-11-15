@@ -38,6 +38,14 @@ trafia do backendu na jeden z dwóch sposobów:
 
 Dane trzymane są w `backend/data/` (poza Gitem).
 
+### Ochrona zapisu
+
+Odczyt (GET) jest publiczny. Dodawanie, zmiana i usuwanie danych (POST / PATCH / PUT / DELETE) wymaga
+tokenu z `APP_ADMIN_TOKEN` (plik `backend/.env`), wysłanego w nagłówku `X-Admin-Token`
+(w `/docs`: przycisk **Authorize**). Bez ustawionego tokenu zmiany przez API działają tylko z tego
+samego komputera (localhost), więc serwer publiczny jest domyślnie tylko do odczytu.
+Skrypty importu zapisują dane bezpośrednio i tokenu nie potrzebują.
+
 ## API
 
 | Metoda | Adres | Opis |

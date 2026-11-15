@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from pydantic import ValidationError
 
+from app.api.auth import require_admin
 from app.config import get_settings
 from app.schemas.location import Location, LocationCreate, LocationUpdate
 from app.services.location_package import InvalidPackageError, parse_package
@@ -33,7 +34,7 @@ def get_location(location_id: str, registry: Registry) -> Location:
     return _get_or_404(registry, location_id)
 
 
-@router.post("", response_model=Location, status_code=201)
+@router.post("", response_model=Location, status_code=201, dependencies=[Depends(require_admin)])
 def create_location(data: LocationCreate, registry: Registry) -> Location:
     """Create a new location (without data - it shows as 'coming soon')."""
     try:
@@ -42,7 +43,7 @@ def create_location(data: LocationCreate, registry: Registry) -> Location:
         raise HTTPException(status_code=409, detail=str(e)) from e
 
 
-@router.patch("/{location_id}", response_model=Location)
+@router.patch("/{location_id}", response_model=Location, dependencies=[Depends(require_admin)])
 def update_location(location_id: str, changes: LocationUpdate, registry: Registry) -> Location:
     """Change selected metadata fields (send only the fields that change)."""
     _get_or_404(registry, location_id)
@@ -52,7 +53,7 @@ def update_location(location_id: str, changes: LocationUpdate, registry: Registr
         raise HTTPException(status_code=422, detail=e.errors(include_url=False)) from e
 
 
-@router.put("/{location_id}/data", response_model=Location)
+@router.put("/{location_id}/data", response_model=Location, dependencies=[Depends(require_admin)])
 def upload_location_data(
     location_id: str,
     registry: Registry,
@@ -81,7 +82,7 @@ def get_location_data(location_id: str, registry: Registry) -> FileResponse:
     return FileResponse(path, media_type="application/json")
 
 
-@router.delete("/{location_id}", status_code=204)
+@router.delete("/{location_id}", status_code=204, dependencies=[Depends(require_admin)])
 def delete_location(location_id: str, registry: Registry) -> None:
     """Delete a location together with its data package."""
     if not registry.delete_location(location_id):

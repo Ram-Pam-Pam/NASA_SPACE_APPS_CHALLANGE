@@ -322,7 +322,12 @@ details.adv .pop label.row { display: flex; gap: 6px; color: var(--text); }
   try { LOCS = await getJSON(`${API}/locations`); }
   catch (err) { return fail(`Nie udało się połączyć z serwerem (${err.message}). Czy backend jest uruchomiony?`); }
   const ready = LOCS.filter((l) => l.ready);
-  $('loc').innerHTML = LOCS.map((l) => `<option value="${l.id}" ${l.ready ? '' : 'disabled'}>${l.name}${l.region ? ', ' + l.region : ''}${l.ready ? '' : ' (wkrótce)'}</option>`).join('');
+  // Built with DOM (not innerHTML), so names from the API can never inject HTML/JS
+  $('loc').replaceChildren(...LOCS.map((l) => {
+    const opt = new Option(`${l.name}${l.region ? ', ' + l.region : ''}${l.ready ? '' : ' (wkrótce)'}`, l.id);
+    opt.disabled = !l.ready;
+    return opt;
+  }));
   if (!ready.length) return fail('Brak przygotowanych lokalizacji. Wgraj pakiet danych przez API (/docs) albo skryptem import_corridor_watch.py.');
   const LOC = ready.find((l) => l.id === decodeURIComponent(location.hash.slice(1))) || ready[0];
   $('loc').value = LOC.id;

@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     data_dir: Path = Path("data")  # uploaded layers, locations and their registries live here
     frontend_dir: Path = Path("../frontend")  # web page served at "/" (skipped if the folder is missing)
     max_upload_mb: int = 50  # reject uploaded files bigger than this
+    # Token needed to add/change/delete data through the API (X-Admin-Token header).
+    # Not set = changing data is allowed only from localhost (public server is read-only).
+    admin_token: str | None = None
     # Frontend addresses allowed to call the API from a browser (CORS).
     # Not needed when the page is served by this backend (same address).
     cors_origins: list[str] = ["http://localhost:5173", "http://localhost:3000"]
