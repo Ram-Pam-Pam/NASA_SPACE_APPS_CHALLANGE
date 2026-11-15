@@ -257,18 +257,20 @@ const API = window.CW_API || '/api/v1';
 let SETS;
 try { SETS = await getJSON(`${API}/datasets`); }
 catch (err) { fail(`Nie udało się połączyć z serwerem (${err.message}). Czy backend jest uruchomiony?`); throw err; }
-const SCENES = SETS.filter((d) => d.kind === 'scene3d');
+// models with data first; a placeholder location ("ready": false) is listed last and shows an empty state
+const SCENES = SETS.filter((d) => d.kind === 'scene3d').sort((a, b) => (b.ready !== false) - (a.ready !== false));
 const OTHERS = SETS.filter((d) => d.kind !== 'scene3d' && !SCENES.some((sc) => sc.id === d.id));
-$('loc').innerHTML = SCENES.map((d) => `<option value="scene3d:${esc(d.id)}">${esc(d.name)}</option>`).join('')
+$('loc').innerHTML = SCENES.map((d) => `<option value="scene3d:${esc(d.id)}">${esc(d.name)}${d.ready === false ? ' · w przygotowaniu' : ''}</option>`).join('')
   + OTHERS.map((d) => `<option value="insar:${esc(d.id)}">${esc(d.name)} · analiza InSAR</option>`).join('');
-const LOC = SCENES.find((d) => d.id === decodeURIComponent(location.hash.slice(1))) || SCENES[0];
+const LOC = SCENES.find((d) => d.id === decodeURIComponent(location.hash.slice(1))) || SCENES.find((d) => d.ready !== false) || SCENES[0];
 if (!LOC) { fail('Brak modelu 3D. Zbuduj go skryptem backend/scripts/build_scene3d.py.'); throw new Error('no scene'); }
 $('loc').value = `scene3d:${LOC.id}`;
 $('loc').addEventListener('change', (e) => {
   const [kind, id] = e.target.value.split(/:(.*)/);
   // another model keeps the current 2D/3D mode; an address that differs only after "#" does not reload
   // the page by itself, the hashchange listener below does that
-  location.href = kind === 'scene3d' ? `view3d.html${FLAT ? '?view=2d' : ''}#${encodeURIComponent(id)}` : `index.html#${encodeURIComponent(id)}`;
+  const flat = new URLSearchParams(location.search).get('view') === '2d';  // the address holds the current mode (also on an empty location)
+  location.href = kind === 'scene3d' ? `view3d.html${flat ? '?view=2d' : ''}#${encodeURIComponent(id)}` : `index.html#${encodeURIComponent(id)}`;
 });
 window.addEventListener('hashchange', () => location.reload());
 const BASE = LOC.base_url;
@@ -277,6 +279,13 @@ try { META = await getJSON(BASE + 'meta.json'); }
 catch (err) { fail(`Nie udało się wczytać modelu (${err.message}).`); throw err; }
 $('title').textContent = META.name;
 document.title = `${META.name} · model 3D · Corridor Watch`;
+if (META.empty || !META.bbox) {  // placeholder location: header and location list work, the model area says why it is empty
+  $('status').hidden = false;
+  $('status').innerHTML = `<div style="max-width:440px"><div style="font-size:17px;font-weight:600;color:var(--text);margin-bottom:6px">${esc(META.name)} – w przygotowaniu</div>`
+    + `Dla tej lokalizacji nie ma jeszcze danych. Model 3D, widok 2D i oś czasu pojawią się tutaj, gdy zespół przygotuje dane.`
+    + `<br><br>Wybierz inną lokalizację z listy w prawym górnym rogu.</div>`;
+  throw new Error('placeholder location without data');
+}
 $('src').textContent = 'Źródła: ' + (META.sources || []).join(' · ');
 
 // ----------------------------------------------------------------- terrain

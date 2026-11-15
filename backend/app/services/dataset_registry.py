@@ -30,6 +30,7 @@ def list_datasets(root_dir: Path) -> list[Dataset]:
                 name=str(meta.get("name") or folder),
                 base_url=f"{DATASETS_URL}/{quote(folder)}/data/",
                 kind=str(meta.get("kind") or "insar"),
+                ready=not meta.get("empty", False),
             )
         )
     return datasets

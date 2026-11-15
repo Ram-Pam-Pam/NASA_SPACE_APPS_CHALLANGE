@@ -12,3 +12,7 @@ class Dataset(BaseModel):
         description="What the folder holds: 'insar' (map with the time series, index.html) or 'scene3d' (3D model, view3d.html)",
         examples=["insar", "scene3d"],
     )
+    ready: bool = Field(
+        default=True,
+        description="False for a placeholder location (meta.json 'empty': true): listed, but without data yet",
+    )

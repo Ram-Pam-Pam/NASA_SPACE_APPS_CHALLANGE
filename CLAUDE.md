@@ -226,6 +226,13 @@ Projekt/
   miesięcy i model trend + sinusoida roczna; porównanie tej samej pory roku rok do roku; historia z
   Sentinel-1 (np. produkt OPERA DISP-S1) i orbity wznoszące+zstępujące do rozbicia LOS na pion/wschód.
 
+## Pusta zakładka „Nowa lokalizacja” (15.11.2026)
+- `Dane/model3d_nowa_lokalizacja/data/meta.json` z `"empty": true` → `/api/v1/datasets` zwraca `ready: false`,
+  lista pokazuje „Nowa lokalizacja · w przygotowaniu” (na końcu), strona pokazuje komunikat zamiast modelu.
+- Wypełnienie: zmienić `aoi`/`name` w meta.json i zbudować model `build_scene3d.py <aoi.geojson>
+  Dane/model3d_nowa_lokalizacja/data [--insar-data …]` – skrypt nadpisze meta.json pełną wersją (bez `empty`).
+  Oś czasu 2D i panel „Sygnał do weryfikacji” pojawią się, gdy będzie pakiet InSAR o tym samym `aoi`.
+
 ## Pomysły na dalej
 - **Zakładki case study** zamiast listy rozwijanej + uogólnienie UI na różne typy obiektów (patrz „Koncepcja”).
 - Strona/panel „Dodaj lokalizację” (formularz: metadane + wgranie data.js) – żeby zespół nie używał `/docs`.

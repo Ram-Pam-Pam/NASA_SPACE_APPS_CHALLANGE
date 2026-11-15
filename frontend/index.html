@@ -387,13 +387,13 @@ details.adv .pop label.row input { width: 16px; height: 16px; margin: 0; }
   const SCENES = SETS.filter((d) => d.kind === 'scene3d');
   const wanted = decodeURIComponent(location.hash.slice(1));
   const keep2d = new URLSearchParams(location.search).has('2d');
-  const scene = keep2d ? null : wanted ? SCENES.find((d) => d.id === wanted) : SCENES[0];
+  const scene = keep2d ? null : wanted ? SCENES.find((d) => d.id === wanted) : SCENES.find((d) => d.ready !== false) || SCENES[0];
   if (scene) { location.replace(`view3d.html#${encodeURIComponent(scene.id)}`); return; }
   SETS = SETS.filter((d) => d.kind !== 'scene3d' && (keep2d || !SCENES.some((sc) => sc.id === d.id)));
   const LOCS = SETS.map((d) => ({ ...(REG.find((r) => r.id === d.id) || {}), id: d.id, name: (REG.find((r) => r.id === d.id) || {}).name || d.name, base: d.base_url, ready: true }))
     .concat(REG.filter((r) => !SETS.some((d) => d.id === r.id)).map((r) => ({ ...r, ready: false })));
   const ready = LOCS.filter((l) => l.ready);
-  $('loc').innerHTML = SCENES.map((d) => `<option value="3d:${esc(d.id)}">${esc(d.name)} · model 3D</option>`).join('') + LOCS.map((l) => `<option value="${esc(l.id)}" ${l.ready ? '' : 'disabled'}>${esc(l.name)}${l.region ? ', ' + esc(l.region) : ''}${l.ready ? '' : ' (wkrótce)'}</option>`).join('');
+  $('loc').innerHTML = SCENES.map((d) => `<option value="3d:${esc(d.id)}">${esc(d.name)} · ${d.ready === false ? 'w przygotowaniu' : 'model 3D'}</option>`).join('') + LOCS.map((l) => `<option value="${esc(l.id)}" ${l.ready ? '' : 'disabled'}>${esc(l.name)}${l.region ? ', ' + esc(l.region) : ''}${l.ready ? '' : ' (wkrótce)'}</option>`).join('');
   if (!ready.length) return fail('Brak przygotowanych danych. Umieść folder z danymi dla frontendu (…/data/meta.json) w katalogu „Dane”.');
   const LOC = ready.find((l) => l.id === decodeURIComponent(location.hash.slice(1))) || ready[0];
   $('loc').value = LOC.id;

@@ -1,0 +1,7 @@
+{
+ "aoi": "nowa_lokalizacja",
+ "name": "Nowa lokalizacja",
+ "kind": "scene3d",
+ "empty": true,
+ "note": "Zakładka w przygotowaniu. Żeby ją wypełnić: zmień 'aoi' i 'name' na docelowe, a potem zbuduj model: python3 backend/scripts/build_scene3d.py <aoi.geojson> Dane/model3d_nowa_lokalizacja/data [--insar-data Dane/<folder InSAR>/data]. Skrypt nadpisze ten plik pełnym meta.json (bez 'empty')."
+}
