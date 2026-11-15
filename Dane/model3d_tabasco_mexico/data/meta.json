@@ -1,0 +1,93 @@
+{
+ "aoi": "tabasco_mexico",
+ "name": "Tabasco",
+ "kind": "scene3d",
+ "built": "2026-11-15",
+ "bbox": [
+  -93.83,
+  17.7,
+  -92.83,
+  18.51
+ ],
+ "size_m": [
+  105808.4,
+  89537.4
+ ],
+ "ground": {
+  "file": "ground.jpg",
+  "source": "Sentinel-2 cloudless 2024 (EOX IT Services, CC BY-NC-SA 4.0; zawiera zmodyfikowane dane Copernicus Sentinel)",
+  "date": "2024",
+  "resolution_m": 10
+ },
+ "terrain": {
+  "file": "terrain.bin",
+  "width": 1025,
+  "height": 1025,
+  "min_m": -0.5,
+  "max_m": 81.57,
+  "layout": "uint16[width*height], rows north -> south; height = min_m + value / 65535 * (max_m - min_m)",
+  "default_exaggeration": 5,
+  "exaggerations": [
+   1,
+   5,
+   10
+  ],
+  "sea_level_m": 0.0,
+  "carved_water": [],
+  "source": "Copernicus DEM GLO-30"
+ },
+ "trees": {
+  "file": "trees.bin",
+  "count": 0,
+  "spacing_m": 70.5,
+  "layout": "uint16 x[n], y[n] (0..65535 = west..east, north..south); uint8 height_dm[n], r[n], g[n], b[n], kind[n] (0 round crown, 1 conical)"
+ },
+ "buildings_bin": null,
+ "timeline": null,
+ "layers": {
+  "roads": {
+   "file": "roads.geojson",
+   "count": 0
+  },
+  "rail": {
+   "file": "rail.geojson",
+   "count": 0
+  },
+  "water": {
+   "file": "water.geojson",
+   "count": 0
+  },
+  "pipelines": {
+   "file": "pipelines.geojson",
+   "count": 0
+  },
+  "areas": {
+   "file": "areas.geojson",
+   "count": 0
+  },
+  "places": {
+   "file": "places.geojson",
+   "count": 0
+  },
+  "buildings": {
+   "file": "buildings.geojson",
+   "count": 0
+  },
+  "power": {
+   "file": "power.geojson",
+   "count": 0
+  },
+  "hazards": {
+   "file": "hazards.geojson",
+   "count": 0
+  },
+  "forest": {
+   "file": "forest.geojson",
+   "count": 0
+  }
+ },
+ "sources": [
+  "Sentinel-2 cloudless 2024 (EOX IT Services, CC BY-NC-SA 4.0; zawiera zmodyfikowane dane Copernicus Sentinel)",
+  "Copernicus DEM GLO-30 (ESA, model powierzchni)"
+ ]
+}

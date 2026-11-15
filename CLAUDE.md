@@ -233,6 +233,19 @@ Projekt/
   Dane/model3d_nowa_lokalizacja/data [--insar-data …]` – skrypt nadpisze meta.json pełną wersją (bez `empty`).
   Oś czasu 2D i panel „Sygnał do weryfikacji” pojawią się, gdy będzie pakiet InSAR o tym samym `aoi`.
 
+## Tabasco (Meksyk) – pusta mapa 2D/3D (15.11.2026)
+- `Dane/model3d_tabasco_mexico/data` (AOI `tabasco_mexico.geojson`, 106 × 90 km, Cárdenas – Villahermosa –
+  Paraíso): na razie tylko zdjęcie i teren, warstwy obiektów puste. Zbudowane
+  `build_scene3d.py ../tabasco_mexico.geojson Dane/model3d_tabasco_mexico/data --name "Tabasco" --ground-only --cache …`.
+- Poza USA skrypt bierze: zdjęcie **Sentinel-2 cloudless 2024 (EOX, 10 m, CC BY-NC-SA 4.0 – licencja
+  niekomercyjna)** z kafli WMTS (pobieranie po 3 naraz z ponowieniami – serwer zwraca 403 przy szybkim
+  pobieraniu), teren **Copernicus DEM GLO-30** (model powierzchni: zawiera drzewa i budynki). Wykrywanie
+  USA: `in_usa(bbox)`. Morze wykryte z DEM (≤ 0,5 m), bo bez OSM nie ma linii brzegowej.
+- Dodanie obiektów później: ten sam skrypt bez `--ground-only` (OSM + Overture; poza USA bez kafli NAIP
+  i drzew z podczerwieni – `build_scene_detail.py` działa tylko w USA).
+- Widok 2D: na płaskiej mapie wszystko leżące na ziemi jest podniesione o stałe `FLAT_LIFT` (zamiast cm),
+  bo przy kamerze 100 km nad ziemią warstwy migotały; płyta pod modelem jest w 2D ukryta.
+
 ## Pomysły na dalej
 - **Zakładki case study** zamiast listy rozwijanej + uogólnienie UI na różne typy obiektów (patrz „Koncepcja”).
 - Strona/panel „Dodaj lokalizację” (formularz: metadane + wgranie data.js) – żeby zespół nie używał `/docs`.

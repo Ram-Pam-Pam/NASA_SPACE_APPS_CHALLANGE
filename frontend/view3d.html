@@ -322,7 +322,10 @@ function elevAt(x, z) {
   const a = g[i], d = g[i + 1], b = g[i + T.width], c = g[i + T.width + 1];
   return (fx + fz <= 1 ? a + (d - a) * fx + (b - a) * fz : c + (b - c) * (1 - fx) + (d - c) * (1 - fz)) * T_STEP;
 }
-const H = (x, z) => elevAt(x, z) * EXAG;  // height in the model
+// On the flat 2D map everything that lies on the ground is lifted by one fixed amount: seen from straight above
+// it changes nothing, but with a camera tens of km away a few cm are too little to keep layers apart.
+const FLAT_LIFT = Math.max(2, R * 1e-4);
+const H = (x, z) => (FLAT ? FLAT_LIFT : elevAt(x, z) * EXAG);  // height in the model
 const STEP = BIG ? 30 : 10;  // spacing of extra points; about one terrain cell
 /** Extra points so that a long straight segment follows the ground instead of cutting through it. */
 function dense(pts, step = STEP) {
@@ -825,7 +828,7 @@ for (const f of water) {
     if (rings[0].length < 4) continue;
     // one level per water body: the lowest ground along its shore (the terrain is cut to water level there)
     const shore = rings[0].map(toXZ), mid = centre(rings[0]);
-    const level = shore.reduce((m, [x, z]) => Math.min(m, elevAt(x, z)), elevAt(mid[0], mid[1])) * EXAG;
+    const level = FLAT ? FLAT_LIFT * 0.8 : shore.reduce((m, [x, z]) => Math.min(m, elevAt(x, z)), elevAt(mid[0], mid[1])) * EXAG;
     const geo = lay(new THREE.ShapeGeometry(shapeOf(rings))).translate(0, level + 0.15, 0);
     waterB.add(geo, hazard ? 0x1d5068 : 0x3f86a3, f.properties.name ? `<b>${esc(f.properties.name)}</b>${hazard ? '<br>Zapadlisko nad zawaloną komorą solną (od 2012 r.)' : ''}` : null);
     if (hazard) {
@@ -837,8 +840,9 @@ for (const f of water) {
 }
 addBatch('water', waterB);
 if (T && T.sea_level_m != null && terrainGrid) {  // the sea: one sheet at sea level, the land rises through it
-  const sea = new THREE.Mesh(lay(new THREE.PlaneGeometry(SX, SZ)), new THREE.MeshBasicMaterial({ map: seaTexture(), transparent: true, ...OFFSET })  /* unlit: a lit sheet this big shows one huge sun glare */);
-  sea.position.y = (T.sea_level_m - T.min_m) * EXAG + 0.25;
+  const sea = new THREE.Mesh(lay(new THREE.PlaneGeometry(SX, SZ)), new THREE.MeshBasicMaterial({ map: seaTexture(), transparent: true, depthWrite: false, ...OFFSET })  /* unlit: a lit sheet this big shows one huge sun glare */);
+  // on the flat map a fixed gap keeps the sheet clear of the ground even for a camera 100+ km away
+  sea.position.y = FLAT ? FLAT_LIFT * 0.6 : (T.sea_level_m - T.min_m) * EXAG + 0.25;
   group('water').add(sea);  // no name on hover: under the land it would answer for the ground
 }
 
@@ -1213,6 +1217,9 @@ function applyLayer(id, on) {
   else if (groups[id]) groups[id].visible = on;
   dirty = true;
 }
+if (LAYERS.every(([id, , n]) => id === 'labels' || id === 'water' || !n)) {  // a map that has only the photo and the terrain so far
+  $('toggles').insertAdjacentHTML('afterbegin', '<p class="note" style="margin:0 0 4px">Na razie tylko zdjęcie satelitarne i rzeźba terenu. Budynki, drogi i pozostałe obiekty zostaną dodane później.</p>');
+}
 $('toggles').addEventListener('change', (e) => applyLayer(e.target.dataset.layer, e.target.checked));
 LAYERS.forEach(([id, , n, , on]) => { if (n && !on) applyLayer(id, false); });
 if (terrainGrid) {
@@ -1350,6 +1357,7 @@ const timeline = TL && (() => {
       on = visible;
       $('timeline').hidden = !visible;
       sheetMesh.visible = visible;
+      sheetMesh.position.y = FLAT_LIFT * 0.75 - 0.5;  // above the sea sheet, below the objects on the ground
       render();
       if (!visible) stop();
       if (visible && !mat.uniforms.b.value) setDate(N - 1, false);
@@ -1406,6 +1414,7 @@ function setMode(flat, animate = true) {
   FLAT = flat;
   stopSpin();
   if (flat) { exag3d = EXAG || exag3d; EXAG = 0; } else EXAG = exag3d;
+  slab.visible = !flat;  // seen from straight above the base slab only fights with the flattened ground
   shadeTerrain(); build();
   Object.assign(controls, flat
     ? { enableRotate: false, screenSpacePanning: true, minPolarAngle: TOP, maxPolarAngle: TOP, minAzimuthAngle: 0, maxAzimuthAngle: 0 }

@@ -474,6 +474,105 @@ def save_jpeg(arr: np.ndarray, out: Path, quality: int) -> None:
         aux.unlink()
 
 
+S2_URL = "https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2024_3857/default/g/${z}/${y}/${x}.jpg"
+COP_DEM_URL = "/vsicurl/https://copernicus-dem-30m.s3.amazonaws.com/Copernicus_DSM_COG_10_{tile}_DEM/Copernicus_DSM_COG_10_{tile}_DEM.tif"
+
+
+def in_usa(bbox) -> bool:
+    """NAIP photos and USGS 3DEP lidar cover the USA only (rough box of the 48 states)."""
+    w, s, e, n = bbox
+    return -125 <= w and e <= -66 and 24 <= s and n <= 50
+
+
+def fetch_ground_world(bbox, size, out: Path, cache: Path | None) -> dict:
+    """Outside the USA: the Sentinel-2 cloudless mosaic 2024 by EOX (10 m), from its Web Mercator tiles.
+    The tile server refuses fast bulk downloads (HTTP 403), so the tiles come a few at a time, each one
+    retried with growing pauses and kept on disk (an interrupted build resumes where it stopped)."""
+    w, s, e, n = bbox
+    width, height = size
+    lat0 = (s + n) / 2
+    m_per_px = (e - w) * 111_320 * math.cos(math.radians(lat0)) / width
+    z = min(15, max(8, math.ceil(math.log2(156_543.03 * math.cos(math.radians(lat0)) / m_per_px))))
+    tiles = 2 ** z
+
+    def tx(lon):
+        return (lon + 180) / 360 * tiles
+
+    def ty(lat):
+        return (1 - math.log(math.tan(math.radians(lat)) + 1 / math.cos(math.radians(lat))) / math.pi) / 2 * tiles
+
+    x0, x1, y0, y1 = int(tx(w)), int(tx(e)), int(ty(n)), int(ty(s))
+    tile_dir = (cache or Path(tempfile.mkdtemp())) / f"s2cloudless_2024_z{z}"
+    tile_dir.mkdir(parents=True, exist_ok=True)
+
+    def get(xy):
+        x, y = xy
+        f = tile_dir / f"{x}_{y}.jpg"
+        if f.exists() and f.stat().st_size > 0:
+            return
+        url = S2_URL.replace("${z}", str(z)).replace("${x}", str(x)).replace("${y}", str(y))
+        for attempt in range(10):
+            try:
+                data = http_get(url, timeout=60, tries=1)
+                if data[:2] == b"\xff\xd8":
+                    f.write_bytes(data)
+                    return
+            except RuntimeError:
+                pass
+            time.sleep(min(60, 3 * 2 ** attempt))
+        raise RuntimeError(f"Sentinel-2 tile {z}/{x}/{y} not available")
+
+    jobs = [(x, y) for y in range(y0, y1 + 1) for x in range(x0, x1 + 1)]
+    print(f"  Sentinel-2 cloudless: {len(jobs)} tiles at zoom {z}", flush=True)
+    with ThreadPoolExecutor(max_workers=3) as pool:
+        for i, _ in enumerate(pool.map(get, jobs)):
+            if (i + 1) % 300 == 0:
+                print(f"  tiles {i + 1}/{len(jobs)}", flush=True)
+    cols, rows = x1 - x0 + 1, y1 - y0 + 1
+    mosaic = np.zeros((3, rows * 256, cols * 256), dtype=np.uint8)
+    for x, y in jobs:
+        name = f"/vsimem/s2_{x}_{y}.jpg"
+        gdal.FileFromMemBuffer(name, (tile_dir / f"{x}_{y}.jpg").read_bytes())
+        mosaic[:, (y - y0) * 256:(y - y0 + 1) * 256, (x - x0) * 256:(x - x0 + 1) * 256] = gdal.Open(name).ReadAsArray()[:3]
+        gdal.Unlink(name)
+    world = 2 * 20_037_508.342789244
+    res = world / (tiles * 256)
+    mem = gdal.GetDriverByName("MEM").Create("", cols * 256, rows * 256, 3, gdal.GDT_Byte)
+    mem.SetGeoTransform((-world / 2 + x0 * 256 * res, res, 0, world / 2 - y0 * 256 * res, 0, -res))
+    merc = osr.SpatialReference()
+    merc.ImportFromEPSG(3857)
+    mem.SetSpatialRef(merc)
+    mem.WriteArray(mosaic)
+    exact = gdal.Warp("", mem, format="MEM", outputBounds=(w, s, e, n), dstSRS="EPSG:4326", width=width, height=height, resampleAlg="cubic")
+    save_jpeg(exact.ReadAsArray()[:3], out, 86)
+    return {"source": "Sentinel-2 cloudless 2024 (EOX IT Services, CC BY-NC-SA 4.0; zawiera zmodyfikowane dane Copernicus Sentinel)",
+            "date": "2024", "resolution_m": 10}
+
+
+def fetch_terrain_world(bbox, n: int) -> np.ndarray | None:
+    """Outside the USA: Copernicus DEM GLO-30 (a surface model: includes trees and buildings)."""
+    gdal.SetConfigOption("AWS_NO_SIGN_REQUEST", "YES")
+    gdal.SetConfigOption("GDAL_DISABLE_READDIR_ON_OPEN", "EMPTY_DIR")
+    w, s, e, north = bbox
+    tiles = []
+    for lat in range(math.floor(s), math.floor(north - 1e-9) + 1):
+        for lon in range(math.floor(w), math.floor(e - 1e-9) + 1):
+            name = f"{'N' if lat >= 0 else 'S'}{abs(lat):02d}_00_{'E' if lon >= 0 else 'W'}{abs(lon):03d}_00"
+            path = COP_DEM_URL.format(tile=name)
+            try:
+                gdal.Open(path)
+                tiles.append(path)
+            except RuntimeError:
+                pass  # open sea: no tile
+    if not tiles:
+        return None
+    grid = gdal.Warp("", tiles, format="MEM", outputBounds=(w, s, e, north), width=n, height=n, resampleAlg="bilinear",
+                     dstSRS="EPSG:4326", dstNodata=float("nan"), outputType=gdal.GDT_Float32)
+    dem = grid.ReadAsArray().astype(np.float32)
+    dem[~np.isfinite(dem) | (dem < -500) | (dem > 9000)] = np.nan
+    return None if np.isnan(dem).all() else dem
+
+
 def fetch_ground(bbox, size, out: Path, cache: Path | None) -> dict:
     """The aerial photo over exactly the AOI box, saved as one JPEG (`size` pixels), plus its date."""
     w, s, e, n = bbox
@@ -686,7 +785,10 @@ def smooth(grid: np.ndarray, passes: int) -> np.ndarray:
 
 
 def write_terrain(bbox, n: int, water: list[dict], coast: bool, big: bool, out: Path, cache: Path | None) -> dict | None:
-    dem = fetch_terrain(bbox, n, cache)
+    usa = in_usa(bbox)
+    dem = fetch_terrain(bbox, n, cache) if usa else fetch_terrain_world(bbox, n)
+    if dem is not None and not usa:
+        coast = coast or bool((np.nan_to_num(dem, nan=0.0) <= 0.5).mean() > 0.03)  # no coastline layer in a ground-only scene
     if dem is None:
         print("terrain: elevation service unavailable - the model stays flat")
         return None
@@ -708,7 +810,7 @@ def write_terrain(bbox, n: int, water: list[dict], coast: bool, big: bool, out: 
     return {"file": "terrain.bin", "width": n, "height": n, "min_m": round(low, 2), "max_m": round(high, 2),
             "layout": "uint16[width*height], rows north -> south; height = min_m + value / 65535 * (max_m - min_m)",
             "default_exaggeration": default, "exaggerations": steps, "sea_level_m": 0.0 if sea else None,
-            "carved_water": carved, "source": "USGS 3DEP (lidar)"}
+            "carved_water": carved, "source": "USGS 3DEP (lidar)" if usa else "Copernicus DEM GLO-30"}
 
 
 # ------------------------------------------------- extras from an InSAR package
@@ -750,6 +852,7 @@ def main() -> None:
     parser.add_argument("--insar-data", type=Path, help="InSAR frontend folder of the same AOI (pipeline course and hazard zone)")
     parser.add_argument("--hazard-name", help="label of the hazard zone taken from --insar-data")
     parser.add_argument("--power", type=Path, help="own power-line layer (GPKG/GeoJSON, any CRS) instead of the OSM one")
+    parser.add_argument("--ground-only", action="store_true", help="only the photo and the terrain (an empty map to fill later)")
     args = parser.parse_args()
 
     aoi_feature = json.loads(args.aoi.read_text(encoding="utf-8"))["features"][0]
@@ -764,7 +867,11 @@ def main() -> None:
         args.cache.mkdir(parents=True, exist_ok=True)
     print(f"AOI {bbox}  {size_m[0]:.0f} x {size_m[1]:.0f} m  ({'city scale' if big else 'full detail'})", flush=True)
 
-    elements = fetch_osm(bbox, args.cache, big, with_buildings=not args.overture)
+    usa = in_usa(bbox)
+    if args.ground_only:
+        elements, args.overture = [], None
+    else:
+        elements = fetch_osm(bbox, args.cache, big, with_buildings=not args.overture)
     coast = any((el.get("tags") or {}).get("natural") == "coastline" for el in elements)
     layers = osm_layers(elements, aoi, big)
     del elements
@@ -780,7 +887,7 @@ def main() -> None:
                 layers["places"] += overture_places(args.overture, bbox, aoi, Path(tmp), args.cache)
         overture_release = subprocess.run([args.overture, "releases", "latest"], capture_output=True, text=True).stdout.strip() or None
         print(f"Overture {overture_release}: {len(buildings)} buildings", flush=True)
-    else:
+    elif not args.ground_only:
         print("overturemaps not found - buildings come from OSM only")
     buildings_bin = None
     if len(buildings) > MAX_FOOTPRINT_BUILDINGS:
@@ -803,15 +910,18 @@ def main() -> None:
     ground_px = 8192 if big else 4096
     scale = ground_px / max(size_m)
     ground_size = (round(size_m[0] * scale), round(size_m[1] * scale))
-    ground = fetch_ground(bbox, ground_size, args.out / "ground.jpg", args.cache)
+    ground = (fetch_ground if usa else fetch_ground_world)(bbox, ground_size, args.out / "ground.jpg", args.cache)
     print("ground photo:", ground, ground_size, flush=True)
 
-    cover = worldcover(bbox, round(size_m[0] / 10), round(size_m[1] / 10))
-    layers["forest"] = [] if big else forest_polygons(cover, bbox)
     spacing = max(20.0, max(size_m) / 1500) if big else 13.0
-    mask = keep_out_mask(bbox, m_per_deg_lon, layers, [wkb for wkb, _ in buildings], min(6000, max(2500, round(max(size_m) / 5))), 2.0 if big else 5.0)
-    trees = plant_trees(size_m, spacing, cover, mask, args.out / "ground.jpg", args.out / "trees.bin")
-    print(f"forest: {100 * (cover == TREE_CLASS).mean():.0f}% tree cover, {trees} trees", flush=True)
+    if args.ground_only:
+        layers["forest"], trees = [], 0
+    else:
+        cover = worldcover(bbox, round(size_m[0] / 10), round(size_m[1] / 10))
+        layers["forest"] = [] if big else forest_polygons(cover, bbox)
+        mask = keep_out_mask(bbox, m_per_deg_lon, layers, [wkb for wkb, _ in buildings], min(6000, max(2500, round(max(size_m) / 5))), 2.0 if big else 5.0)
+        trees = plant_trees(size_m, spacing, cover, mask, args.out / "ground.jpg", args.out / "trees.bin")
+        print(f"forest: {100 * (cover == TREE_CLASS).mean():.0f}% tree cover, {trees} trees", flush=True)
 
     terrain = write_terrain(bbox, 1025 if big else 769, layers["water"], coast, big, args.out, args.cache)
     if terrain:
@@ -823,7 +933,7 @@ def main() -> None:
     today = datetime.date.today().isoformat()
     meta = {
         "aoi": str(aoi_feature.get("id") or args.aoi.stem),
-        "name": args.name or props.get("name") or args.aoi.stem,
+        "name": args.name or props.get("name") or props.get("nazwa") or args.aoi.stem,
         "kind": "scene3d",
         "built": today,
         "bbox": [w, s, e, n],
@@ -836,18 +946,18 @@ def main() -> None:
         "timeline": build_timeline(args.insar_data, args.out) if args.insar_data else None,
         "layers": {name: {"file": f"{name}.geojson", "count": len(features)} for name, features in layers.items()},
         "sources": [s for s in [
-            f"OpenStreetMap (ODbL), stan na {today}",
+            None if args.ground_only else f"OpenStreetMap (ODbL), stan na {today}",
             f"Overture Maps {overture_release} (budynki: OSM + Microsoft ML Buildings)" if overture_release else None,
-            f"{ground['source']}{', ' + ground['date'] if ground.get('date') else ''}",
-            "ESA WorldCover 10 m 2021 (CC BY 4.0)",
-            "USGS 3DEP (wysokości terenu z lidaru)" if terrain else None,
+            f"{ground['source']}{', ' + ground['date'] if ground.get('date') and ground['date'] not in ground['source'] else ''}",
+            None if args.ground_only else "ESA WorldCover 10 m 2021 (CC BY 4.0)",
+            ("USGS 3DEP (wysokości terenu z lidaru)" if usa else "Copernicus DEM GLO-30 (ESA, model powierzchni)") if terrain else None,
             "OGIM (przebieg rurociągów)" if extras["pipelines"] else None,
             f"{extras['hazard_source']} (strefa osuwiska)" if extras["hazard_source"] else None,
         ] if s],
     }
     (args.out / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=1), encoding="utf-8")
     print("written to", args.out)
-    if big and args.cache:  # city scale: close-up photo tiles, trees from the infrared, real footprints
+    if big and args.cache and usa and not args.ground_only:  # city scale (USA): close-up photo tiles, infrared trees, real footprints
         import build_scene_detail
         build_scene_detail.run(args.aoi, args.out, args.cache)
 
