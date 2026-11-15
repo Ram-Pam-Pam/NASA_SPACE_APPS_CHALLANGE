@@ -33,41 +33,594 @@
    10
   ],
   "sea_level_m": 0.0,
-  "carved_water": [],
+  "carved_water": [
+   "496 water bodies"
+  ],
   "source": "Copernicus DEM GLO-30"
  },
  "trees": {
   "file": "trees.bin",
-  "count": 0,
-  "spacing_m": 70.5,
+  "count": 223232,
+  "spacing_m": 34.0,
   "layout": "uint16 x[n], y[n] (0..65535 = west..east, north..south); uint8 height_dm[n], r[n], g[n], b[n], kind[n] (0 round crown, 1 conical)"
  },
- "buildings_bin": null,
- "timeline": null,
+ "buildings_bin": {
+  "file": "buildings.bin",
+  "count": 189207,
+  "layout": "uint16 x[n], y[n] (0..65535 = west..east, north..south), half_len_dm[n], half_wid_dm[n]; uint8 angle[n] (0..255 = 0..180 deg of the long side, from east, counter-clockwise), height_half_m[n], kind[n] (0 small with a pitched roof, 1 large with a flat roof)"
+ },
+ "timeline": {
+  "dir": "timeline",
+  "files": [
+   "frame_00.png",
+   "frame_01.png",
+   "frame_02.png",
+   "frame_03.png",
+   "frame_04.png",
+   "frame_05.png",
+   "frame_06.png",
+   "frame_07.png",
+   "frame_08.png",
+   "frame_09.png"
+  ],
+  "dates": [
+   "20260618",
+   "20260630",
+   "20260712",
+   "20260724",
+   "20260817",
+   "20260829",
+   "20260910",
+   "20260922",
+   "20261004",
+   "20261016"
+  ],
+  "bbox": [
+   -93.8336711720004,
+   17.698244915826162,
+   -92.82925214015825,
+   18.51170369946348
+  ],
+  "threshold_mm": 35.0,
+  "noise_mm": 17.3,
+  "full_colour_mm": 100.0,
+  "anomalies": [
+   {
+    "rank": 1,
+    "direction": "down",
+    "lon": -93.053257,
+    "lat": 18.304916,
+    "area_ha": 54,
+    "peak_mm": 148,
+    "peak_saturated": false,
+    "median_mm": -111,
+    "first_date": "20260724",
+    "series_mm": [
+     0,
+     -11,
+     -10,
+     -29,
+     -35,
+     -63,
+     -89,
+     -107,
+     -118,
+     -111
+    ],
+    "note": "Ruch pionowy z dwóch orbit: -415 mm/rok"
+   },
+   {
+    "rank": 2,
+    "direction": "down",
+    "lon": -93.545232,
+    "lat": 17.818447,
+    "area_ha": 28,
+    "peak_mm": 165,
+    "peak_saturated": false,
+    "median_mm": -115,
+    "first_date": "20260724",
+    "series_mm": [
+     0,
+     -13,
+     -20,
+     -35,
+     -54,
+     -70,
+     -82,
+     -97,
+     -112,
+     -115
+    ],
+    "note": "Ruch pionowy z dwóch orbit: -488 mm/rok"
+   },
+   {
+    "rank": 3,
+    "direction": "down",
+    "lon": -93.552055,
+    "lat": 17.81556,
+    "area_ha": 25,
+    "peak_mm": 173,
+    "peak_saturated": false,
+    "median_mm": -125,
+    "first_date": "20260712",
+    "series_mm": [
+     0,
+     -21,
+     -33,
+     -55,
+     -82,
+     -101,
+     -108,
+     -119,
+     -131,
+     -125
+    ],
+    "note": "Ruch pionowy z dwóch orbit: -519 mm/rok"
+   },
+   {
+    "rank": 4,
+    "direction": "down",
+    "lon": -93.101014,
+    "lat": 17.934601,
+    "area_ha": 21,
+    "peak_mm": 185,
+    "peak_saturated": false,
+    "median_mm": -148,
+    "first_date": "20260630",
+    "series_mm": [
+     0,
+     -54,
+     -109,
+     -63,
+     -92,
+     -122,
+     -139,
+     -145,
+     -148,
+     -148
+    ],
+    "note": "Ruch pionowy z dwóch orbit: -450 mm/rok"
+   },
+   {
+    "rank": 5,
+    "direction": "down",
+    "lon": -93.562668,
+    "lat": 18.304916,
+    "area_ha": 31,
+    "peak_mm": 120,
+    "peak_saturated": false,
+    "median_mm": -89,
+    "first_date": "20260817",
+    "series_mm": [
+     0,
+     -5,
+     -18,
+     -26,
+     -43,
+     -53,
+     -61,
+     -71,
+     -78,
+     -89
+    ],
+    "note": "Ruch pionowy z dwóch orbit: -288 mm/rok"
+   },
+   {
+    "rank": 6,
+    "direction": "down",
+    "lon": -93.003225,
+    "lat": 18.356006,
+    "area_ha": 20,
+    "peak_mm": 125,
+    "peak_saturated": false,
+    "median_mm": -98,
+    "first_date": "20260630",
+    "series_mm": [
+     0,
+     -30,
+     -28,
+     -37,
+     -62,
+     -82,
+     -96,
+     -113,
+     -100,
+     -98
+    ],
+    "note": "Ruch pionowy z dwóch orbit: -391 mm/rok"
+   },
+   {
+    "rank": 7,
+    "direction": "down",
+    "lon": -92.852373,
+    "lat": 18.040588,
+    "area_ha": 23,
+    "peak_mm": 121,
+    "peak_saturated": false,
+    "median_mm": -81,
+    "first_date": "20260817",
+    "series_mm": [
+     0,
+     -6,
+     -14,
+     -23,
+     -37,
+     -48,
+     -51,
+     -70,
+     -73,
+     -81
+    ],
+    "note": "Ruch pionowy z dwóch orbit: -300 mm/rok"
+   },
+   {
+    "rank": 8,
+    "direction": "down",
+    "lon": -93.524765,
+    "lat": 17.737599,
+    "area_ha": 15,
+    "peak_mm": 125,
+    "peak_saturated": false,
+    "median_mm": -79,
+    "first_date": "20260817",
+    "series_mm": [
+     0,
+     0,
+     -7,
+     -19,
+     -34,
+     -40,
+     -49,
+     -55,
+     -71,
+     -79
+    ],
+    "note": "Ruch pionowy z dwóch orbit: -454 mm/rok"
+   },
+   {
+    "rank": 9,
+    "direction": "down",
+    "lon": -93.274608,
+    "lat": 18.191167,
+    "area_ha": 22,
+    "peak_mm": 110,
+    "peak_saturated": false,
+    "median_mm": -69,
+    "first_date": "20260817",
+    "series_mm": [
+     0,
+     -9,
+     -12,
+     -20,
+     -33,
+     -42,
+     -51,
+     -55,
+     -61,
+     -69
+    ],
+    "note": "Ruch pionowy z dwóch orbit: -258 mm/rok"
+   },
+   {
+    "rank": 10,
+    "direction": "down",
+    "lon": -93.416363,
+    "lat": 17.934601,
+    "area_ha": 20,
+    "peak_mm": 97,
+    "peak_saturated": false,
+    "median_mm": -76,
+    "first_date": "20260817",
+    "series_mm": [
+     0,
+     -9,
+     -23,
+     -26,
+     -34,
+     -42,
+     -53,
+     -55,
+     -70,
+     -76
+    ],
+    "note": "Ruch pionowy z dwóch orbit: -284 mm/rok"
+   },
+   {
+    "rank": 11,
+    "direction": "down",
+    "lon": -93.135126,
+    "lat": 17.896372,
+    "area_ha": 9,
+    "peak_mm": 264,
+    "peak_saturated": false,
+    "median_mm": -175,
+    "first_date": "20260712",
+    "series_mm": [
+     0,
+     -23,
+     -70,
+     -89,
+     -123,
+     -143,
+     -162,
+     -182,
+     -178,
+     -175
+    ],
+    "note": "Ruch pionowy z dwóch orbit: -624 mm/rok"
+   },
+   {
+    "rank": 12,
+    "direction": "down",
+    "lon": -93.188948,
+    "lat": 18.234371,
+    "area_ha": 20,
+    "peak_mm": 83,
+    "peak_saturated": false,
+    "median_mm": -58,
+    "first_date": "20260817",
+    "series_mm": [
+     0,
+     -4,
+     -8,
+     -14,
+     -26,
+     -31,
+     -38,
+     -46,
+     -55,
+     -58
+    ],
+    "note": "Ruch pionowy z dwóch orbit: -265 mm/rok"
+   },
+   {
+    "rank": 13,
+    "direction": "down",
+    "lon": -93.62028,
+    "lat": 18.031938,
+    "area_ha": 19,
+    "peak_mm": 123,
+    "peak_saturated": false,
+    "median_mm": -80,
+    "first_date": "20260712",
+    "series_mm": [
+     0,
+     -10,
+     -27,
+     -34,
+     -48,
+     -56,
+     -75,
+     -78,
+     -81,
+     -80
+    ],
+    "note": "Ruch pionowy z dwóch orbit: -277 mm/rok"
+   },
+   {
+    "rank": 14,
+    "direction": "down",
+    "lon": -93.373155,
+    "lat": 17.718826,
+    "area_ha": 16,
+    "peak_mm": 109,
+    "peak_saturated": false,
+    "median_mm": -76,
+    "first_date": "20260817",
+    "series_mm": [
+     0,
+     -13,
+     -13,
+     -25,
+     -41,
+     -46,
+     -57,
+     -56,
+     -65,
+     -76
+    ],
+    "note": "Ruch pionowy z dwóch orbit: -323 mm/rok"
+   },
+   {
+    "rank": 15,
+    "direction": "down",
+    "lon": -93.125271,
+    "lat": 18.07302,
+    "area_ha": 17,
+    "peak_mm": 116,
+    "peak_saturated": false,
+    "median_mm": -83,
+    "first_date": "20260724",
+    "series_mm": [
+     0,
+     -4,
+     -22,
+     -27,
+     -44,
+     -53,
+     -70,
+     -78,
+     -85,
+     -83
+    ],
+    "note": "Ruch pionowy z dwóch orbit: -287 mm/rok"
+   },
+   {
+    "rank": 16,
+    "direction": "down",
+    "lon": -93.283704,
+    "lat": 18.193327,
+    "area_ha": 17,
+    "peak_mm": 114,
+    "peak_saturated": false,
+    "median_mm": -88,
+    "first_date": "20260817",
+    "series_mm": [
+     0,
+     -11,
+     -10,
+     -21,
+     -39,
+     -51,
+     -66,
+     -75,
+     -82,
+     -88
+    ],
+    "note": "Ruch pionowy z dwóch orbit: -275 mm/rok"
+   },
+   {
+    "rank": 17,
+    "direction": "down",
+    "lon": -93.189706,
+    "lat": 18.245891,
+    "area_ha": 15,
+    "peak_mm": 83,
+    "peak_saturated": false,
+    "median_mm": -67,
+    "first_date": "20260817",
+    "series_mm": [
+     0,
+     -7,
+     -16,
+     -21,
+     -35,
+     -41,
+     -51,
+     -56,
+     -64,
+     -67
+    ],
+    "note": "Ruch pionowy z dwóch orbit: -285 mm/rok"
+   },
+   {
+    "rank": 18,
+    "direction": "down",
+    "lon": -93.119207,
+    "lat": 17.901421,
+    "area_ha": 8,
+    "peak_mm": 246,
+    "peak_saturated": false,
+    "median_mm": -119,
+    "first_date": "20260712",
+    "series_mm": [
+     0,
+     -12,
+     -35,
+     -53,
+     -75,
+     -89,
+     -107,
+     -125,
+     -123,
+     -119
+    ],
+    "note": "Ruch pionowy z dwóch orbit: -473 mm/rok"
+   },
+   {
+    "rank": 19,
+    "direction": "down",
+    "lon": -93.243528,
+    "lat": 18.240851,
+    "area_ha": 8,
+    "peak_mm": 196,
+    "peak_saturated": false,
+    "median_mm": -107,
+    "first_date": "20260712",
+    "series_mm": [
+     0,
+     -10,
+     -27,
+     -46,
+     -70,
+     -76,
+     -91,
+     -95,
+     -108,
+     -107
+    ],
+    "note": "Ruch pionowy z dwóch orbit: -396 mm/rok"
+   },
+   {
+    "rank": 20,
+    "direction": "down",
+    "lon": -92.834938,
+    "lat": 18.33514,
+    "area_ha": 13,
+    "peak_mm": 57,
+    "peak_saturated": false,
+    "median_mm": -53,
+    "first_date": "20260829",
+    "series_mm": [
+     0,
+     -3,
+     -5,
+     -32,
+     -18,
+     -27,
+     -38,
+     -62,
+     -67,
+     -53
+    ],
+    "note": "Ruch pionowy z dwóch orbit: -242 mm/rok"
+   }
+  ],
+  "source": "NISAR L2 GUNW, orbita wznosząca (tor 62, ramka 11)",
+  "note": "Cumulative ground motion since the first date, in the satellite's line of sight. Red = down, blue = up, clear = less than threshold_mm.",
+  "phase": {
+   "title": "Analiza fazowa: złoże Tokal",
+   "dir": "phase",
+   "files": [
+    "frame_00.png",
+    "frame_01.png",
+    "frame_02.png",
+    "frame_03.png",
+    "frame_04.png",
+    "frame_05.png",
+    "frame_06.png",
+    "frame_07.png",
+    "frame_08.png",
+    "frame_09.png"
+   ],
+   "bbox": [
+    -93.23536108303175,
+    18.198617692206142,
+    -93.1407137151359,
+    18.270951338790596
+   ],
+   "cycle_mm": 120.98,
+   "contour_step_mm": 20.0,
+   "contours": "phase/contours.geojson",
+   "ref_date": "20260618",
+   "deepest_mm": -83,
+   "pixel_m": 20
+  }
+ },
  "layers": {
   "roads": {
    "file": "roads.geojson",
-   "count": 0
+   "count": 24958
   },
   "rail": {
    "file": "rail.geojson",
-   "count": 0
+   "count": 3
   },
   "water": {
    "file": "water.geojson",
-   "count": 0
+   "count": 691
   },
   "pipelines": {
    "file": "pipelines.geojson",
-   "count": 0
+   "count": 2410
   },
   "areas": {
    "file": "areas.geojson",
-   "count": 0
+   "count": 63
   },
   "places": {
    "file": "places.geojson",
-   "count": 0
+   "count": 232
   },
   "buildings": {
    "file": "buildings.geojson",
@@ -75,11 +628,11 @@
   },
   "power": {
    "file": "power.geojson",
-   "count": 0
+   "count": 140
   },
   "hazards": {
    "file": "hazards.geojson",
-   "count": 0
+   "count": 102
   },
   "forest": {
    "file": "forest.geojson",
@@ -88,6 +641,63 @@
  },
  "sources": [
   "Sentinel-2 cloudless 2024 (EOX IT Services, CC BY-NC-SA 4.0; zawiera zmodyfikowane dane Copernicus Sentinel)",
-  "Copernicus DEM GLO-30 (ESA, model powierzchni)"
- ]
+  "Copernicus DEM GLO-30 (ESA, model powierzchni)",
+  "Overture Maps (drogi, koleje, woda, linie energetyczne, miejscowości: OpenStreetMap; budynki: OSM + Microsoft ML Buildings)",
+  "ESA WorldCover 10 m 2021 (CC BY 4.0)"
+ ],
+ "built_tabasco_results": "2026-11-15",
+ "summary": {
+  "title": "Wyniki analizy: osiadanie nad złożem Tokal",
+  "stats": [
+   [
+    "21,3 km",
+    "rurociągów o wysokim zagrożeniu"
+   ],
+   [
+    "5,2 km",
+    "o średnim zagrożeniu"
+   ],
+   [
+    "26",
+    "przecięć granicy strefy osiadania"
+   ],
+   [
+    "10,3 km",
+    "czynnych rurociągów w klasie wysokiej"
+   ]
+  ],
+  "legend": [
+   [
+    "#e03131",
+    "Rurociąg – wysokie zagrożenie"
+   ],
+   [
+    "#f08c00",
+    "Rurociąg – średnie zagrożenie"
+   ],
+   [
+    "#c2a24a",
+    "Rurociąg – niskie zagrożenie"
+   ],
+   [
+    "#8a96a3",
+    "Rurociąg – brak danych (mokradła, woda)"
+   ]
+  ],
+  "notes": [
+   "Klasa wynika z ruchu pionowego gruntu pod rurociągiem (dwie orbity NISAR, ocena co 100 m); wysoka: osiadanie ≥ 219 mm/rok albo nierówne ≥ 56 mm/100 m/rok.",
+   "Sieć OGIM: 4 807 km; dane NISAR dla 64% długości (reszta: mokradła, woda, utrata spójności).",
+   "Ruch na osi czasu i w analizie fazowej jest w linii widzenia orbity wznoszącej, nie pionowy."
+  ]
+ },
+ "extras": {
+  "file": "extras.json"
+ },
+ "built_objects": "2026-11-15",
+ "home": {
+  "lon": -93.18804,
+  "lat": 18.23478,
+  "dist_m": 16000,
+  "polar_deg": 52
+ }
 }

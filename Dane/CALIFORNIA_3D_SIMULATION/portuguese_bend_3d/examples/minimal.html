@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Minimal 3D model</title>
+    <style>
+      body { margin: 0; font-family: system-ui, sans-serif; background: #fbfbf9; color: #1d232a; }
+      .bar { display: flex; gap: 16px; align-items: center; padding: 10px 16px; flex-wrap: wrap; }
+      #viewer { position: relative; height: calc(100vh - 60px); }
+      /* the viewer needs these few rules (full set in src/style.css) */
+      #viewer canvas { display: block; width: 100%; height: 100%; }
+      .label-layer { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+      .label-layer[hidden] { display: none; }
+      .marker-label { position: absolute; left: 0; top: 0; white-space: nowrap; font-size: 12px; font-weight: 600;
+        background: #fff; border: 2px solid var(--c); padding: 1px 6px; border-radius: 3px; margin: -12px 0 0 -4px; }
+      .compass { position: absolute; right: 12px; bottom: 12px; width: 40px; height: 40px; border-radius: 50%;
+        background: #fff; border: 1px solid #dde1e4; pointer-events: none; }
+      .compass span { position: absolute; top: 2px; left: 0; right: 0; text-align: center; font-size: 11px; font-weight: 600; }
+      .compass i { position: absolute; left: 19px; top: 15px; width: 2px; height: 14px; background: #1d232a; }
+    </style>
+  </head>
+  <body>
+    <div class="bar">
+      <label>Date <input id="epoch" type="range" min="0" max="13" value="13" /></label>
+      <output id="date"></output>
+      <label>Exaggeration <input id="exag" type="range" min="0" max="500" step="20" value="120" /></label>
+      <label><input id="markers" type="checkbox" checked /> Markers</label>
+      <span id="status">Loading…</span>
+    </div>
+    <div id="viewer"></div>
+    <script type="module" src="./minimal.js"></script>
+  </body>
+</html>

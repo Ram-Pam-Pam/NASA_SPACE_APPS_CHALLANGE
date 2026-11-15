@@ -1,0 +1,23 @@
+{
+  "name": "nisar-ground-motion-portuguese-bend",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "verify": "node scripts/verify_numbers.mjs"
+  },
+  "dependencies": {
+    "@fontsource/inter": "^5.1.0",
+    "chart.js": "^4.4.6",
+    "maplibre-gl": "^4.7.1",
+    "proj4": "^2.12.1",
+    "three": "^0.169.0"
+  },
+  "devDependencies": {
+    "puppeteer-core": "^23.6.0",
+    "vite": "^5.4.10"
+  }
+}

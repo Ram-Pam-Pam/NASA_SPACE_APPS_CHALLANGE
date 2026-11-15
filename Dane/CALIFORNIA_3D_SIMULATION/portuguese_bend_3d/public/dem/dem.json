@@ -1,0 +1,37 @@
+{
+ "source": "USGS 3DEP lidar point cloud USGS_LPC_CA_LosAngeles_2016_LAS_2018, ground class (2), EPT read at 1 m resolution, mean per 5 m cell (PDAL)",
+ "source_file": "nmt_focus_5m.tif",
+ "resampling": "average, 5 m -> 10 m",
+ "crs": "EPSG:32611",
+ "res_x_m": 9.996402877697841,
+ "res_y_m": 10.00445632798574,
+ "width": 1390,
+ "height": 1122,
+ "left": 367664.8155022013,
+ "top": 3741418.1351308217,
+ "right": 381559.8155022013,
+ "bottom": 3730193.1351308217,
+ "lonlat_corners_nw_ne_se_sw": [
+  [
+   -118.42968696408349,
+   33.804678214380225
+  ],
+  [
+   -118.27960661834595,
+   33.806326598198446
+  ],
+  [
+   -118.27810351402165,
+   33.70511049671656
+  ],
+  [
+   -118.42800770463433,
+   33.703468368031956
+  ]
+ ],
+ "lon_min": -118.42968696408349,
+ "lon_max": -118.27810351402165,
+ "lat_min": 33.703468368031956,
+ "lat_max": 33.806326598198446,
+ "encoding": "int16le decimetres, nodata -32768, row 0 = north"
+}

@@ -23,5 +23,9 @@ data/raw/
 # Local app data (uploaded layers, registry)
 backend/data/
 
+# Raw QGIS results of the Tabasco analysis (GeoTIFF, GeoPackage, ~1 GB) - imported into backend/data by
+# backend/scripts/import_team_results.py, too big for Git. Other Dane/ folders (frontend datasets) are tracked.
+Dane/TABASCO/
+
 # macOS junk from zip archives
 __MACOSX/

@@ -1,0 +1,304 @@
+{
+ "aoi": "portuguese_bend_california",
+ "name": "Portuguese Bend",
+ "stack": "NISAR L2 GUNW, track 013, descending, frame 071",
+ "dates": [
+  "20251123",
+  "20251205",
+  "20251229",
+  "20260122",
+  "20260203",
+  "20260215",
+  "20260227",
+  "20260311",
+  "20260323",
+  "20260404",
+  "20260416",
+  "20260428",
+  "20260510",
+  "20260522"
+ ],
+ "gap_after": [],
+ "excluded_pairs": [],
+ "overlay_bounds": [
+  [
+   33.60615332375136,
+   -118.53124125525459
+  ],
+  [
+   33.87581998375532,
+   -118.20694943768743
+  ]
+ ],
+ "relief_bounds": [
+  [
+   33.60615332375136,
+   -118.53124125525459
+  ],
+  [
+   33.87574540131264,
+   -118.20703926921584
+  ]
+ ],
+ "scale_mm": 150.0,
+ "half_wavelength_mm": 121.0,
+ "focus": {
+  "bounds": [
+   [
+    33.70499999999999,
+    -118.43500000000002
+   ],
+   [
+    33.80508162120228,
+    -118.27959145584734
+   ]
+  ],
+  "x0": -13184123.892101357,
+  "y1": 4002659.182704883,
+  "res": 100.0,
+  "w": 173,
+  "h": 134,
+  "epochs": 14
+ },
+ "core": {
+  "lon": -118.36881,
+  "lat": 33.74495,
+  "area_km2": 1.47,
+  "v_median": -381.0,
+  "v_p10": -796.0,
+  "cum_median": -181.0,
+  "cum_p01": -542.0
+ },
+ "period": {
+  "start": "20251123",
+  "end": "20260522",
+  "dates": 14,
+  "pairs": 13,
+  "days": 180
+ },
+ "buildings": {
+  "liczba_budynkow": 211345,
+  "wg_klasy": {
+   "wysokie": 297,
+   "średnie": 2353,
+   "niskie": 198144,
+   "brak danych": 10551
+  },
+  "w_aktywnej_strefie": 225,
+  "w_odleglosci_od_strefy_aktywnej": {
+   "do_0_m": 225,
+   "do_100_m": 294,
+   "do_250_m": 510,
+   "do_500_m": 1015,
+   "do_1000_m": 3322
+  },
+  "potwierdzone_w_monitoringu": {
+   "wysokie": 251,
+   "średnie": 1312
+  },
+  "progi": {
+   "v_med": 46.6,
+   "v_high": 100,
+   "g_med": 20,
+   "g_high": 50
+  }
+ },
+ "threatened": {
+  "opis": "Elementy zagrożone ruchem terenu (klasa wysokie lub średnie), okres analizy projektu.",
+  "budynki": {
+   "wysokie": 297,
+   "średnie": 2353
+  },
+  "budynki_wg_typu": {
+   "apartments": {
+    "wysokie": 16,
+    "średnie": 46
+   },
+   "budynek": {
+    "wysokie": 44,
+    "średnie": 148
+   },
+   "church": {
+    "wysokie": 0,
+    "średnie": 1
+   },
+   "civic": {
+    "wysokie": 2,
+    "średnie": 1
+   },
+   "commercial": {
+    "wysokie": 0,
+    "średnie": 4
+   },
+   "detached": {
+    "wysokie": 6,
+    "średnie": 34
+   },
+   "factory": {
+    "wysokie": 0,
+    "średnie": 1
+   },
+   "garage": {
+    "wysokie": 0,
+    "średnie": 4
+   },
+   "government": {
+    "wysokie": 0,
+    "średnie": 2
+   },
+   "hotel": {
+    "wysokie": 0,
+    "średnie": 27
+   },
+   "house": {
+    "wysokie": 223,
+    "średnie": 1925
+   },
+   "hut": {
+    "wysokie": 0,
+    "średnie": 1
+   },
+   "industrial": {
+    "wysokie": 1,
+    "średnie": 84
+   },
+   "residential": {
+    "wysokie": 0,
+    "średnie": 30
+   },
+   "retail": {
+    "wysokie": 3,
+    "średnie": 12
+   },
+   "roof": {
+    "wysokie": 1,
+    "średnie": 2
+   },
+   "school": {
+    "wysokie": 0,
+    "średnie": 6
+   },
+   "shed": {
+    "wysokie": 0,
+    "średnie": 19
+   },
+   "stable": {
+    "wysokie": 1,
+    "średnie": 0
+   },
+   "terrace": {
+    "wysokie": 0,
+    "średnie": 1
+   },
+   "warehouse": {
+    "wysokie": 0,
+    "średnie": 5
+   }
+  },
+  "infrastruktura_km": {
+   "droga główna": {
+    "wysokie": 3.51,
+    "średnie": 26.84
+   },
+   "droga lokalna": {
+    "wysokie": 9.86,
+    "średnie": 33.62
+   },
+   "gazociąg": {
+    "wysokie": 2.63,
+    "średnie": 0.98
+   },
+   "kolej": {
+    "wysokie": 0.0,
+    "średnie": 1.34
+   },
+   "kolej nieczynna": {
+    "wysokie": 0.0,
+    "średnie": 0.45
+   },
+   "linia energetyczna": {
+    "wysokie": 0.0,
+    "średnie": 1.65
+   }
+  },
+  "liczba_obiektow_infrastruktury": 469,
+  "potwierdzone_w_monitoringu": {
+   "opis": "okna_ruch >= 2 (ruch widoczny w co najmniej 2 oknach monitoringu)",
+   "budynki": 1563,
+   "obiekty_infrastruktury": 306
+  }
+ },
+ "noise_mm_yr": 18.6,
+ "infra": {
+  "gazociąg": {
+   "wysokie": 2.63,
+   "średnie": 0.98,
+   "niskie": 87.91,
+   "brak danych": 12.38
+  },
+  "rurociąg": {
+   "wysokie": 0.0,
+   "średnie": 0.0,
+   "niskie": 9.59,
+   "brak danych": 1.34
+  },
+  "ropociąg": {
+   "wysokie": 0.0,
+   "średnie": 0.0,
+   "niskie": 0.0,
+   "brak danych": 0.48
+  },
+  "kolej": {
+   "wysokie": 0.0,
+   "średnie": 1.34,
+   "niskie": 193.48,
+   "brak danych": 383.04
+  },
+  "linia energetyczna": {
+   "wysokie": 0.0,
+   "średnie": 1.65,
+   "niskie": 233.46,
+   "brak danych": 54.15
+  },
+  "droga główna": {
+   "wysokie": 3.51,
+   "średnie": 26.84,
+   "niskie": 1032.01,
+   "brak danych": 192.48
+  },
+  "droga lokalna": {
+   "wysokie": 9.87,
+   "średnie": 33.62,
+   "niskie": 1520.99,
+   "brak danych": 135.54
+  }
+ },
+ "pipelines": {
+  "count": 58,
+  "km": 115.4,
+  "min_dist_m": 663,
+  "high": 7
+ },
+ "counts": {
+  "critical": 2120,
+  "roads_risk": 436,
+  "alerts": 33,
+  "buildings_risk": 3270,
+  "threatened": 3119,
+  "rail.geojson": 1712,
+  "power.geojson": 635,
+  "pipelines.geojson": 80
+ },
+ "risk_colors": {
+  "wysokie": "#c62a22",
+  "średnie": "#e3871f",
+  "niskie": "#2f8f57",
+  "brak danych": "#98a3ab"
+ },
+ "sources": [
+  "NISAR L2 GUNW (NASA/ISRO, ASF DAAC)",
+  "Copernicus DEM GLO-30",
+  "OpenStreetMap (ODbL)",
+  "OGIM (Oil and Gas Infrastructure Mapping)"
+ ]
+}

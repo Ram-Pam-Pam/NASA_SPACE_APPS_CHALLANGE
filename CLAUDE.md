@@ -47,6 +47,8 @@ Projekt/
     app/schemas/          modele Pydantic: location.py, layer.py
     app/services/         location_registry.py, location_package.py, layer_registry.py, geojson_reader.py
     scripts/import_corridor_watch.py   import location.json + data.js z folderu corridor_watch/locations
+    scripts/import_team_results.py     import wyników QGIS zespołu (GeoTIFF/GPKG/CSV) → nasz pakiet + lokalizacja
+    requirements-tools.txt             numpy, rasterio, pyogrio, shapely, pyproj – tylko dla skryptu importu
     data/                 dane runtime (poza Gitem): locations/locations.json, locations/<id>/data.json, layers/
   frontend/index.html     strona Corridor Watch (Leaflet, vanilla JS)
   Dane/<folder>/data/     gotowe dane dla frontendu od zespołu analizy (meta.json, PNG, GeoJSON) – źródło danych strony
@@ -76,6 +78,26 @@ Projekt/
   `zones` (anomalie: geometria, peak/median, trend, szeregi czasowe, pobliskie rurociągi, level),
   `pipes` (37 gazociągów OGIM: linia, profile wzdłuż trasy, ryzyko per seria), `alerts`, `contours`.
 - Źródła: NISAR L2 GUNW (NASA/ISRO, ASF DAAC), rurociągi z bazy OGIM. Ruch tylko w linii widzenia satelity (LOS).
+- **Opcjonalne rozszerzenia pakietu** (strona używa ich tylko, gdy są): `views` (panel boczny z widokami
+  `risk` / `zones` / `phase`, teksty i liczby; gdy jest, znikają ogólne opcje i dolna legenda), `vectors`
+  (`style network|risk|profile`), `focus` (wycinek analizy fazowej: prążki u8 + przemieszczenie i16, kontury),
+  `display` (`coh_min` = domyślny filtr jakości, `min_mm` = ruch poniżej jest przezroczysty), `layers`
+  (rastry jednopasmowe tylko do popupu), `config.sources`, `zones[].pin=false` (strefa tylko jako obrys).
+
+## Tabasco (`tabasco_mexico`) – drugie case study
+- Dane zespołu: `Dane/TABASCO/tabasco_front` (wyniki QGIS; folder `Dane/` jest w `.gitignore`).
+- Import (z `backend/`, ok. 1,5 min, pakiet ~14 MB):
+  `python scripts/import_team_results.py "...\Dane\TABASCO\tabasco_front" --id tabasco_mexico --name Tabasco --region "Meksyk (Cárdenas – Villahermosa)" --hazard "Osiadanie terenu nad złożami" --order 2`
+- Oś czasu = orbita wznosząca (LOS, 10 dat 18.06–16.10.2026, `los_cum_okres_pary.tif`, brakujące pary
+  uzupełnione przez zespół średnim tempem). Strefy = 102 strefy osiadania z obu orbit; `first_index` liczony
+  u nas (5. percentyl LOS strefy < −3σ szumu); 20 najpoważniejszych ma pinezki.
+- 15.11 użytkownik zażądał uproszczenia: tylko główne wyniki w panelu bocznym – **Zagrożone rurociągi**
+  (domyślny; lista 8 najbardziej zagrożonych z `rurociagi_podsumowanie.json`, klik = przybliżenie), **Strefy
+  osiadania**, **Analiza fazowa: złoże Tokal** (`wyniki/qgis_fazy/tokal_*`, 20 m, animowane z osią, kontury,
+  3 przekroje z wykresem). Raster: ruch w granicach szumu i słaba koherencja (domyślnie 0,35) przezroczyste.
+  Usunięte (na życzenie): ruch pionowy/wschodni jako warstwy, LOS orbit, WorldCover, monitoring, interferogramy
+  par, obiekty sieci, anomalie wody, alerty, GNSS. Legenda w panelu opisuje dokładnie to, co widać w danym widoku.
+- Teksty strony zależą od `hazard` (osuwisko/zbocze vs osiadanie).
 
 ## Frontend
 - `frontend/index.html` = oryginalna strona od znajomej z zespołu; zmienione tylko wczytywanie danych:
@@ -245,6 +267,52 @@ Projekt/
   i drzew z podczerwieni – `build_scene_detail.py` działa tylko w USA).
 - Widok 2D: na płaskiej mapie wszystko leżące na ziemi jest podniesione o stałe `FLAT_LIFT` (zamiast cm),
   bo przy kamerze 100 km nad ziemią warstwy migotały; płyta pod modelem jest w 2D ukryta.
+
+## Tabasco w pełnej witrynie zespołu (`view3d.html`, 15.11.2026, scalenie gałęzi `test-polaczone` + `main`)
+- Bazą jest witryna zespołu (`frontend/view3d.html` + `index.html`); nasza wersja Tabasco z `main` (prototyp
+  w `index.html`) jest zachowana jako **`frontend/analiza.html`** (niepodlinkowana, działa z `/api/v1/locations`;
+  zapas, można usunąć). Dane Tabasco są teraz w formacie modelu zespołu: `Dane/model3d_tabasco_mexico/data`.
+- **`backend/scripts/build_tabasco_scene.py <Dane/TABASCO/tabasco_front> <Dane/model3d_tabasco_mexico/data>`**
+  (~20 s; wymaga `requirements-tools.txt`; korzysta z `import_team_results.py`) zamienia wyniki QGIS zespołu na
+  warstwy modelu: `pipelines.geojson` (2344 odcinki sieci OGIM jako `risk: niskie|brak danych` + 66 zagrożonych
+  z `risk, reason, v, gradient, series_mm…`), `hazards.geojson` (102 strefy; 20 z nazwą/pinezką, reszta
+  `label:false` = sam obrys), `places.geojson`, `timeline/` (10 klatek LOS orbity wznoszącej, próg 35 mm,
+  koherencja ≥ 0,35), `phase/` (analiza fazowa złoża Tokal: 10 klatek prążków 121 mm + `contours.geojson` co
+  20 mm), `extras.json` (3 przekroje z profilem w czasie + stacja GNSS VIL2) oraz w `meta.json`: `timeline`
+  (+ `anomalies` z `first_date`, `note`, `noise_mm`, `phase`), `summary` (statystyki, legenda klas, uwagi), `extras`.
+  Pinezka strefy pojawia się w dniu, od którego jej sygnał stale przekracza próg.
+- Rozszerzenia `view3d.html` (data-driven – włączają się tylko, gdy meta/dane je mają; PB i Bayou Corne bez zmian):
+  - **Rurociągi w trybie ryzyka** (`RISK_MODE`, gdy któryś odcinek ma `risk`): kolory klas z `META.summary.legend`
+    zamiast „co płynie”; sieć i zagrożone odcinki rysowane jako **grube linie o stałej szerokości w pikselach**
+    (`fatLines`, `LineSegments2` – widoczne też z całym obszarem w kadrze), zagrożone dodatkowo poświata i w 3D rurki.
+    Podpowiedź i klik dla linii liczone własnym testem odległości (`extras.tipAt/click`), nie raycasterem.
+  - **Blok „Wyniki analizy”** (`META.summary`, zwinięty) w panelu warstw; legenda klas w sekcji rurociągów.
+  - **Oś czasu w 2D:** przełącznik „Zmiana terenu / Analiza fazowa” (gdy `timeline.phase`); tryb fazowy = prążki +
+    kontury z opisami (mm) dla wybranej daty, kamera leci nad Tokal; nowe pinezki w danym pomiarze są limonkowe
+    (`.amark.fresh`). Start 2D z `timeline.phase` otwiera się na obszarze analizy fazowej (`hazardFrame`).
+  - **Klik:** rurociąg → panel „dla laika” (klasa, ruch pionowy, powód, wykres LOS z pasmem szumu), przekrój →
+    profil ruchu wzdłuż linii (krzywa na każdą datę, przecięcia z zagrożonymi rurociągami), stacja GNSS (znacznik
+    „G”) → porównanie GNSS ↔ NISAR z wykresem. Warstwa „Przekroje i stacja GNSS” (`extras`).
+  - Panel „Sygnał do weryfikacji” (`verify`) wymaga pakietu InSAR o tym samym id – dla Tabasco go nie ma
+    (jego rolę przejął panel `extras`).
+- Test: Playwright + Edge z flagami `--use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader
+  --ignore-gpu-blocklist` (bez nich WebGL nie działa w headless).
+- Po scaleniu trzeba **zrestartować serwer** (stary proces z `main` nie zna `/api/v1/datasets`).
+
+## Tabasco – obiekty z otwartych danych i wygląd 3D (15.11.2026)
+- **`backend/scripts/build_tabasco_objects.py <Dane/model3d_tabasco_mexico/data> --cache data/cache_tabasco`**
+  (uruchamiać PO `build_tabasco_scene.py`; ~5 min; bez GDAL, działa na Windows). Źródła: **Overture Maps**
+  (budynki, drogi, kolej, linie energetyczne, woda, tereny przemysłowe, miejscowości – dane OSM) i **ESA WorldCover**
+  (drzewa, laguny). Overpass odpadł: na obszarze 106 × 90 km zwracał 504/timeouty. Pliki Overture pobiera się
+  raz do cache (`overturemaps download --bbox=-93.83,17.7,-92.83,18.51 -f geojsonseq -t <typ>`, typy w docstringu).
+- Wydajność: wszystko w promieniu `FOCUS_KM` = 14 km od `meta.home` (złoże Tokal), dalej tylko budynki ≥ 250 m²,
+  bez ulic osiedlowych, rzadkie drzewa (34 m vs 180 m). Wynik: 189 tys. budynków (`buildings.bin`), 25 tys. dróg,
+  223 tys. drzew, 691 wód, 140 linii energetycznych, 129 miejscowości. Teren spłaszczony pod 496 lagunami (DEM to
+  model powierzchni – nad wodą były „fale”).
+- `view3d.html`: `meta.home` = start widoku 3D (lon, lat, dist_m, polar_deg); przy zdjęciu ≥ 5 m/px drobna
+  szczegółowość jasności podłoża z bliska (shader w `groundMat`); nazwy wsi w dużych scenach widoczne z ≤ 14 km.
+- Ograniczenie: zdjęcie to Sentinel-2 10 m (brak otwartych ortofotomap jak NAIP poza USA), więc z bliska teren
+  jest bardziej rozmyty niż w Bayou Corne.
 
 ## Pomysły na dalej
 - **Zakładki case study** zamiast listy rozwijanej + uogólnienie UI na różne typy obiektów (patrz „Koncepcja”).
