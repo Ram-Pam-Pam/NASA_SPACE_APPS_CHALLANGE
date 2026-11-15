@@ -1,0 +1,14 @@
+{
+  "last_release": "2026-10-21.0",
+  "last_run": "2026-11-14T22:20:45.736384+00:00",
+  "theme": "places",
+  "type": "place",
+  "bbox": {
+    "xmin": -91.1697638635467,
+    "ymin": 29.988077220625225,
+    "xmax": -91.1178943364533,
+    "ymax": 30.032992779374776
+  },
+  "backend": "geojsonseq",
+  "output": "/private/tmp/claude-501/-Users-brunette-spaceapps/af09d3de-8e35-4df4-8144-cade940ef153/scratchpad/cache_bayou/overture_place.part"
+}

@@ -81,7 +81,7 @@ body.flat .bar h1::before { content: "Widok 2D"; }
 .lbl.place { font-size: 14px; letter-spacing: .01em; }
 .lbl.area { color: #ffc266; }
 .lbl.biz { font-weight: 500; font-size: 11.5px; color: #e6e8ea; }
-.lbl.hazard { padding: 3px 9px; border-radius: 999px; background: rgba(255,107,74,.92); color: #1a0b06; text-shadow: none; font-size: 12.5px; box-shadow: var(--shadow); }
+.lbl.hazard { padding: 3px 9px; border-radius: 999px; background: var(--haz-bg, rgba(255,107,74,.92)); color: var(--haz-ink, #1a0b06); text-shadow: none; font-size: 12.5px; box-shadow: var(--shadow); }
 /* Main anomalies of the timeline (2D view): a numbered dot with a pulsing ring, red = sinking, blue = rising */
 #marks { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 4; }
 .amark { position: absolute; left: 0; top: 0; width: 0; height: 0; pointer-events: auto; cursor: pointer; transition: opacity .4s; }
@@ -113,6 +113,12 @@ body.flat .bar h1::before { content: "Widok 2D"; }
 .seg button { flex: 1; padding: 4px 0; font-size: 12.5px; font-variant-numeric: tabular-nums; }
 .goto { display: flex; flex-wrap: wrap; gap: 6px; }
 .goto button { padding: 4px 10px; font-size: 12.5px; border-radius: 999px; }
+/* Tabasco: ranking of the strongest subsidence under the pipelines instead of "go to" buttons */
+.goto.rank { display: grid; gap: 4px; }
+.goto.rank button { display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; gap: 8px; align-items: center; width: 100%; padding: 6px 8px; border-radius: 8px; text-align: left; font-size: 12px; }
+.goto.rank b { font-weight: 700; color: var(--text-2); }
+.goto.rank span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.3; word-break: break-word; }
+.goto.rank em { font-style: normal; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
 #nav { right: 14px; bottom: 14px; padding: 8px; display: grid; grid-template-columns: repeat(3, 38px); gap: 6px; }
 #nav button { width: 38px; height: 38px; padding: 0; display: grid; place-items: center; }
@@ -151,6 +157,27 @@ body.flat #verify { top: 14px; max-height: calc(100% - 120px); }
 #tip b { font-weight: 600; }
 #tip .k { color: var(--text-2); }
 
+/* Results of the analysis: summary block, phase-analysis switch of the timeline, contour labels, new anomalies */
+.sum { margin-top: 2px; padding-top: 8px; border-top: 1px solid var(--border); }
+.sum summary { cursor: pointer; font: var(--label); letter-spacing: .07em; text-transform: uppercase; color: var(--text-2); }
+.sum-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0 6px; }
+.sum-stats div { padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--wash); }
+.sum-stats b { display: block; font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.sum-stats span { font-size: 11.5px; line-height: 1.3; color: var(--text-2); }
+.tl-mode { display: inline-flex; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--page); }
+.tl-mode button { padding: 7px 12px; border: 0; border-radius: 0; background: transparent; font-size: 12.5px; font-weight: 600; color: var(--text-2); white-space: nowrap; }
+.tl-mode button + button { border-left: 1px solid var(--border); }
+.tl-mode button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); cursor: default; }
+.kg { display: contents; }
+.kg[hidden] { display: none; }
+.fringe-bar { display: inline-block; width: 110px; height: 10px; border-radius: 5px; margin-right: 6px; vertical-align: -1px; }
+.lbl.contour { padding: 0 4px; border-radius: 3px; background: rgba(11,12,14,.72); font-size: 10.5px; text-shadow: none; }
+.amark.fresh .dot { background: var(--accent); color: #0B0C0E; border-color: #0B0C0E; }
+.amark.fresh .ring { border-color: var(--accent); }
+.amark.gnss .dot { font-size: 12px; }
+.tl-pipes { display: inline-flex; align-items: center; gap: 10px; }
+.tl-pipes i { display: inline-block; width: 16px; height: 4px; border-radius: 2px; margin-right: 5px; vertical-align: 2px; box-shadow: 0 0 0 1px rgba(0,0,0,.5); }
+
 @media (max-width: 720px) {
   #layers { width: 210px; }
   #hint, #src { display: none; }
@@ -184,9 +211,10 @@ body.flat #verify { top: 14px; max-height: calc(100% - 120px); }
 
 <div id="timeline" hidden>
   <span class="tl-title" id="tlTitle">Zmiana terenu</span>
-  <label class="tl-series-label" id="tlSeriesLabel" hidden>Seria
-    <select id="tlSeries" aria-label="Orbita i seria"></select>
-  </label>
+  <div class="tl-mode" id="tlMode" role="group" aria-label="Rodzaj analizy" hidden>
+    <button id="tlModeMove" aria-pressed="true" title="Skumulowana zmiana terenu w linii widzenia satelity">Zmiana terenu</button>
+    <button id="tlModePhase" aria-pressed="false" title="Prążki interferometryczne i kontury przemieszczenia – szczegółowa analiza fazowa">Analiza fazowa</button>
+  </div>
   <div class="tl-step">
     <button id="tlPrev" title="Poprzedni pomiar" aria-label="Poprzedni pomiar"><svg viewBox="0 0 24 24"><path d="M14.5 6l-6 6 6 6"/></svg></button>
     <span class="tl-date" id="tlDate"></span>
@@ -194,7 +222,7 @@ body.flat #verify { top: 14px; max-height: calc(100% - 120px); }
   </div>
   <button class="tl-round" id="tlPlay" title="Odtwórz zmiany w czasie" aria-label="Odtwórz"></button>
   <div id="tlTrack" role="slider" tabindex="0" aria-label="Data pomiaru"><div id="tlFill"></div><div id="tlKnob"></div></div>
-  <div class="tl-key"><span title="Teren przesunął się od satelity: osiada albo osuwa się po zboczu"><b style="background:rgb(214,39,40)"></b>osiadanie / osuwanie</span><span title="Teren przesunął się w stronę satelity: podnosi się"><b style="background:rgb(31,104,196)"></b>wypiętrzanie</span><span id="tlAno" hidden><b style="background:#fff;border-radius:50%;box-shadow:0 0 0 2px rgb(214,39,40)"></b>główne anomalie</span><span id="tlThr"></span></div>
+  <div class="tl-key"><span class="kg" id="tlKeyMove"><span title="Teren przesunął się od satelity: osiada albo osuwa się po zboczu"><b style="background:rgb(214,39,40)"></b>osiadanie / osuwanie</span><span title="Teren przesunął się w stronę satelity: podnosi się"><b style="background:rgb(31,104,196)"></b>wypiętrzanie</span><span id="tlAno" hidden><b style="background:#fff;border-radius:50%;box-shadow:0 0 0 2px rgb(214,39,40)"></b>główne anomalie</span></span><span class="kg" id="tlKeyPhase" hidden><span title="Jeden pełny cykl barw to jeden prążek: zmiana odległości do satelity o połowę długości fali"><i class="fringe-bar" id="tlFringeBar"></i><span id="tlFringeTxt"></span></span><span><b style="background:none;border:2px solid #fff"></b>kontury przemieszczenia</span></span><span id="tlThr"></span></div>
 </div>
 
 <div id="stage">
@@ -205,6 +233,7 @@ body.flat #verify { top: 14px; max-height: calc(100% - 120px); }
   <details class="panel" id="layers" open hidden>
     <summary>Warstwy modelu</summary>
     <div class="body">
+      <div id="sumWrap" hidden></div>
       <div id="toggles" style="display:grid;gap:9px"></div>
       <div id="exagWrap" hidden>
         <p class="lg-h">Przewyższenie terenu</p>
@@ -212,7 +241,7 @@ body.flat #verify { top: 14px; max-height: calc(100% - 120px); }
         <p class="note" id="exagNote" style="margin-top:6px"></p>
       </div>
       <div id="pipeLegend" hidden>
-        <p class="lg-h">Rurociągi – co płynie</p>
+        <p class="lg-h" id="pipeTitle">Rurociągi – co płynie</p>
         <div class="keys" id="pipeKeys" style="margin-top:6px"></div>
         <p class="note" id="pipeNote" style="margin-top:6px"></p>
       </div>
@@ -249,6 +278,9 @@ body.flat #verify { top: 14px; max-height: calc(100% - 120px); }
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { LineSegments2 } from 'three/addons/lines/LineSegments2.js';
+import { LineSegmentsGeometry } from 'three/addons/lines/LineSegmentsGeometry.js';
+import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -445,6 +477,16 @@ function flyTo(to, ms = 900) {
 }
 place(HOME);
 
+const lineMats = new Set();  // fat-line materials: their width is in screen pixels and needs the canvas size
+/** Many line segments as one object with a constant width in screen pixels. `segs` = [x1, y1, z1, x2, y2, z2, ...], `cols` = [r, g, b, r, g, b, ...] per vertex. */
+function fatLines(segs, cols, px, extra = {}) {
+  const geo = new LineSegmentsGeometry();
+  geo.setPositions(segs); geo.setColors(cols);
+  const mat = new LineMaterial({ linewidth: px, vertexColors: true, transparent: true, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4, ...extra });
+  mat.resolution.set(stage.clientWidth, stage.clientHeight);
+  lineMats.add(mat);
+  return new LineSegments2(geo, mat);
+}
 const groups = {};
 const group = (id) => (groups[id] = groups[id] || scene.add(new THREE.Group()).children.at(-1));
 const pickables = [];
@@ -513,7 +555,26 @@ if (terrainGrid) {
   wallGeo.setAttribute('position', new THREE.Float32BufferAttribute(wall, 3));
   terrain.add(new THREE.Mesh(wallGeo, new THREE.MeshBasicMaterial({ color: 0x5a4b3b, side: THREE.DoubleSide })));
 }
-const ground = new THREE.Mesh(groundGeo, new THREE.MeshBasicMaterial({ ...(photo ? { map: photo } : { color: 0x4f6b3c }), vertexColors: !!terrainGrid }));
+const groundMat = new THREE.MeshBasicMaterial({ ...(photo ? { map: photo } : { color: 0x4f6b3c }), vertexColors: !!terrainGrid });
+if (photo && (META.ground.resolution_m || 0) >= 5) {
+  // A coarse satellite photo (10 m pixels) turns into a blur when seen close. A faint fine-grained brightness
+  // pattern (three scales of value noise, only the brightness, fading out with distance) gives the ground a
+  // surface again without changing its colours - the same trick as a detail map in a game.
+  groundMat.onBeforeCompile = (sh) => {
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vWorld;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvWorld = (modelMatrix * vec4(position, 1.0)).xyz;');
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
+      varying vec3 vWorld;
+      float hash21(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
+      float vnoise(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+        return mix(mix(hash21(i), hash21(i + vec2(1, 0)), f.x), mix(hash21(i + vec2(0, 1)), hash21(i + vec2(1, 1)), f.x), f.y); }`)
+      .replace('#include <map_fragment>', `#include <map_fragment>
+      { float d = distance(cameraPosition, vWorld);
+        float fade = 1.0 - smoothstep(600.0, 5000.0, d);
+        float n = vnoise(vWorld.xz * 0.35) * 0.5 + vnoise(vWorld.xz * 1.1) * 0.3 + vnoise(vWorld.xz * 3.2) * 0.2;
+        diffuseColor.rgb *= 1.0 + (n - 0.5) * 0.55 * fade; }`);
+  };
+}
+const ground = new THREE.Mesh(groundGeo, groundMat);
 terrain.add(ground);
 let detailTiles = null;  // close-up photo tiles, set up below once the terrain exists
 function shadeTerrain() {
@@ -676,6 +737,7 @@ function slopeTip(p) {
 }
 const layerFile = (name) =>(META.layers?.[name]?.count ? getJSON(BASE + META.layers[name].file).then((g) => g.features).catch(() => []) : Promise.resolve([]));
 const binFile = (info) => (info?.count ? fetch(BASE + info.file).then((r) => (r.ok ? r.arrayBuffer() : null)).catch(() => null) : null);
+const EXTRAS = META.extras?.file ? await getJSON(BASE + META.extras.file).catch(() => null) : null;  // section profiles and a GNSS station
 const [roads, rail, water, pipes, areas, places, buildings, hazards, power, slopes, treeBuf, bldBuf, fpBuf] = await Promise.all([
   ...['roads', 'rail', 'water', 'pipelines', 'areas', 'places', 'buildings', 'hazards', 'power', 'slopes'].map(layerFile), binFile(META.trees), binFile(META.buildings_fp ? null : META.buildings_bin), binFile(META.buildings_fp),
 ]);
@@ -727,6 +789,17 @@ function updateTreeChunks() {  // hide tree chunks too far away to see (cheap: a
   for (const t of treeChunks) t.mesh.visible = Math.hypot(Math.max(0, Math.hypot(t.x - cam.x, t.z - cam.z) - t.r), cam.y) < TREE_FAR;
 }
 const pipeKinds = new Map();
+// An analysis that rated the pipelines (risk class per segment): colour by class instead of by medium; the long
+// network of low / no-data segments is drawn as thin flat ribbons, the rated-at-risk ones as tubes with a glow.
+const RISK_MODE = pipes.some((f) => f.properties.risk);
+const RISK_COL = { wysokie: 0xe03131, 'średnie': 0xf08c00, niskie: 0x37b24d, 'brak danych': 0x8a96a3 };
+const NET_COL = 0x8a96a3;  // the whole network underneath the classes
+const PIPE_GROUP = { wysokie: 'pipes_high', 'średnie': 'pipes_mid', niskie: 'pipes_low' };  // one layer switch per class
+const hex = (n) => '#' + n.toString(16).padStart(6, '0');
+// pipeline geometry in metres, for the click test (does not depend on the terrain exaggeration)
+const pipeLines = RISK_MODE ? pipes.flatMap((f) => lines(f.geometry).map((c) => ({ f, pts: c.map(toXZ) }))) : [];
+const riskTip = (p) => `<b>${esc(p.name || p.kind || 'Rurociąg')}</b><br><span class="k">Zagrożenie:</span> <b style="color:${hex(RISK_COL[p.risk] || 0xf2c230)}">${esc(p.risk || 'brak danych')}</b>`
+  + `${p.reason ? '<br>' + esc(p.reason) : ''}${tipRow('Medium', p.medium)}${tipRow('Średnica', p.diameter_in ? p.diameter_in + '″' : '')}<br><span class="k">kliknij – szczegóły</span>`;
 
 // ------------------------------------------------------------ hazard zones
 /** Smooth a closed ring by corner cutting (Chaikin): the pixel staircase of a raster-derived zone
@@ -742,7 +815,9 @@ function chaikin(pts, iterations = 3) {
   }
   return pts;
 }
-const HAZ_EDGE = new THREE.Color(0xff4a2a), HAZ_CORE = new THREE.Color(0xffb347);
+// zone colours can come from the data (Tabasco: violet, so the zones do not mix with the red / orange pipelines)
+const HAZ_EDGE = new THREE.Color(META.hazard_colors?.[0] ?? 0xff4a2a), HAZ_CORE = new THREE.Color(META.hazard_colors?.[1] ?? 0xffb347);
+if (META.hazard_colors) { document.documentElement.style.setProperty('--haz-bg', META.hazard_colors[0]); document.documentElement.style.setProperty('--haz-ink', '#fff'); }
 const hazardMat = () => new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false, side: THREE.DoubleSide,
   polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 });
 /**
@@ -838,7 +913,7 @@ for (const f of hazards) {
     const ring = rings[0].map(toXZ), [cx, cz] = centre(rings[0]);
     const size = Math.max(...ring.map(([x, z]) => Math.hypot(x - cx, z - cz)));
     hazardZone(group('hazards'), rings, { tip: `<b>${esc(f.properties.name || 'Strefa zagrożenia')}</b>${f.properties.note ? '<br>' + esc(f.properties.note) : ''}` });
-    if (!spots.some((s) => s.name === f.properties.name)) {
+    if (f.properties.label !== false && !spots.some((s) => s.name === f.properties.name)) {  // label:false = just an outline
       addLabel(f.properties.name || 'Strefa zagrożenia', cx, cz, H(cx, cz) + 30 * KL, 'hazard');
       spots.push({ name: f.properties.name || 'Strefa zagrożenia', x: cx, z: cz, dist: Math.max(900, size * 4) });
     }
@@ -1000,11 +1075,40 @@ const PIPE_ONE = 'Rurociągi i gazociągi';
 // meta.pipe_style "thin": tubes as thin as in a small scene (Bayou Corne) + a 1 px line, so the network still shows from afar
 const PIPE_THIN = META.pipe_style === 'thin', PIPE_SCALE = PIPE_THIN ? 1 : KL ** 0.8, pipeLine = [];
 const pipeB = new Batch(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.45, metalness: 0.25 }), true);
+const riskNet = { pos: [], col: [] }, tmpC = new THREE.Color();
+const riskCls = Object.fromEntries(Object.values(PIPE_GROUP).map((g) => [g, { core: { pos: [], col: [] }, halo: { pos: [], col: [] }, tube: new Batch(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.45, metalness: 0.25 }), true) }]));
+const addSegs = (acc, xz, lift, colour) => {  // consecutive points -> pairs of vertices
+  tmpC.set(colour);
+  for (let i = 1; i < xz.length; i++) {
+    const [ax, az] = xz[i - 1], [bx, bz] = xz[i];
+    acc.pos.push(ax, H(ax, az) + lift, az, bx, H(bx, bz) + lift, bz);
+    acc.col.push(tmpC.r, tmpC.g, tmpC.b, tmpC.r, tmpC.g, tmpC.b);
+  }
+};
 // a whole oil field (thousands of km of pipes) gets lighter tubes: fewer points along and around each pipe
 const pipeKm = pipes.reduce((s, f) => s + lines(f.geometry).reduce((t, c) => t + pathLen(c.map(toXZ)), 0), 0) / 1000;
 const PIPE_LIGHT = pipeKm > 800, PIPE_STEP = PIPE_LIGHT ? STEP * 3 : STEP * 2, PIPE_SEG = PIPE_LIGHT ? 1 : 3, PIPE_RADIAL = PIPE_LIGHT ? 5 : 7;
 for (const f of pipes) {
-  const p = f.properties, [medium, kindColor] = SUBSTANCE[p.substance] || ['Inne', PIPE_COLOR];
+  const p = f.properties;
+  if (RISK_MODE) {
+    const col = RISK_COL[p.risk] || PIPE_COLOR, atRisk = p.risk === 'wysokie' || p.risk === 'średnie';
+    const tip = riskTip(p);
+    const radius = THREE.MathUtils.clamp(((p.diameter_in || 12) * 0.0254 / 2) * 9, 1.3, 4.2) * K ** 0.8;
+    for (const coords of lines(f.geometry)) {
+      const xz = dense(coords.map(toXZ), STEP * 2);
+      if (xz.length < 2) continue;
+      addSegs(riskNet, xz, 0.6, NET_COL);  // every segment belongs to the grey network
+      const cls = riskCls[PIPE_GROUP[p.risk]];
+      if (!cls) continue;
+      addSegs(cls.core, xz, 1.0, col);
+      if (!atRisk) continue;
+      addSegs(cls.halo, xz, 0.5, col);
+      const pts = xz.map(([x, z]) => new THREE.Vector3(x, H(x, z) + radius + 0.7, z));
+      if (!FLAT) cls.tube.add(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts, false, 'catmullrom', 0.05), Math.min(900, pts.length * 3), radius, 7, false), col, tip);  // the flat map has the lines
+    }
+    continue;
+  }
+  const [medium, kindColor] = SUBSTANCE[p.substance] || ['Inne', PIPE_COLOR];
   // meta.pipes_one_class: one colour and one legend entry for all pipes (the medium stays in the tooltip)
   const color = META.pipes_one_class ? PIPE_COLOR : kindColor;
   if (META.pipes_one_class) {
@@ -1022,11 +1126,31 @@ for (const f of pipes) {
     if (PIPE_THIN) for (let i = 1; i < pts.length; i++) pipeLine.push(pts[i - 1].x, pts[i - 1].y, pts[i - 1].z, pts[i].x, pts[i].y, pts[i].z);
   }
 }
+if (riskNet.pos.length) group('pipes').add(fatLines(riskNet.pos, riskNet.col, 1.5, { opacity: 0.8 }));
+for (const [id, cls] of Object.entries(riskCls)) {
+  if (!cls.core.pos.length) continue;
+  const w = id === 'pipes_low' ? 2.4 : 4, casing = fatLines(cls.core.pos, new Array(cls.core.col.length).fill(0.02), w + 3, { opacity: 0.6 });
+  casing.renderOrder = 4; group(id).add(casing);
+  if (cls.halo.pos.length) { const halo = fatLines(cls.halo.pos, cls.halo.col, 14, { opacity: 0.28, depthWrite: false }); halo.renderOrder = 5; group(id).add(halo); }
+  const core = fatLines(cls.core.pos.map((v, i) => (i % 3 === 1 ? v + 0.3 : v)), cls.core.col, w, { opacity: 1 });
+  core.renderOrder = 6; group(id).add(core);
+  addBatch(id, cls.tube);
+}
 addBatch('pipes', pipeB);
 if (pipeLine.length) {
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.Float32BufferAttribute(pipeLine, 3));
   group('pipes').add(new THREE.LineSegments(geo, new THREE.LineBasicMaterial({ color: PIPE_COLOR, transparent: true, opacity: 0.85 })));
+}
+
+// ---- results of the analysis: section profiles (a thin white line with its end points)
+if (EXTRAS?.profiles?.length) {
+  for (const pr of EXTRAS.profiles) {
+    const pts = dense(pr.coords.map(toXZ), STEP * 4);
+    group('extras').add(tipped(new THREE.Mesh(ribbon(pts, 5 * Math.sqrt(K), (t, x, z) => H(x, z) + 1.2),
+      flat(0xffffff, { transparent: true, opacity: 0.95, polygonOffsetFactor: -7, polygonOffsetUnits: -7 })), `<b>${esc(pr.title || pr.name)}</b><br><span class="k">kliknij – wykres ruchu wzdłuż linii</span>`));
+    [['A', pts[0]], ['B', pts.at(-1)]].forEach(([t, [x, z]]) => addLabel(t, x, z, H(x, z) + 8 * K, 'biz'));
+  }
 }
 
 // ---- power network: a violet corridor on the ground (names on hover), pylons, and in 3D sagging wires
@@ -1268,7 +1392,7 @@ for (const f of places) {
   const y = H(x, z);
   if (p.kind === 'place') {
     // villages and suburbs only from close up (at most ~25 km away), so a 100 km map is not covered in names
-    addLabel(p.name, x, z, y + 40 * KL, 'place', !BIG || MAIN_PLACES.includes(p.place) ? Infinity : Math.min(R * 0.8, 25000),
+    addLabel(p.name, x, z, y + 40 * KL, 'place', !BIG || MAIN_PLACES.includes(p.place) ? Infinity : (META.place_label_m || Math.min(R * 0.8, 25000)),
       { city: 1, town: 2 }[p.place] ?? 4);
     if (!BIG || MAIN_PLACES.includes(p.place)) spots.push({ name: p.name, x, z, dist: 700 * KL });
   } else if (p.kind === 'business') addLabel(p.name, x, z, y + 14, 'biz', 1500);
@@ -1286,7 +1410,13 @@ document.querySelectorAll('#toggles [data-layer]').forEach((box) => {  // keep s
 dirty = true;
 }
 build();
-if (BIG && spots.length && hazards.length) {  // a big area with one hot spot: open on it, not on the whole box (often mostly sea)
+if (META.home) {  // the data set says where to open: { lon, lat, dist_m, [polar_deg] } (a big area is mostly empty at first sight)
+  const [hx, hz] = toXZ([META.home.lon, META.home.lat]);
+  HOME.target.set(hx, 0, hz);
+  HOME.dist = META.home.dist_m;
+  if (META.home.polar_deg) HOME.polar = THREE.MathUtils.degToRad(META.home.polar_deg);
+  place(HOME);
+} else if (BIG && spots.length && hazards.length) {  // a big area with one hot spot: open on it, not on the whole box (often mostly sea)
   HOME.target.set(spots[0].x, 0, spots[0].z);
   HOME.dist = R * 0.62;
   place(HOME);
@@ -1297,19 +1427,25 @@ const hasSinkhole = water.some((f) => f.properties.kind === 'sinkhole');
 // a scene built with a chosen set of layers (meta.only_layers) lists just those; place names = the labels
 const SHOWN = META.only_layers && new Set(META.only_layers.map((l) => ({ places: 'labels', pipelines: 'pipes' }[l] || l)));
 const LAYERS = [  // id, name, count, colour, switched on at start, optional (hidden when the data set has none)
-  ['hazards', 'Strefa zagrożenia', hazards.length + water.filter((f) => f.properties.kind === 'sinkhole').length, '#ff6b4a', true, true],
+  ['hazards', RISK_MODE ? 'Strefy osiadania' : 'Strefa zagrożenia', hazards.length + water.filter((f) => f.properties.kind === 'sinkhole').length, META.hazard_colors?.[0] || '#ff6b4a', true, true],
   ['buildings', 'Budynki', buildings.length || META.buildings_fp?.count || META.buildings_bin?.count || 0, '#ece5d3', true], ['roads', 'Drogi', roads.length, '#3a3d42', true],
-  ['rail', 'Tory kolejowe', rail.length, '#d5dade', true], ['pipes', 'Rurociągi i gazociągi', new Set(pipes.map((f) => f.properties.id ?? f)).size, '#f2c230', true],
+  ['rail', 'Tory kolejowe', rail.length, '#d5dade', true], ...(RISK_MODE ? [  // the classes as separate switches over the grey network
+    ['pipes_high', 'Rurociągi – wysokie zagrożenie', pipes.filter((f) => f.properties.risk === 'wysokie').length, '#e03131', true],
+    ['pipes_mid', 'Rurociągi – średnie zagrożenie', pipes.filter((f) => f.properties.risk === 'średnie').length, '#f08c00', true],
+    ['pipes_low', 'Rurociągi – niskie zagrożenie', pipes.filter((f) => f.properties.risk === 'niskie').length, '#37b24d', true],
+    ['pipes', 'Sieć rurociągów (cała)', pipes.length, '#8a96a3', true]] : [['pipes', 'Rurociągi i gazociągi', new Set(pipes.map((f) => f.properties.id ?? f)).size, '#f2c230', true]]),
   ['power', 'Sieć energetyczna', power.length, '#a66bff', true, true],
   ['slopes', 'Mury oporowe i skarpy', slopes.length, '#c8742c', true, true],
-  ['water', hasSinkhole ? 'Woda i zapadlisko' : 'Woda', water.length + (T?.sea_level_m != null ? 1 : 0), '#3f86a3', true],
+  ['extras', 'Przekroje i stacja GNSS', (EXTRAS?.profiles?.length || 0) + (EXTRAS?.stations?.length || 0), '#ffffff', true, true],
+  ['water', hasSinkhole ? 'Woda i zapadlisko' : 'Woda', water.length + (T?.sea_level_m != null && !META.hide_empty_layers ? 1 : 0), '#3f86a3', true],
   ['trees', BIG ? 'Drzewa' : 'Las (drzewa)', META.trees?.count || 0, '#3f7a35', true], ['areas', 'Tereny przemysłowe', areas.length, '#ffb347', true],
   ['labels', 'Etykiety', labels.length, '#f2f3f0', true],
-].filter(([id, , n, , , optional]) => (n || !optional) && (!SHOWN || SHOWN.has(id)));
+].filter(([id, , n, , , optional]) => (n || (!optional && !META.hide_empty_layers)) && (!SHOWN || SHOWN.has(id)));  // hide_empty_layers: no "brak" rows
 $('toggles').innerHTML = LAYERS.map(([id, name, n, color, on]) => n
   ? `<label class="row"><input type="checkbox" data-layer="${id}" ${on ? 'checked' : ''}><span class="sw" style="background:${color}"></span>${name}<span class="n">${n.toLocaleString('pl-PL')}</span></label>`
   : `<span class="row off" title="Brak takich obiektów w źródłach dla tego obszaru"><input type="checkbox" disabled><span class="sw" style="background:${color};opacity:.4"></span>${name}<span class="n">brak</span></span>`).join('');
 function applyLayer(id, on) {
+  if (id === 'extras' && typeof extras !== 'undefined' && extras) extras.setVisible(on);
   if (id === 'labels') $('labels').hidden = !on;
   else if (groups[id]) groups[id].visible = on;
   dirty = true;
@@ -1335,13 +1471,40 @@ if (terrainGrid) {
     controls.target.y = H(controls.target.x, controls.target.z); controls.update();
   });
 }
-if (pipeKinds.size) {  // only when the data says what the pipelines carry
+if (META.summary) {  // numbers and notes from the analysis, collapsed at the start
+  const S = META.summary;
+  $('sumWrap').hidden = false;
+  $('sumWrap').innerHTML = `<details class="sum"><summary>${esc(S.title || 'Wyniki analizy')}</summary>`
+    + (S.stats?.length ? `<div class="sum-stats">${S.stats.map(([n, l]) => `<div><b>${esc(n)}</b><span>${esc(l)}</span></div>`).join('')}</div>` : '')
+    + (S.notes?.length ? `<ul class="vnotes" style="margin-top:8px">${S.notes.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>` : '') + `</details>`;
+}
+if (RISK_MODE && META.summary?.legend) {  // the class switches above are the legend; here only how to read them
+  $('pipeLegend').hidden = false;
+  $('pipeKeys').hidden = true;
+  $('pipeTitle').textContent = 'Zagrożenie rurociągów';
+  $('pipeNote').textContent = 'Klasy leżą na szarej sieci; wysokie i średnie są pogrubione i mają poświatę. Kliknij odcinek – szczegóły; kliknij w inne miejsce – lokalny pomiar osiadania.';
+  $('pipeKeys').innerHTML = META.summary.legend.map(([c, t]) => `<span><span class="sw" style="background:${c}"></span>${esc(t)}</span>`).join('');
+} else if (pipeKinds.size) {  // only when the data says what the pipelines carry
   $('pipeLegend').hidden = false;
   if (META.pipes_one_class) $('pipeLegend').querySelector('.lg-h').textContent = 'Rurociągi i gazociągi';
   $('pipeNote').textContent = 'Biegną pod ziemią. W modelu leżą na powierzchni i są pogrubione, żeby było je widać.';
   $('pipeKeys').innerHTML = [...pipeKinds].map(([k, v]) => `<span><span class="sw" style="background:#${v.color.toString(16).padStart(6, '0')}"></span>${esc(k)} (${v.n})</span>`).join('');
 }
-if (spots.length) {
+const PIPE_RANK = (META.timeline?.anomalies || []).filter((a) => a.title);  // markers that are pipeline places (Tabasco)
+if (PIPE_RANK.length) {  // the ranking of the strongest subsidence under the pipelines - the same numbers as on the map
+  $('gotoWrap').hidden = false;
+  $('gotoWrap').querySelector('.lg-h').textContent = 'Największe osiadania pod rurociągami';
+  $('goto').className = 'goto rank';
+  $('goto').innerHTML = PIPE_RANK.map((a, i) => `<button data-rank="${i}" title="${esc(a.title)}${a.note ? ' – ' + esc(a.note) : ''}"><b>${a.rank}</b>`
+    + `<span>${esc(a.title.replace('Rurociąg: ', ''))}</span><em style="color:${a.risk === 'wysokie' ? '#ff6b6b' : '#f5a623'}">${a.v < 0 ? '−' : ''}${Math.abs(a.v)} mm/rok</em></button>`).join('');
+  $('goto').addEventListener('click', (e) => {
+    const a = PIPE_RANK[e.target.closest('button')?.dataset.rank];
+    if (!a) return;
+    const [x, z] = toXZ([a.lon, a.lat]);
+    flyTo({ target: new THREE.Vector3(x, 0, z), dist: 2500, ...(FLAT ? { polar: TOP, az: 0 } : { polar: THREE.MathUtils.degToRad(58) }) }, 1400);
+    if (typeof extras !== 'undefined' && extras) extras.openPipeAt(a.lon, a.lat);  // and its card
+  });
+} else if (spots.length) {
   $('gotoWrap').hidden = false;
   $('goto').innerHTML = spots.map((s, i) => `<button data-spot="${i}">${esc(s.name)}</button>`).join('');
   $('goto').addEventListener('click', (e) => {
@@ -1352,134 +1515,187 @@ if (spots.length) {
 
 // ----------------------------------------------------------- ground-motion timeline (2D view only)
 // One frame per measurement date: cumulative change since the first date. Red = down, blue = up,
-// clear = no change or within the noise. Two stacked sheets cross-fade between dates.
-const TL_ROOT = META.timeline || null;
-const TL_SERIES = Array.isArray(TL_ROOT?.series) ? TL_ROOT.series : TL_ROOT ? [TL_ROOT] : [];
-const timeline = TL_SERIES.length > 0 && (() => {
+// clear = no change or within the noise. The frames cross-fade between dates.
+// With `timeline.phase` there is a second view of the same dates: the phase analysis of one area (interferometric
+// fringes - one colour cycle is one fringe - and contour lines of the displacement with labels).
+const TL = META.timeline || null;
+const timeline = TL && (() => {
   const MONTHS = ['sty', 'lut', 'mar', 'kwi', 'maj', 'cze', 'lip', 'sie', 'wrz', 'paź', 'lis', 'gru'];
   const dLong = (d) => `${+d.slice(6, 8)} ${MONTHS[+d.slice(4, 6) - 1]} ${d.slice(0, 4)}`;
   const dShort = (d) => `${+d.slice(6, 8)} ${MONTHS[+d.slice(4, 6) - 1]}`;
-  const loader = new THREE.TextureLoader(), track = $('tlTrack'), seriesSelect = $('tlSeries');
-  let TL = TL_SERIES[0], N = TL.dates.length, idx = N - 1, fade = null, timer = null, on = false;
-  const textures = (series) => series.files.map((f) => { const t = loader.load(BASE + series.dir + '/' + f, (img) => { renderer.initTexture(img); dirty = true; }); t.colorSpace = THREE.SRGBColorSpace; return t; });
-  let tex = textures(TL), ANOS = [];
-  function sheetGeometry(series) {
-    const [w, sLat, e, nLat] = series.bbox, [x0, z0] = toXZ([w, nLat]), [x1, z1] = toXZ([e, sLat]);
-    return lay(new THREE.PlaneGeometry(x1 - x0, z1 - z0)).translate((x0 + x1) / 2, 0.5, (z0 + z1) / 2);
-  }
+  const loader = new THREE.TextureLoader(), N = TL.dates.length, PH = TL.phase && TL.phase.files.length === N ? TL.phase : null;
+  const loadFrames = (dir, files) => files.map((f) => { const t = loader.load(BASE + dir + '/' + f, (img) => { renderer.initTexture(img); dirty = true; });  /* upload now, not on first play */ t.colorSpace = THREE.SRGBColorSpace; return t; });
+  const tex = { move: loadFrames(TL.dir, TL.files), phase: null };
+  const framesOf = (m) => (tex[m] = tex[m] || loadFrames(PH.dir, PH.files));  // the phase frames are fetched when first needed
   // One sheet, two textures: the shader mixes the frames pixel by pixel (premultiplied), so a change of
   // date never dims what stays the same (two stacked half-transparent sheets did, and that flickered).
-  const mat = new THREE.ShaderMaterial({
-    uniforms: { a: { value: null }, b: { value: null }, k: { value: 0 } },
-    vertexShader: `#include <common>
-      #include <logdepthbuf_pars_vertex>
-      varying vec2 vUv;
-      void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-      #include <logdepthbuf_vertex>
-      }`,
-    fragmentShader: `uniform sampler2D a; uniform sampler2D b; uniform float k; varying vec2 vUv;
-      #include <logdepthbuf_pars_fragment>
-      void main() {
-        #include <logdepthbuf_fragment>
-        vec4 ca = texture2D(a, vUv), cb = texture2D(b, vUv);
-        float alpha = mix(ca.a, cb.a, k);
-        if (alpha < 0.002) discard;
-        vec3 rgb = (ca.rgb * ca.a * (1.0 - k) + cb.rgb * cb.a * k) / alpha;
-        gl_FragColor = vec4(rgb, alpha);
-        #include <colorspace_fragment>
-      }`,
-    transparent: true, depthWrite: false, ...OFFSET,
-  });
-  const sheetMesh = new THREE.Mesh(sheetGeometry(TL), mat);
-  sheetMesh.renderOrder = 2; sheetMesh.visible = false; scene.add(sheetMesh);
-  const PLAY = '<svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z"/></svg>', PAUSE = '<svg viewBox="0 0 24 24"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"/></svg>';
-  function updateTrack() {
-    track.querySelectorAll('.tl-tick, .tl-lbl').forEach((el) => el.remove());
-    track.insertAdjacentHTML('beforeend', TL.dates.map((d, i) => `<span class="tl-tick" data-i="${i}" style="left:${(i / (N - 1)) * 100}%"></span>`).join('')
-      + [0, Math.round((N - 1) / 2), N - 1].map((i) => `<span class="tl-lbl" style="left:${(i / (N - 1)) * 100}%">${dShort(TL.dates[i])}</span>`).join(''));
-    $('tlTitle').textContent = `Zmiana terenu od ${dLong(TL.dates[0])}`;
-    $('tlTitle').title = TL.note || '';
-  }
-  function updateAnomalies() {
-    ANOS.forEach((m) => m.el.remove());
-    $('tip').style.display = 'none';
-    ANOS = (TL.anomalies || []).map((a) => {
-      const [x, z] = toXZ([a.lon, a.lat]), down = a.direction === 'down', first = Math.max(0, TL.dates.indexOf(a.first_date));
-      const el = document.createElement('div');
-      el.className = 'amark off';
-      el.style.setProperty('--c', down ? 'rgb(214,39,40)' : 'rgb(31,104,196)');
-      el.innerHTML = `<span class="ring"></span><span class="ring"></span><span class="dot">${a.rank}</span>`;
-      const mm = (v) => `${v > 0 ? '+' : v < 0 ? '−' : ''}${Math.abs(v)} mm`;
-      const km = (m) => (m >= 1000 ? `${(m / 1000).toLocaleString('pl-PL', { maximumFractionDigits: 1 })} km` : `${m} m`);
-      const tipHtml = () => {
-        const now = a.series_mm[idx];
-        if (a.kind === 'pipeline') {  // strong ground motion at the pipelines: a possible risk to the pipes
-          const names = (a.pipes || []).map((q) => q.name).filter(Boolean);
-          return `<b>Anomalia ${a.rank}: ruch gruntu przy rurociągach</b><br>`
-            + `Grunt ${down ? 'obniża się lub osuwa' : 'podnosi się'} na odcinku ok. ${km(a.stretch_m ?? a.pipe_length_m)}${a.pipes_count > 1 ? ` (łącznie ${km(a.pipe_length_m)} rur)` : ''}<br>`
-            + `<span class="k">Rurociągi w strefie:</span> ${a.pipes_count} (czynne: ${a.pipes_active})<br>`
-            + (names.length ? `<span class="k">Np.:</span> ${names.slice(0, 2).map(esc).join('; ')}${a.pipes_count > 2 ? '…' : ''}<br>` : '')
-            + `<span class="k">Widoczna od:</span> ${dLong(TL.dates[first])}<br>`
-            + `<span class="k">Zmiana na ${dLong(TL.dates[idx])}:</span> ${mm(now)} (typowo w strefie)<br>`
-            + `<span class="k">Największa zmiana do ${dLong(TL.dates[N - 1])}:</span> ${mm(down ? -a.peak_mm : a.peak_mm)}${a.peak_saturated ? ' lub więcej' : ''}<br>`
-            + '<span class="k">Możliwe naprężenia rur przez ruch gruntu – sygnał do sprawdzenia, nie diagnoza.</span>';
-        }
-        return `<b>Anomalia ${a.rank}: ${down ? 'osiadanie / osuwanie' : 'wypiętrzanie'}</b><br>`
-          + `<span class="k">Obszar:</span> ok. ${a.area_ha} ha<br><span class="k">Widoczna od:</span> ${dLong(TL.dates[first])}<br>`
-          + `<span class="k">Zmiana na ${dLong(TL.dates[idx])}:</span> ${mm(now)} (typowo w obszarze)<br>`
-          + `<span class="k">Największa zmiana do ${dLong(TL.dates[N - 1])}:</span> ${mm(down ? -a.peak_mm : a.peak_mm)}${a.peak_saturated ? ' lub więcej' : ''}`;
-      };
-      el.addEventListener('pointerenter', (ev) => { const t = $('tip'); t.innerHTML = tipHtml(); t.style.display = 'block'; t.style.left = (ev.clientX + 14) + 'px'; t.style.top = (ev.clientY + 14) + 'px'; });
-      el.addEventListener('pointerleave', () => { $('tip').style.display = 'none'; });
-      el.addEventListener('click', () => flyTo({ target: new THREE.Vector3(x, 0, z), dist: Math.max(900, Math.sqrt(a.area_ha * 1e4) * 4) }, 900));
-      $('marks').appendChild(el);
-      return { el, first, pos: new THREE.Vector3(x, 0, z) };
+  const makeSheet = (bbox) => {
+    const mat = new THREE.ShaderMaterial({
+      uniforms: { a: { value: null }, b: { value: null }, k: { value: 0 } },
+      vertexShader: `#include <common>
+        #include <logdepthbuf_pars_vertex>
+        varying vec2 vUv;
+        void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        #include <logdepthbuf_vertex>
+        }`,
+      fragmentShader: `uniform sampler2D a; uniform sampler2D b; uniform float k; varying vec2 vUv;
+        #include <logdepthbuf_pars_fragment>
+        void main() {
+          #include <logdepthbuf_fragment>
+          vec4 ca = texture2D(a, vUv), cb = texture2D(b, vUv);
+          float alpha = mix(ca.a, cb.a, k);
+          if (alpha < 0.002) discard;
+          vec3 rgb = (ca.rgb * ca.a * (1.0 - k) + cb.rgb * cb.a * k) / alpha;
+          gl_FragColor = vec4(rgb, alpha);
+          #include <colorspace_fragment>
+        }`,
+      transparent: true, depthWrite: false, ...OFFSET,
     });
-    $('tlAno').hidden = ANOS.length === 0;
-    $('tlAno').lastChild.textContent = TL.anomaly_kind === 'pipeline' ? 'ruch gruntu przy rurociągach' : 'główne anomalie';
+    const [w, sLat, e, nLat] = bbox, [x0, z0] = toXZ([w, nLat]), [x1, z1] = toXZ([e, sLat]);
+    const mesh = new THREE.Mesh(lay(new THREE.PlaneGeometry(x1 - x0, z1 - z0)).translate((x0 + x1) / 2, 0.5, (z0 + z1) / 2), mat);
+    mesh.renderOrder = 2; mesh.visible = false; scene.add(mesh);
+    return { mat, mesh, box: [x0, x1, z0, z1] };
+  };
+  const sheets = { move: makeSheet(TL.bbox), phase: PH ? makeSheet(PH.bbox) : null };
+  let idx = N - 1, fade = null, timer = null, on = false, mode = 'move';
+  const cur = () => sheets[mode];
+  const track = $('tlTrack');
+  track.insertAdjacentHTML('beforeend', TL.dates.map((d, i) => `<span class="tl-tick" data-i="${i}" style="left:${(i / (N - 1)) * 100}%"></span>`).join('')
+    + [0, Math.round((N - 1) / 2), N - 1].map((i) => `<span class="tl-lbl" style="left:${(i / (N - 1)) * 100}%">${dShort(TL.dates[i])}</span>`).join(''));
+  const PLAY = '<svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z"/></svg>', PAUSE = '<svg viewBox="0 0 24 24"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"/></svg>';
+  // main anomalies: numbered pulsing markers, each shown from the date it first appears (lime = new at this date)
+  const ANOS = (TL.anomalies || []).map((a) => {
+    const [x, z] = toXZ([a.lon, a.lat]), down = a.direction === 'down', first = Math.max(0, TL.dates.indexOf(a.first_date));
+    const el = document.createElement('div');
+    el.className = 'amark off';
+    el.style.setProperty('--c', down ? 'rgb(214,39,40)' : 'rgb(31,104,196)');
+    el.innerHTML = `<span class="ring"></span><span class="ring"></span><span class="dot">${a.rank}</span>`;
+    const mm = (v) => `${v > 0 ? '+' : v < 0 ? '−' : ''}${Math.abs(v)} mm`;
+    const tipHtml = () => {
+      const now = a.series_mm[idx];
+      return `<b>${a.title ? `${a.rank}. ${esc(a.title)}` : `Anomalia ${a.rank}: ${down ? 'osiadanie / osuwanie' : 'wypiętrzanie'}`}</b>${idx > 0 && idx === first ? ' · <b style="color:var(--accent)">nowa w tym pomiarze</b>' : ''}<br>`
+        + (a.area_ha ? `<span class="k">Obszar:</span> ok. ${a.area_ha} ha<br>` : '') + `<span class="k">${a.title ? 'Osiadanie ponad szum od' : 'Widoczna od'}:</span> ${dLong(TL.dates[first])}<br>`
+        + `<span class="k">Zmiana na ${dLong(TL.dates[idx])}:</span> ${mm(now)} (${a.title ? 'pod rurą, w linii widzenia satelity' : 'typowo w obszarze'})<br>`
+        + `<span class="k">Największa zmiana do ${dLong(TL.dates[N - 1])}:</span> ${mm(down ? -a.peak_mm : a.peak_mm)}${a.peak_saturated ? ' lub więcej' : ''}`
+        + (a.note ? `<br><span class="k">Z analizy:</span> ${esc(a.note)}` : '');
+    };
+    el.addEventListener('pointerenter', (ev) => { const t = $('tip'); t.innerHTML = tipHtml(); t.style.display = 'block'; t.style.left = (ev.clientX + 14) + 'px'; t.style.top = (ev.clientY + 14) + 'px'; });
+    el.addEventListener('pointerleave', () => { $('tip').style.display = 'none'; });
+    el.addEventListener('click', () => {
+      flyTo({ target: new THREE.Vector3(x, 0, z), dist: a.area_ha ? Math.max(900, Math.sqrt(a.area_ha * 1e4) * 4) : 2500 }, 900);
+      if (a.title && typeof extras !== 'undefined' && extras) extras.openPipeAt(a.lon, a.lat);  // a pipeline point: its card too
+    });
+    $('marks').appendChild(el);
+    return { el, first, pos: new THREE.Vector3(x, 0, z) };
+  });
+  if (ANOS.length) $('tlAno').hidden = false;
+  if (TL.anomaly_label) {  // Tabasco: its own name of the markers; new ones are lime
+    $('tlAno').lastChild.textContent = `${TL.anomaly_label} (nowe: limonkowe)`;
+    $('tlAno').title = 'Numerowane znaczniki; limonkowy = anomalia, która pojawiła się w tym pomiarze';
+  }
+  if (RISK_MODE) {  // pipeline classes in the timeline key too (both views; over the fringes they are easy to lose)
+    $('tlThr').insertAdjacentHTML('beforebegin', `<span class="tl-pipes">${[['#e03131', 'wysokie'], ['#f08c00', 'średnie'], ['#37b24d', 'niskie'], ['#8a96a3', 'sieć']]
+      .map(([c, t]) => `<span><i style="background:${c}"></i>${t}</span>`).join('')}</span>`);
+  }
+
+  // contour lines of the phase analysis, drawn for the shown date only; labels are HTML like the other names
+  const contours = PH && PH.contours && (() => {
+    const byDate = [];  // per date: { line, labels: [{ el, pos }] }
+    let loading = false, shown = -1;
+    const mat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9 });
+    function build(features) {
+      const y = FLAT_LIFT * 0.95;
+      for (let i = 0; i < N; i++) byDate[i] = { pos: [], labels: [], line: null };
+      for (const f of features) {
+        const i = TL.dates.indexOf(f.properties.date), d = byDate[i];
+        if (!d || f.geometry.type !== 'LineString') continue;
+        const pts = f.geometry.coordinates.map(toXZ);
+        for (let j = 1; j < pts.length; j++) d.pos.push(pts[j - 1][0], y, pts[j - 1][1], pts[j][0], y, pts[j][1]);
+        const [cx, cz] = pts[pts.length >> 1], [bx0, bx1, bz0, bz1] = sheets.phase.box;
+        if (pts.length >= 12 && f.properties.label && cx > bx0 && cx < bx1 && cz > bz0 && cz < bz1) {  // only over the fringe picture
+          const m = pts[pts.length >> 1], el = document.createElement('div');
+          el.className = 'lbl contour'; el.textContent = f.properties.label; el.style.display = 'none';
+          $('marks').appendChild(el);
+          d.labels.push({ el, pos: new THREE.Vector3(m[0], y, m[1]), len: pts.length, mm: Math.abs(f.properties.mm || 0) });
+        }
+      }
+      byDate.forEach((d) => {
+        d.labels.sort((a, b) => b.mm - a.mm || b.len - a.len);  // the deepest levels first, then the longest lines
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.Float32BufferAttribute(d.pos, 3));
+        d.line = new THREE.LineSegments(geo, mat); d.line.visible = false; d.line.renderOrder = 3; scene.add(d.line);
+      });
+      loading = false; set(shown); dirty = true;
+    }
+    function set(i) {  // i = date index to show, -1 = none
+      shown = i;
+      byDate.forEach((d, k) => { if (d.line) d.line.visible = k === i; if (k !== i) d.labels.forEach((l) => { l.el.style.display = 'none'; }); });
+      if (i >= 0 && !byDate.length && !loading) { loading = true; getJSON(BASE + PH.contours).then((g) => build(g.features)).catch(() => { loading = false; }); }
+    }
+    return {
+      set,
+      place(w, h) {
+        const d = byDate[shown];
+        if (!d) return;
+        const near = camera.position.y < R * 0.35, placed = [], GAP = 150, MAX = 8;  // a few names, well apart
+        for (const l of d.labels) {
+          v3.copy(l.pos).project(camera);
+          const sx = (v3.x + 1) / 2 * w, sy = (1 - v3.y) / 2 * h;
+          const vis = near && placed.length < MAX && v3.z < 1 && Math.abs(v3.x) < 0.95 && Math.abs(v3.y) < 0.95 && placed.every(([px, py]) => Math.hypot(px - sx, py - sy) > GAP);
+          l.el.style.display = vis ? '' : 'none';
+          if (vis) { placed.push([sx, sy]); l.el.style.transform = `translate(-50%, -50%) translate(${sx.toFixed(1)}px, ${sy.toFixed(1)}px)`; }
+        }
+      },
+    };
+  })();
+
+  // a colour bar for the fringes: one cycle = the phase colours, from 0 to one fringe
+  if (PH) {
+    const stops = Array.from({ length: 9 }, (_, i) => `hsl(${(180 + (i / 8) * 360) % 360} 85% 55%)`);
+    $('tlFringeBar').style.background = `linear-gradient(90deg, ${stops.join(', ')})`;
+    $('tlFringeTxt').textContent = `0 → ${Math.round(PH.cycle_mm)} mm (jeden prążek)`;
+    $('tlMode').hidden = false;
   }
   function render() {
-    ANOS.forEach((m) => m.el.classList.toggle('off', !on || idx < m.first));
+    ANOS.forEach((m) => {
+      m.el.classList.toggle('off', !on || mode !== 'move' || idx < m.first);
+      m.el.classList.toggle('fresh', !!TL.anomaly_label && idx > 0 && idx === m.first);
+    });
     const pct = (idx / (N - 1)) * 100;
     $('tlFill').style.width = pct + '%'; $('tlKnob').style.left = pct + '%';
     track.querySelectorAll('.tl-tick').forEach((t) => t.classList.toggle('on', +t.dataset.i <= idx));
     track.setAttribute('aria-valuetext', dLong(TL.dates[idx]));
     $('tlDate').textContent = dLong(TL.dates[idx]);
-    $('tlThr').textContent = `zmiany poniżej ${Array.isArray(TL.threshold_mm) ? TL.threshold_mm.at(-1) : TL.threshold_mm} mm są przezroczyste${idx ? '' : ' · pierwszy pomiar = punkt odniesienia'}`;
+    $('tlThr').textContent = mode === 'phase'
+      ? `kontury co ${PH.contour_step_mm} mm · ruch w linii widzenia satelity${idx ? '' : ' · pierwszy pomiar = punkt odniesienia'}`
+      : `zmiany poniżej ${Array.isArray(TL.threshold_mm) ? TL.threshold_mm.at(-1) : TL.threshold_mm} mm są przezroczyste${idx ? '' : ' · pierwszy pomiar = punkt odniesienia'}`;
     $('tlPrev').disabled = idx === 0; $('tlNext').disabled = idx === N - 1;
+    if (contours) contours.set(on && mode === 'phase' ? idx : -1);
   }
   function setDate(i, animate = true) {
     i = Math.max(0, Math.min(N - 1, i));
-    if (i === idx && mat.uniforms.b.value) return;
-    const shown = fade && mat.uniforms.k.value > 0.5 ? mat.uniforms.b.value : mat.uniforms.a.value || tex[idx];
+    const sh = cur(), u = sh.mat.uniforms;
+    if (i === idx && u.b.value) return;
+    const frames = framesOf(mode), shown = fade && u.k.value > 0.5 ? u.b.value : u.a.value || frames[idx];
     idx = i; render();
-    if (animate && on) { mat.uniforms.a.value = shown; mat.uniforms.b.value = tex[idx]; mat.uniforms.k.value = 0; fade = { t0: performance.now(), ms: 450 }; }
-    else { mat.uniforms.a.value = mat.uniforms.b.value = tex[idx]; mat.uniforms.k.value = 1; fade = null; }
+    if (animate && on) { u.a.value = shown; u.b.value = frames[idx]; u.k.value = 0; fade = { t0: performance.now(), ms: 450 }; }
+    else { u.a.value = u.b.value = frames[idx]; u.k.value = 1; fade = null; }
+    dirty = true;
+  }
+  /** Shows the sheet of the current mode (move or phase), its legend and title. */
+  function applyMode() {
+    const ph = mode === 'phase';
+    fade = null;
+    for (const [k, sh] of Object.entries(sheets)) if (sh) { sh.mesh.visible = on && k === mode; sh.mesh.position.y = FLAT_LIFT * 0.75 - 0.5; }  // above the sea sheet, below the objects on the ground
+    $('tlModeMove').setAttribute('aria-pressed', String(!ph)); $('tlModePhase').setAttribute('aria-pressed', String(ph));
+    $('tlKeyMove').hidden = ph; $('tlKeyPhase').hidden = !ph;
+    $('tlTitle').textContent = ph ? `${PH.title} · zmiana od ${dLong(TL.dates[0])}` : `Zmiana terenu od ${dLong(TL.dates[0])}`;
+    if (on && !cur().mat.uniforms.b.value) setDate(idx, false);
+    render();
     dirty = true;
   }
   function stop() { clearInterval(timer); timer = null; $('tlPlay').innerHTML = PLAY; $('tlPlay').setAttribute('aria-label', 'Odtwórz'); }
-  function setSeries(id) {
-    const next = TL_SERIES.find((series) => series.id === id);
-    if (!next || next === TL) return;
-    stop();
-    tex.forEach((t) => t.dispose());
-    TL = next; N = TL.dates.length; idx = N - 1; fade = null;
-    tex = textures(TL);
-    sheetMesh.geometry.dispose();
-    sheetMesh.geometry = sheetGeometry(TL);
-    mat.uniforms.a.value = mat.uniforms.b.value = null;
-    updateTrack();
-    updateAnomalies();
-    render();
-    setDate(idx, false);
-    dirty = true;
-  }
-  seriesSelect.replaceChildren(...TL_SERIES.map((series) => new Option(series.label || series.id || series.source || 'Seria', series.id)));
-  $('tlSeriesLabel').hidden = TL_SERIES.length < 2;
-  updateTrack();
-  updateAnomalies();
   $('tlPlay').innerHTML = PLAY;
-  seriesSelect.addEventListener('change', () => setSeries(seriesSelect.value));
   $('tlPlay').addEventListener('click', () => {
     if (timer) return stop();
     $('tlPlay').innerHTML = PAUSE; $('tlPlay').setAttribute('aria-label', 'Pauza');
@@ -1495,30 +1711,34 @@ const timeline = TL_SERIES.length > 0 && (() => {
     const to = { ArrowLeft: idx - 1, ArrowRight: idx + 1, Home: 0, End: N - 1 }[ev.key];
     if (to !== undefined) { ev.preventDefault(); stop(); setDate(to); }
   });
+  /** Switch between the change of the ground and the phase analysis; the camera moves to the area of that view. */
+  function setView(m) {
+    if (!PH || m === mode || !on) return;
+    stop(); mode = m; applyMode();
+    const box = m === 'phase' ? sheets.phase.box : null, spot = box ? fitBox(...box) : hazardFrame();
+    if (spot) flyTo({ az: 0, polar: TOP, dist: spot.dist, target: new THREE.Vector3(spot.x, 0, spot.z) }, 1000);
+  }
+  $('tlModeMove').addEventListener('click', () => setView('move'));
+  $('tlModePhase').addEventListener('click', () => setView('phase'));
   return {
     show(visible) {
       on = visible;
       $('timeline').hidden = !visible;
-      sheetMesh.visible = visible;
-      sheetMesh.position.y = FLAT_LIFT * 0.75 - 0.5;  // above the sea sheet, below the objects on the ground
-      render();
-      if (!visible) stop();
-      if (visible && !mat.uniforms.b.value) setDate(N - 1, false);
-      dirty = true;
+      if (!visible) { mode = 'move'; stop(); }
+      applyMode();
     },
     place(w, h) {  // keep the markers on their spots, called after each render
       for (const m of ANOS) {
         v3.copy(m.pos).project(camera);
         m.el.style.transform = `translate(${((v3.x + 1) / 2 * w).toFixed(1)}px, ${((1 - v3.y) / 2 * h).toFixed(1)}px)`;
       }
+      if (contours) contours.place(w, h);
     },
-    anomalies() { return TL.anomalies || []; },
-    seriesId() { return TL.id; },
     tick(now) {  // cross-fade step, called from the render loop
       if (!fade) return false;
-      const k = Math.min(1, (now - fade.t0) / fade.ms);
-      mat.uniforms.k.value = k * k * (3 - 2 * k);  // smoothstep
-      if (k >= 1) { mat.uniforms.a.value = mat.uniforms.b.value; fade = null; }
+      const u = cur().mat.uniforms, k = Math.min(1, (now - fade.t0) / fade.ms);
+      u.k.value = k * k * (3 - 2 * k);  // smoothstep
+      if (k >= 1) { u.a.value = u.b.value; fade = null; }
       return true;
     },
   };
@@ -1531,6 +1751,11 @@ const AUTO_OFF = ['hazards', 'labels'];  // switched off on entering the 2D time
 /** Centre and camera distance that fit the main hazard zone (the biggest one plus the parts touching it,
  *  not small separate zones kilometres away) with some room around it, seen from straight above. */
 function hazardFrame() {
+  const ph = META.timeline?.phase;  // an analysis area is where the pipelines meet the anomalies: open on it
+  if (ph) {
+    const [x0, z0] = toXZ([ph.bbox[0], ph.bbox[3]]), [x1, z1] = toXZ([ph.bbox[2], ph.bbox[1]]), px = (x1 - x0) * 0.3, pz = (z1 - z0) * 0.3;
+    return fitBox(x0 - px, x1 + px, z0 - pz, z1 + pz);
+  }
   const boxes = hazards.flatMap((f) => polygons(f.geometry)).map((rings) => {
     const pts = rings[0].map(toXZ), xs = pts.map((q) => q[0]), zs = pts.map((q) => q[1]);
     return [Math.min(...xs), Math.max(...xs), Math.min(...zs), Math.max(...zs)];
@@ -1543,8 +1768,10 @@ function hazardFrame() {
     const [ax, az] = toXZ([a.lon, a.lat]), pad = 250;
     if (ax > main[0] - 3000 && ax < main[1] + 3000 && az > main[2] - 3000 && az < main[3] + 3000) group.push([ax - pad, ax + pad, az - pad, az + pad]);
   }
-  const x0 = Math.min(...group.map((b) => b[0])), x1 = Math.max(...group.map((b) => b[1]));
-  const z0 = Math.min(...group.map((b) => b[2])), z1 = Math.max(...group.map((b) => b[3]));
+  return fitBox(Math.min(...group.map((b) => b[0])), Math.max(...group.map((b) => b[1])), Math.min(...group.map((b) => b[2])), Math.max(...group.map((b) => b[3])));
+}
+/** Camera centre and distance (seen from straight above) that fit a box of the model with some room around it. */
+function fitBox(x0, x1, z0, z1) {
   // the open layer panel covers the left edge: fit the picture into the free part and centre it there
   const panel = $('layers').open ? Math.min(stage.clientWidth * 0.4, $('layers').getBoundingClientRect().right - stage.getBoundingClientRect().left + 12) : 0;
   const freeW = stage.clientWidth - panel, freeH = Math.max(1, stage.clientHeight - ($('timeline').hidden ? 52 : 0));
@@ -1567,7 +1794,7 @@ function setMode(flat, animate = true) {
   controls.mouseButtons.LEFT = flat ? THREE.MOUSE.PAN : THREE.MOUSE.ROTATE;
   controls.touches.ONE = flat ? THREE.TOUCH.PAN : THREE.TOUCH.ROTATE;
   ['rotL', 'rotR', 'tiltBtn', 'spin', 'compass', 'exagWrap'].forEach((id) => { $(id).hidden = flat || (id === 'exagWrap' && !terrainGrid); });
-  $('hint').textContent = (flat ? 'Przeciągnij – przesuwanie · kółko – zoom' : 'Przeciągnij – obrót · prawy przycisk lub Shift – przesuwanie · kółko – zoom') + (typeof verify !== 'undefined' && verify ? ' · kliknij obiekt – sygnał z analizy' : '');
+  $('hint').textContent = (flat ? 'Przeciągnij – przesuwanie · kółko – zoom' : 'Przeciągnij – obrót · prawy przycisk lub Shift – przesuwanie · kółko – zoom') + (typeof verify !== 'undefined' && verify ? ' · kliknij obiekt – sygnał z analizy' : typeof extras !== 'undefined' && extras ? ' · kliknij rurociąg lub dowolne miejsce – pomiar osiadania' : '');
   $('dim2').setAttribute('aria-pressed', String(flat));
   $('dim3').setAttribute('aria-pressed', String(!flat));
   if (timeline) timeline.show(flat);
@@ -1654,7 +1881,8 @@ function pick() {
   ray.setFromCamera(mouse, camera);
   let hit = ray.intersectObjects(pickables.filter((o) => o.parent && o.parent.visible), false)[0];
   if (hit && hit.distance > groundDistance(ray.ray) + 2 + hit.distance * 0.004) hit = null;  // behind a hill or under the land
-  const html = hit && (hit.object.userData.tipAt ? hit.object.userData.tipAt(hit.faceIndex) : hit.object.userData.tip);
+  let html = hit && (hit.object.userData.tipAt ? hit.object.userData.tipAt(hit.faceIndex) : hit.object.userData.tip);
+  if (!html && typeof extras !== 'undefined' && extras) html = extras.tipAt(ray.ray);  // lines drawn with a fixed pixel width
   if (!html) return hideTip();
   const tip = $('tip');
   tip.innerHTML = html; tip.style.display = 'block';
@@ -2013,20 +2241,310 @@ const verify = ANALYSIS && (() => {
     },
   };
 })();
+
+// ------------------------------------------- results of the analysis: pipeline classes, section profiles, GNSS station
+// Click a pipeline segment (class, reason, history of the ground under it), a section line (profile of the motion
+// along it, date by date) or the GNSS station (reference measurement compared with the satellite).
+const extras = (RISK_MODE || EXTRAS) && (() => {
+  const MONTHS = ['sty', 'lut', 'mar', 'kwi', 'maj', 'cze', 'lip', 'sie', 'wrz', 'paź', 'lis', 'gru'];
+  const dLong = (d) => `${+d.slice(6, 8)} ${MONTHS[+d.slice(4, 6) - 1]} ${d.slice(0, 4)}`;
+  const num = (v, d = 0) => (v == null ? '–' : (+v).toLocaleString('pl-PL', { maximumFractionDigits: d, minimumFractionDigits: 0 }));
+  const signed = (v, unit, d = 0) => (v == null ? '–' : `${v > 0 ? '+' : v < 0 ? '−' : ''}${num(Math.abs(v), d)} ${unit}`);
+  const dates = TL?.dates || [];
+  const noise = TL?.noise_mm ?? 17;
+  const CLS = {
+    wysokie: ['#e03131', 'Grunt pod rurociągiem wyraźnie osiada', 'Priorytet weryfikacji w terenie.'],
+    'średnie': ['#f08c00', 'Grunt pod rurociągiem osiada umiarkowanie', 'Do weryfikacji i dalszej obserwacji.'],
+    niskie: ['#c2a24a', 'Grunt pod rurociągiem jest raczej spokojny', 'Satelita nie widzi tu istotnego ruchu.'],
+    'brak danych': ['#8a96a3', 'Satelita nie zmierzył tu ruchu', 'Mokradła, woda lub utrata spójności radaru – nie wiadomo, czy grunt się rusza.'],
+  };
+
+  // ---- a small SVG line chart (axes, grid, shaded bands, vertical marks, several lines)
+  const nice = (v) => { const e = 10 ** Math.floor(Math.log10(v)), f = v / e; return (f >= 5 ? 5 : f >= 2 ? 2 : 1) * e; };
+  const ticksOf = (lo, hi, n = 4) => { const st = nice((hi - lo) / n), out = []; for (let v = Math.ceil(lo / st) * st; v <= hi + 1e-9; v += st) out.push(+v.toFixed(6)); return out; };
+  function chart(o) {
+    const W = 316, Hh = o.h || 150, L = 50, Rr = 10, T0 = 10, B = 24, px = (v) => L + ((v - o.x0) / (o.x1 - o.x0)) * (W - L - Rr), py = (v) => T0 + ((o.y1 - v) / (o.y1 - o.y0)) * (Hh - T0 - B);
+    const path = (xs, ys) => { let d = '', pen = false; xs.forEach((x, i) => { if (ys[i] == null) { pen = false; return; } d += `${pen ? 'L' : 'M'}${px(x).toFixed(1)},${py(ys[i]).toFixed(1)}`; pen = true; }); return d; };
+    return `<svg viewBox="0 0 ${W} ${Hh}" style="display:block;width:100%;height:auto;margin-top:6px" role="img" aria-label="${esc(o.label)}" font-family="Inter, sans-serif">
+      ${(o.shade || []).map(([a, b]) => `<rect x="${px(a).toFixed(1)}" y="${T0}" width="${(px(b) - px(a)).toFixed(1)}" height="${Hh - T0 - B}" fill="rgba(200,241,105,.13)"/>`).join('')}
+      ${o.band ? `<rect x="${L}" y="${py(o.band).toFixed(1)}" width="${W - L - Rr}" height="${(py(-o.band) - py(o.band)).toFixed(1)}" fill="rgba(242,243,240,.08)"/>` : ''}
+      ${ticksOf(o.y0, o.y1).map((v) => `<line x1="${L}" x2="${W - Rr}" y1="${py(v).toFixed(1)}" y2="${py(v).toFixed(1)}" stroke="${v === 0 ? '#4a4e55' : '#2B2E33'}"/><text x="${L - 6}" y="${(py(v) + 3.5).toFixed(1)}" text-anchor="end" font-size="10" fill="#A2A6AC">${o.yFmt(v)}</text>`).join('')}
+      ${(o.xTicks || []).map(([v, t]) => `<text x="${px(v).toFixed(1)}" y="${Hh - 6}" text-anchor="${v <= o.x0 ? 'start' : v >= o.x1 ? 'end' : 'middle'}" font-size="10" fill="#A2A6AC">${t}</text>`).join('')}
+      ${(o.vlines || []).map(([v, c]) => `<line x1="${px(v).toFixed(1)}" x2="${px(v).toFixed(1)}" y1="${T0}" y2="${Hh - B}" stroke="${c}" stroke-width="1.5" stroke-dasharray="3 3"/>`).join('')}
+      ${o.lines.map((l) => `<path d="${path(o.xs, l.ys)}" fill="none" stroke="${l.color}" stroke-width="${l.w || 2}" opacity="${l.op ?? 1}" stroke-linejoin="round" stroke-linecap="round"/>`).join('')}
+      ${(o.dots || []).map(([x, y, c]) => `<circle cx="${px(x).toFixed(1)}" cy="${py(y).toFixed(1)}" r="2.6" fill="${c}"/>`).join('')}
+    </svg>`;
+  }
+  const rangeOf = (arrs, pad = 0.12) => {
+    const v = arrs.flat().filter((q) => q != null), lo = Math.min(0, ...v), hi = Math.max(0, ...v), p = (hi - lo || 20) * pad;
+    return [lo - p, hi + p];
+  };
+  const mmFmt = (v) => (Math.abs(v) < 1e-6 ? '0' : `${v > 0 ? '+' : '−'}${Math.abs(v)} mm`);
+
+  // ---- panel
+  const selEl = document.createElement('div');
+  selEl.className = 'amark sel off';
+  selEl.innerHTML = '<span class="ring"></span><span class="dot"></span>';
+  selEl.style.pointerEvents = 'none';
+  $('marks').appendChild(selEl);
+  let selected = null;
+  function open(html, x, z) {
+    $('verify').hidden = false;
+    $('vBody').innerHTML = html;
+    $('verify').scrollTop = 0;
+    if (x != null) { selected = new THREE.Vector3(x, H(x, z), z); selEl.classList.remove('off'); } else { selected = null; selEl.classList.add('off'); }
+    dirty = true;
+  }
+  $('vClose').addEventListener('click', () => { $('verify').hidden = true; selEl.classList.add('off'); selected = null; });
+
+  function showPipe(f, x, z) {
+    const p = f.properties, cls = p.risk || 'brak danych', [col, head, sub] = CLS[cls] || CLS['brak danych'];
+    const v = p.v, rate = v == null ? '' : Math.abs(v) >= 100 ? `${num(Math.abs(v) / 10)} cm/rok` : `${num(Math.abs(v))} mm/rok`;
+    const moves = v == null ? '' : Math.abs(v) < 20 ? 'Grunt prawie się nie rusza.' : `Pionowo grunt ${v < 0 ? 'osiada' : 'podnosi się'} w tempie ok. <b>${rate}</b>.`;
+    const uneven = p.gradient >= 40 ? 'Sąsiednie fragmenty gruntu przesuwają się różnie, a to może naprężać rurę.' : '';
+    const series = p.series_mm, rows = [
+      ['Zagrożenie', cls], ['Medium', p.medium], ['Średnica', p.diameter_in ? p.diameter_in + '″' : null], ['Status', p.status],
+      ['Ruch pionowy', v != null ? signed(v, 'mm/rok') : null], ['Ruch zróżnicowany', p.gradient != null ? `${num(p.gradient)} mm/100 m/rok` : null],
+      ['Od strefy osiadania', p.dist_m != null ? (p.dist_m === 0 ? 'w strefie' : p.dist_m >= 1000 ? `${num(p.dist_m / 1000, 1)} km` : `${num(p.dist_m)} m`) : null],
+      ['Okna z ruchem', p.windows != null ? String(p.windows) : null], ['Pewność danych', p.confidence],
+    ].filter(([, q]) => q);
+    let svg = '';
+    if (series?.length > 1) {
+      const [lo, hi] = rangeOf([series, [-noise * 1.3, noise * 1.3]]), end = series.at(-1), c = end < -noise ? 'rgb(214,39,40)' : end > noise ? 'rgb(31,104,196)' : '#A2A6AC';
+      svg = chart({ label: 'Przemieszczenie gruntu w czasie', x0: 0, x1: series.length - 1, y0: lo, y1: hi, xs: series.map((_, i) => i), band: noise, yFmt: mmFmt,
+        xTicks: [[0, dLong(dates[0] || '20260101').slice(0, -5)], [series.length - 1, dLong(dates.at(-1) || '20261231').slice(0, -5)]],
+        lines: [{ ys: series, color: c, w: 2.2 }], dots: series.map((y, i) => [i, y, c]) })
+        + `<p class="vsub" style="margin:2px 0 0;font-size:11.5px">Ruch w linii widzenia satelity (LOS, orbita wznosząca). Szare pole: zmiana poniżej ${num(noise)} mm – za mała, by ją uznać.</p>`;
+    }
+    open(`<h3>Rurociąg · ${esc(p.name || p.kind || '')}</h3>
+      <div class="vsig" style="--sig:${col};margin-top:8px"><div><b>${head}</b><span>${sub}</span></div></div>
+      ${moves || uneven ? `<p class="vplain">${[moves, uneven].filter(Boolean).join(' ')}</p>` : ''}
+      ${p.reason ? `<p class="vsub" style="margin:0">Dlaczego tak: ${esc(p.reason)}.</p>` : ''}${svg}
+      <p class="vsub" style="margin:6px 0 0">Pomiar z satelity NISAR; pokazuje ruch gruntu pod rurą, a nie jej stan.</p>
+      <details class="vmore"><summary>Szczegóły dla specjalistów</summary>
+      ${rows.length ? `<dl class="vgrid">${rows.map(([k, q]) => `<dt>${k}</dt><dd>${esc(q)}</dd>`).join('')}</dl>` : ''}
+      <p class="vh">Jak czytać ten wynik</p>
+      <ul class="vnotes">
+        <li>Klasa wynika z <b>ruchu pionowego</b> gruntu pod rurociągiem (dwie orbity NISAR, ocena co 100 m), nie ze stanu konstrukcji.</li>
+        <li>Wykres pokazuje ruch w <b>linii widzenia satelity</b> (orbita wznosząca); ujemne = od satelity. To nie jest sam ruch pionowy.</li>
+        <li>Okres to ok. 4 miesięcy – tempo na rok jest przeliczone i może zawierać wpływ sezonowy.</li>
+      </ul>
+      ${cls === 'wysokie' || cls === 'średnie' ? '<p class="vh">Co sprawdzić</p><p class="vnext">Oględziny na miejscu (nieszczelności, odkształcenia), porównanie z pomiarem naziemnym (GNSS, niwelacja) i dłuższa seria pomiarów.</p>' : ''}
+      </details>`, x, z);
+  }
+
+  function showProfile(pr) {
+    const d = pr.distance_m, vals = pr.values_mm, n = vals.length, km = d.at(-1) / 1000;
+    const [lo, hi] = rangeOf(vals), mix = (t) => `rgb(${Math.round(91 + (200 - 91) * t)},${Math.round(96 + (241 - 96) * t)},${Math.round(104 + (105 - 104) * t)})`;
+    const dist = (m) => (m >= 1000 ? `${num(m / 1000, 1)} km` : `${num(m)} m`);
+    const xs = d.map((m) => m), ticks = ticksOf(0, d.at(-1), 4).map((m) => [m, dist(m)]);
+    const lines = vals.map((ys, i) => ({ ys, color: mix(n > 1 ? i / (n - 1) : 1), w: i === n - 1 ? 2.6 : 1.3, op: i === n - 1 ? 1 : 0.85 }));
+    const cross = (pr.crossings || []).map((c) => `<li>${dist(c.odleglosc_m)} od początku: ${esc(c.obiekt)} (zagrożenie ${esc(c.klasa)})</li>`).join('');
+    const last = vals.at(-1).filter((q) => q != null), deepest = last.length ? Math.min(...last) : null;
+    const mid = pr.coords[pr.coords.length >> 1], [mx, mz] = toXZ(mid);
+    open(`<h3>${esc(pr.title || pr.name)}</h3>
+      <p class="vsub" style="margin:0 0 4px">Linia o długości ${num(km, 1)} km – ruch gruntu wzdłuż niej, osobno dla każdego pomiaru.</p>
+      ${deepest != null ? `<p class="vplain">Największe obniżenie do ${dLong(dates.at(-1) || pr.dates.at(-1))}: <b>${num(Math.abs(deepest))} mm</b> w linii widzenia satelity.</p>` : ''}
+      ${chart({ label: 'Profil przemieszczenia wzdłuż przekroju', h: 170, x0: 0, x1: d.at(-1), y0: lo, y1: hi, xs, xTicks: ticks, yFmt: mmFmt, lines, vlines: (pr.crossings || []).map((c) => [c.odleglosc_m, '#e03131']) })}
+      <p class="vsub" style="margin:2px 0 0;font-size:11.5px">Jaśniejsza krzywa = późniejszy pomiar (${dLong(pr.dates[0])} → ${dLong(pr.dates.at(-1))}). Czerwona kreska: przecięcie z zagrożonym rurociągiem.</p>
+      ${cross ? `<p class="vh">Przecięcia</p><ul class="vnotes">${cross}</ul>` : ''}`, mx, mz);
+  }
+
+  const yearOf = (d) => { const y = +d.slice(0, 4), t = Date.UTC(y, +d.slice(4, 6) - 1, +d.slice(6, 8)); return y + (t - Date.UTC(y, 0, 1)) / (365.25 * 864e5); };
+  function showStation(st) {
+    const gp = st.rate?.ostatnie_5_lat?.pion, nv = st.nisar?.predkosc_pionowa, [x, z] = toXZ([st.lon, st.lat]);
+    const ser = (st.series || []).filter(([t]) => t >= 2021.5), lastT = ser.at(-1)?.[0] ?? 2026.5;
+    const ys = ser.map((q) => q[1]), [lo, hi] = rangeOf([ys], 0.15), x1 = Math.max(lastT, dates.length ? yearOf(dates.at(-1)) : lastT) + 0.05;
+    const years = [2022, 2023, 2024, 2025, 2026].map((y) => [y, String(y)]);
+    open(`<h3>Stacja GNSS · ${esc(st.name)}</h3>
+      <div class="vsig" style="--sig:#19b5a5;margin-top:8px"><div><b>Pomiar naziemny – punkt odniesienia</b><span>GNSS mierzy położenie stacji z dokładnością do milimetrów.</span></div></div>
+      <p class="vplain">${esc(st.conclusion)}</p>
+      ${chart({ label: 'Pionowa pozycja stacji GNSS', h: 160, x0: 2021.5, x1, y0: lo, y1: hi, xs: ser.map((q) => q[0]), xTicks: years, yFmt: mmFmt,
+        lines: [{ ys, color: '#19b5a5', w: 1.8 }], shade: dates.length ? [[yearOf(dates[0]), yearOf(dates.at(-1))]] : [] })}
+      <p class="vsub" style="margin:2px 0 0;font-size:11.5px">Pozycja pionowa stacji (średnie tygodniowe). Zielone pole: okres pomiarów NISAR.</p>
+      <details class="vmore"><summary>Szczegóły dla specjalistów</summary>
+      <dl class="vgrid">
+        ${gp ? `<dt>GNSS, ruch pionowy (5 lat)</dt><dd>${signed(gp.tempo, 'mm/rok', 1)} ± ${num(gp.sigma, 1)}</dd>` : ''}
+        ${nv ? `<dt>NISAR, ruch pionowy</dt><dd>${signed(nv.wartosc, 'mm/rok')} ± ${num(st.nisar_sigma)}</dd>` : ''}
+        ${st.nisar?.los_wznoszaca ? `<dt>NISAR, LOS orbity wznoszącej</dt><dd>${signed(st.nisar.los_wznoszaca.wartosc, 'mm/rok')}</dd>` : ''}
+        ${st.source ? `<dt>Źródło GNSS</dt><dd>${esc(st.source)}</dd>` : ''}
+      </dl></details>`, x, z);
+  }
+
+
+  // ---- click on the map: the local measurement (the team's grid, ~250 m cells) with a plain-language verdict
+  const POINTS = TL?.points || null;
+  let pointData = null;
+  const loadPoints = () => (pointData = pointData || fetch(BASE + POINTS.file).then((r) => r.arrayBuffer()).then((b) => new Int16Array(b)));
+  const toLonLat = (x, z) => [W_LON + (x / SX + 0.5) * (E_LON - W_LON), S_LAT + (0.5 - z / SZ) * (N_LAT - S_LAT)];
+  async function showPoint(x, z) {
+    if (!POINTS) return;
+    open('<p class="vsub">Wczytywanie pomiaru…</p>', x, z);
+    const A = await loadPoints(), Wd = POINTS.width, Hd = POINTS.height, HW = Wd * Hd, E = dates.length, [bw, bs, be, bn] = POINTS.bbox;
+    const [lon, lat] = toLonLat(x, z);
+    const c0 = Math.floor((lon - bw) / (be - bw) * Wd), r0 = Math.floor((bn - lat) / (bn - bs) * Hd);
+    const val = (k, i) => (A[k * HW + i] === -32768 ? null : A[k * HW + i]);
+    // the cell itself, or the nearest one with a measurement (a cell = ~250 m; water and wetlands have none)
+    let cell = null;
+    for (let ring = 0; ring <= 2 && cell === null; ring++) {
+      for (let dr = -ring; dr <= ring; dr++) for (let dc = -ring; dc <= ring; dc++) {
+        const r = r0 + dr, c = c0 + dc;
+        if (cell !== null || r < 0 || c < 0 || r >= Hd || c >= Wd || (Math.abs(dr) !== ring && Math.abs(dc) !== ring)) continue;
+        const i = r * Wd + c;
+        if (val(E, i) !== null || val(E - 1, i) !== null) cell = i;
+      }
+    }
+    const inside = c0 >= 0 && r0 >= 0 && c0 < Wd && r0 < Hd;
+    const series = cell === null ? null : dates.map((_, e) => val(e, cell)), v = cell === null ? null : val(E, cell), sigma = cell === null ? null : val(E + 1, cell);
+    const conf = cell === null ? null : val(E + 2, cell);
+    const end = series ? series.filter((q) => q !== null).at(-1) : null;
+    // verdict: vertical rate from both orbits, with the same thresholds as the pipeline classes
+    const T_ = POINTS, V = [
+      [(q) => q <= -T_.v_high, '#e03131', 'Grunt wyraźnie osiada', 'Ruch wyraźnie ponad szum pomiaru – jak pod rurociągami wysokiego zagrożenia.'],
+      [(q) => q <= -T_.v_mid, '#f08c00', 'Grunt osiada umiarkowanie', 'Ruch ponad szum – jak pod rurociągami średniego zagrożenia.'],
+      [(q) => q <= -T_.v_noise, '#f2c94c', 'Słaby sygnał osiadania', 'Na granicy dokładności pomiaru – warto obserwować dalej.'],
+      [(q) => q >= T_.v_mid, '#4dabf7', 'Grunt się podnosi', 'Ruch w górę ponad szum pomiaru.'],
+      [() => true, '#37b24d', 'Grunt jest spokojny', 'Ruch w granicach szumu pomiaru.'],
+    ];
+    let verdict = v !== null ? V.find(([t]) => t(v)) : null;
+    if (!verdict && end !== null) verdict = end <= -2 * noise ? [null, '#f08c00', 'Grunt się obniżył', 'Wynik tylko z jednej orbity – bez rozbicia na ruch pionowy.']
+      : end <= -noise ? [null, '#f2c94c', 'Słaby sygnał obniżenia', 'Wynik tylko z jednej orbity, na granicy dokładności.'] : [null, '#37b24d', 'Grunt jest spokojny', 'Ruch w granicach szumu pomiaru (jedna orbita).'];
+    if (!verdict) verdict = [null, '#98a3ab', 'Satelita nie zmierzył tu ruchu', inside ? 'Woda, mokradła albo słaba koherencja radaru – nie wiadomo, czy grunt się rusza.' : 'To miejsce leży poza obszarem analizy.'];
+    const rate = (q) => (Math.abs(q) >= 100 ? `${num(Math.abs(q) / 10)} cm/rok` : `${num(Math.abs(q))} mm/rok`);
+    const plain = [
+      v !== null ? (Math.abs(v) < T_.v_noise ? 'Pionowo grunt prawie się nie rusza.' : `Pionowo grunt ${v < 0 ? 'osiada' : 'podnosi się'} w tempie ok. <b>${rate(v)}</b>${sigma ? ` (± ${num(sigma)} mm/rok)` : ''}.`) : '',
+      end !== null ? `Od ${dLong(dates[0]).slice(0, -5)} do ${dLong(dates.at(-1)).slice(0, -5)} przesunął się o <b>${num(Math.abs(end))} mm</b> ${end < 0 ? 'od satelity' : 'w stronę satelity'}.` : '',
+    ].filter(Boolean).join(' ');
+    // the nearest pipeline: is this place about the network at all?
+    const near = nearestLine(pipeLines, x, z, 3000, riskBias(3000));
+    const pipeTxt = near ? `Najbliższy rurociąg: <b>${esc(near.it.f.properties.name || 'bez nazwy')}</b>, ok. ${near.d >= 1000 ? num(near.d / 1000, 1) + ' km' : Math.round(near.d / 10) * 10 + ' m'} stąd (zagrożenie: ${esc(near.it.f.properties.risk || 'brak danych')}).` : 'W promieniu 3 km nie ma rurociągu z sieci.';
+    let svg = '';
+    if (series && series.some((q) => q !== null)) {
+      const [lo, hi] = rangeOf([series, [-noise * 1.3, noise * 1.3]]), c = end < -noise ? 'rgb(214,39,40)' : end > noise ? 'rgb(31,104,196)' : '#A2A6AC';
+      svg = chart({ label: 'Przemieszczenie gruntu w czasie', x0: 0, x1: series.length - 1, y0: lo, y1: hi, xs: series.map((_, i) => i), band: noise, yFmt: mmFmt,
+        xTicks: [[0, dLong(dates[0]).slice(0, -5)], [series.length - 1, dLong(dates.at(-1)).slice(0, -5)]],
+        lines: [{ ys: series, color: c, w: 2.2 }], dots: series.map((y, i) => (y === null ? null : [i, y, c])).filter(Boolean) })
+        + `<p class="vsub" style="margin:2px 0 0;font-size:11.5px">Ruch w linii widzenia satelity (orbita wznosząca). Szare pole: zmiana poniżej ${num(noise)} mm – za mała, by ją uznać.</p>`;
+    }
+    const CONF = ['brak danych', 'część par albo jedna orbita', 'pełny szereg, obie orbity'];
+    open(`<h3>Pomiar w tym miejscu</h3>
+      <div class="vsig" style="--sig:${verdict[1]};margin-top:8px"><div><b>${verdict[2]}</b><span>${verdict[3]}</span></div></div>
+      ${plain ? `<p class="vplain">${plain}</p>` : ''}${svg}
+      <p class="vsub" style="margin:8px 0 0">${pipeTxt}</p>
+      <details class="vmore"><summary>Szczegóły dla specjalistów</summary>
+      <dl class="vgrid">
+        ${v !== null ? `<dt>Ruch pionowy (2 orbity)</dt><dd>${signed(v, 'mm/rok')}${sigma ? ` ± ${num(sigma)}` : ''}</dd>` : ''}
+        ${end !== null ? `<dt>Zmiana LOS w okresie</dt><dd>${signed(end, 'mm')}</dd>` : ''}
+        ${conf !== null ? `<dt>Pewność danych</dt><dd>${CONF[Math.round(conf)] || '–'}</dd>` : ''}
+        <dt>Komórka pomiaru</dt><dd>ok. ${POINTS.pixel_m} m</dd>
+        <dt>Współrzędne</dt><dd>${lat.toFixed(4)}, ${lon.toFixed(4)}</dd>
+      </dl>
+      <ul class="vnotes" style="margin-top:8px">
+        <li>Ocena wg ruchu pionowego z dwóch orbit NISAR i tych samych progów co klasy rurociągów (szum tła ok. ${num(T_.v_noise)} mm/rok).</li>
+        <li>Wykres to ruch w linii widzenia satelity z ok. 4 miesięcy – tempo na rok jest przeliczone i może zawierać wpływ pory roku.</li>
+      </ul></details>`, x, z);
+  }
+
+  // ---- the station as a marker on the map (both views)
+  const st0 = EXTRAS?.stations?.[0];
+  let stEl = null, stPos = null, visible = true;
+  if (st0) {
+    const [x, z] = toXZ([st0.lon, st0.lat]);
+    stPos = new THREE.Vector3(x, 0, z);
+    stEl = document.createElement('div');
+    stEl.className = 'amark gnss';
+    stEl.style.setProperty('--c', '#19b5a5');
+    stEl.innerHTML = '<span class="ring"></span><span class="dot">G</span>';
+    stEl.addEventListener('pointerenter', (ev) => { const t = $('tip'); t.innerHTML = `<b>Stacja GNSS ${esc(st0.name)}</b><br><span class="k">kliknij – porównanie z NISAR</span>`; t.style.display = 'block'; t.style.left = (ev.clientX + 14) + 'px'; t.style.top = (ev.clientY + 14) + 'px'; });
+    stEl.addEventListener('pointerleave', () => { $('tip').style.display = 'none'; });
+    stEl.addEventListener('click', () => showStation(st0));
+    $('marks').appendChild(stEl);
+  }
+
+  // ---- click: nearest section line or pipeline segment under the pointer
+  const clickRay = new THREE.Raycaster();
+  const profLines = (EXTRAS?.profiles || []).map((pr) => ({ pr, pts: pr.coords.map(toXZ) }));
+  const visiblePipes = () => pipeLines.filter((it) => groups.pipes?.visible || groups[PIPE_GROUP[it.f.properties.risk]]?.visible);
+  const riskBias = (r) => (it) => (it.f && (it.f.properties.risk === 'wysokie' || it.f.properties.risk === 'średnie') ? r * 0.6 : 0);  // among parallel pipes prefer the rated-at-risk one
+  function nearestLine(list, px, pz, r, bias = null) {
+    let best = null;
+    for (const it of list) {
+      for (let i = 1; i < it.pts.length; i++) {
+        const a = it.pts[i - 1], b = it.pts[i], dx = b[0] - a[0], dz = b[1] - a[1], l2 = dx * dx + dz * dz;
+        const t = l2 ? Math.min(1, Math.max(0, ((px - a[0]) * dx + (pz - a[1]) * dz) / l2)) : 0;
+        const qx = a[0] + t * dx, qz = a[1] + t * dz, d = Math.hypot(px - qx, pz - qz);
+        const score = d - (bias ? bias(it) : 0);
+        if (d <= r && (!best || score < best.score)) best = { it, d, score, x: qx, z: qz };
+      }
+    }
+    return best;
+  }
+  /** Ground point and tolerance (about 8 screen pixels) for a ray from the camera; null over the sky. */
+  function aimAt(ray) {
+    const ground = groundDistance(ray);
+    if (!Number.isFinite(ground)) return null;
+    return { pt: ray.at(ground, new THREE.Vector3()), r: Math.max(8, 8 * ((2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * ground) / renderer.domElement.clientHeight)) };
+  }
+  return {
+    openPipeAt(lon, lat) {  // the card of the at-risk pipeline segment at this place (timeline markers)
+      const [x, z] = toXZ([lon, lat]), hit = nearestLine(pipeLines, x, z, 300, riskBias(300));
+      if (hit) showPipe(hit.it.f, hit.x, hit.z);
+    },
+    /** Tooltip for a pipeline or section line under the pointer (these are not meshes the raycaster can hit). */
+    tipAt(ray) {
+      const aim = aimAt(ray);
+      if (!aim) return '';
+      const prof = visible ? nearestLine(profLines, aim.pt.x, aim.pt.z, aim.r) : null;
+      const pipe = RISK_MODE ? nearestLine(visiblePipes(), aim.pt.x, aim.pt.z, aim.r, riskBias(aim.r)) : null;
+      if (prof && (!pipe || prof.d <= pipe.d)) return `<b>${esc(prof.it.pr.title || prof.it.pr.name)}</b><br><span class="k">kliknij – wykres ruchu wzdłuż linii</span>`;
+      return pipe ? riskTip(pipe.it.f.properties) : '';
+    },
+    setVisible(v) { visible = v; if (stEl) stEl.style.display = v ? '' : 'none'; if (!v && !$('verify').hidden) { $('verify').hidden = true; selEl.classList.add('off'); selected = null; } },
+    click(ev) {  // true when the click was answered here
+      const box = renderer.domElement.getBoundingClientRect();
+      mouse.set(((ev.clientX - box.left) / box.width) * 2 - 1, -((ev.clientY - box.top) / box.height) * 2 + 1);
+      clickRay.setFromCamera(mouse, camera);
+      const ground = groundDistance(clickRay.ray);
+      if (!Number.isFinite(ground)) return false;
+      const pt = clickRay.ray.at(ground, new THREE.Vector3()), r = Math.max(8, 10 * ((2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * ground) / box.height));
+      const prof = visible ? nearestLine(profLines, pt.x, pt.z, r) : null;
+      const pipe = RISK_MODE ? nearestLine(visiblePipes(), pt.x, pt.z, r, riskBias(r)) : null;
+      if (prof && (!pipe || prof.d <= pipe.d)) { showProfile(prof.it.pr); return true; }
+      if (pipe) { showPipe(pipe.it.f, pipe.x, pipe.z); return true; }
+      if (POINTS) { showPoint(pt.x, pt.z); return true; }
+      return false;
+    },
+    place(w, h) {
+      if (stEl && stPos) {
+        stPos.y = H(stPos.x, stPos.z) + 2;
+        v3.copy(stPos).project(camera);
+        const ok = visible && v3.z < 1 && Math.abs(v3.x) < 1.1 && Math.abs(v3.y) < 1.1;
+        stEl.style.visibility = ok ? 'visible' : 'hidden';
+        stEl.style.transform = `translate(${((v3.x + 1) / 2 * w).toFixed(1)}px, ${((1 - v3.y) / 2 * h).toFixed(1)}px)`;
+      }
+      if (!selected) return;
+      selected.y = H(selected.x, selected.z);
+      v3.copy(selected).project(camera);
+      selEl.style.transform = `translate(${((v3.x + 1) / 2 * w).toFixed(1)}px, ${((1 - v3.y) / 2 * h).toFixed(1)}px)`;
+    },
+  };
+})();
 // a click (press and release without dragging) on the model asks for the verification signal
 let downAt = null;
 renderer.domElement.addEventListener('pointerdown', (e) => { downAt = { x: e.clientX, y: e.clientY, t: performance.now() }; });
 renderer.domElement.addEventListener('pointerup', (e) => {
-  if (!verify || !downAt || e.button !== 0) return;
-  if (Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y) < 5 && performance.now() - downAt.t < 600) verify.click(e);
+  if ((!verify && !extras) || !downAt || e.button !== 0) return;
+  if (Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y) < 5 && performance.now() - downAt.t < 600) { if (!(extras && extras.click(e)) && verify) verify.click(e); }
   downAt = null;
 });
 if (verify) { $('hint').textContent += ' · kliknij obiekt – sygnał z analizy'; setTimeout(() => verify.preload(), 1500); }
+else if (extras) $('hint').textContent += ' · kliknij rurociąg lub dowolne miejsce – pomiar osiadania';
 
 // ------------------------------------------------------------------- frame
 function resize() {
   const w = stage.clientWidth, h = stage.clientHeight;
   renderer.setSize(w, h, false);
+  lineMats.forEach((m) => m.resolution.set(w, h));
   camera.aspect = w / h; camera.updateProjectionMatrix();
   dirty = true;
 }
@@ -2071,6 +2589,7 @@ function frame(now) {
   placeLabels();
   if (timeline) timeline.place(stage.clientWidth, stage.clientHeight);
   if (verify) verify.place(stage.clientWidth, stage.clientHeight);
+  if (extras) extras.place(stage.clientWidth, stage.clientHeight);
 }
 $('status').hidden = true;
 ['layers', 'nav', 'compass', 'hint'].forEach((id) => { $(id).hidden = false; });

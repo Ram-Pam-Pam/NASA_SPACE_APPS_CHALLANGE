@@ -24,7 +24,8 @@ Skrypt przy pierwszym uruchomieniu tworzy środowisko `backend/.venv` i instaluj
 | Portuguese Bend (Kalifornia) | http://127.0.0.1:8000/view3d.html#portuguese_bend_california | http://127.0.0.1:8000/view3d.html?view=2d#portuguese_bend_california |
 | Bayou Corne (Luizjana) | http://127.0.0.1:8000/view3d.html#bayou_corne_louisiana | http://127.0.0.1:8000/view3d.html?view=2d#bayou_corne_louisiana |
 
-Panel po kliknięciu obiektu działa w Tabasco i Portuguese Bend (tam są wyniki InSAR); Bayou Corne ma sam model.
+Panel po kliknięciu obiektu działa w Tabasco (karta rurociągu, przekroje, stacja GNSS, lokalny pomiar w dowolnym
+miejscu) i Portuguese Bend (wyniki InSAR); Bayou Corne ma sam model.
 
 Ręcznie, bez skryptu:
 
@@ -46,57 +47,44 @@ pobierana jest tylko czcionka (bez niej strona użyje czcionki systemowej).
 | `backend/scripts` | skrypty, którymi zbudowano dane (niżej) |
 | `frontend/view3d.html` | strona: model 3D, widok 2D z osią czasu, warstwy, panel po kliknięciu obiektu |
 | `frontend/index.html` | strona startowa, przekierowuje do `view3d.html` |
-| `Dane/model3d_tabasco_mexico/data` | model: zdjęcie Sentinel-2, teren FABDEM, budynki, drzewa, drogi, rurociągi, tereny przemysłowe, oś czasu A062 / D156 z anomaliami przy rurach |
-| `Dane/analiza_tabasco_mexico/data` | dane panelu po kliknięciu: szereg czasowy obu orbit (kafle), klasy budynków, dróg i rurociągów |
+| `Dane/model3d_tabasco_mexico/data` | Tabasco (zespół, gałąź `tabasco_final_version`): rurociągi OGIM z klasami zagrożenia, strefy osiadania, oś czasu orbity wznoszącej z 10 największymi osiadaniami pod rurociągami, analiza fazowa złoża Tokal (`phase/`), przekroje i stacja GNSS (`extras.json`), lokalne pomiary (`points.bin`), nazwy miejscowości |
 | `Dane/model3d_portuguese_bend_california/data` | model PB: zdjęcia NAIP (kafle ~1,2 m), lidar 3DEP, budynki, drzewa, drogi, tory, rurociągi, sieć energetyczna, mury oporowe i skarpy, strefa osuwiska, oś czasu |
 | `Dane/dla_frontendu_portuguese_bend/data` | wyniki InSAR PB (zespół): klasy budynków i infrastruktury, szereg czasowy, klatki przemieszczeń – panel po kliknięciu i oś czasu |
 | `Dane/model3d_bayou_corne_louisiana/data` | model Bayou Corne: zdjęcie NAIP, lidar, budynki, las, drogi, rurociągi, zapadlisko |
-| `dane_zrodlowe/` | obszary AOI (`tabasco_mexico.geojson`, `portuguese_bend_california.geojson`, `bayou_corne_louisiana.geojson`), rurociągi OGIM Tabasco (`tabasco_ogim.gpkg`), sieć energetyczna PB (`linie_energetyczne_dociete.gpkg`), kostki przemieszczeń NISAR Tabasco `A062_cube.npz` / `D156_cube.npz`, `products.json`, `monitoring.json`, ocena rurociągów `dashboard_data.js` |
+| `dane_zrodlowe/*.geojson` | obszary AOI Portuguese Bend i Bayou Corne (AOI Tabasco: `Dane/model3d_tabasco_mexico/data/aoi.geojson`) |
+| `dane_zrodlowe/portuguese_bend_insar_nisar/` | surowe pary interferometryczne NISAR (24 GeoTIFF, track 013D, ramka 071) – źródło wyników InSAR Portuguese Bend |
+| `dane_zrodlowe/warstwy_zespolu_pb/` | warstwy zespołu dla PB: budynki, tory, linie energetyczne (użyte w modelu 3D), rurociągi OGIM |
+| `dane_zrodlowe/pobrane/` | pobrane dane, z których zbudowano modele PB i Bayou (OSM, Overture, zdjęcia NAIP, lidar 3DEP, WorldCover) – z nimi przebudowa działa bez pobierania |
 
 ## Przebudowa danych (opcjonalnie)
 
-Potrzebne: Python z GDAL (bindingi `osgeo`) i NumPy, np. Homebrew `python3`, oraz `pip install overturemaps`
-(budynki). Polecenia uruchamia się z folderu `final`.
+Polecenia uruchamia się z folderu `final`.
 
-1. Model 3D (pobiera OSM, Overture, Sentinel-2, FABDEM, ESA WorldCover; `--cache` = folder na pobrane pliki):
+Tabasco zbudowano skryptami zespołu z wyników QGIS (`Dane/TABASCO/tabasco_front`, nie ma ich w tym folderze;
+potrzebne biblioteki: `backend/requirements-tools.txt`; tych wyników nie ma w paczce – ma je autor wersji Tabasco):
 
-   ```bash
-   python3 backend/scripts/build_scene3d.py dane_zrodlowe/tabasco_mexico.geojson Dane/model3d_tabasco_mexico/data \
-       --name "Tabasco" --layers roads,places,buildings,trees,pipelines,areas \
-       --road-kinds "motorway|trunk|primary|secondary" \
-       --pipelines dane_zrodlowe/tabasco_ogim.gpkg:Oil_Natural_Gas_Pipelines --pipes-one-class --pipes-thin \
-       --cache cache_tabasco
-   ```
+```bash
+python3 backend/scripts/build_tabasco_scene.py <Dane/TABASCO/tabasco_front> Dane/model3d_tabasco_mexico/data
+python3 backend/scripts/build_tabasco_objects.py Dane/model3d_tabasco_mexico/data --cache cache_tabasco
+```
 
-2. Oś czasu A062 / D156 i anomalie przy rurociągach (z kostek):
-
-   ```bash
-   python3 backend/scripts/build_tabasco_timeline.py dane_zrodlowe/zrodla_tabasco Dane/model3d_tabasco_mexico/data
-   ```
-
-3. Dane panelu po kliknięciu:
-
-   ```bash
-   python3 backend/scripts/build_tabasco_analysis.py dane_zrodlowe/zrodla_tabasco Dane/model3d_tabasco_mexico/data Dane/analiza_tabasco_mexico/data
-   ```
-
-Kolejność ma znaczenie: krok 1 nadpisuje `meta.json` modelu, więc krok 2 trzeba po nim powtórzyć.
+Modele PB i Bayou: Python z GDAL (bindingi `osgeo`) i NumPy, np. Homebrew `python3`, oraz `pip install overturemaps`.
 
 Portuguese Bend (oś czasu i strefa osuwiska z pakietu InSAR zespołu, potem mury oporowe i skarpy):
 
 ```bash
 python3 backend/scripts/build_scene3d.py dane_zrodlowe/portuguese_bend_california.geojson Dane/model3d_portuguese_bend_california/data \
     --name "Portuguese Bend" --insar-data Dane/dla_frontendu_portuguese_bend/data --hazard-name "Osuwisko Portuguese Bend" \
-    --power dane_zrodlowe/linie_energetyczne_dociete.gpkg --cache cache_pb
+    --power dane_zrodlowe/warstwy_zespolu_pb/linie_energetyczne_dociete.gpkg --cache dane_zrodlowe/pobrane/portuguese_bend
 python3 backend/scripts/build_slopes.py Dane/model3d_portuguese_bend_california/data \
-    --insar-data Dane/dla_frontendu_portuguese_bend/data --cache cache_pb
+    --insar-data Dane/dla_frontendu_portuguese_bend/data --cache dane_zrodlowe/pobrane/portuguese_bend
 ```
 
 Bayou Corne:
 
 ```bash
 python3 backend/scripts/build_scene3d.py dane_zrodlowe/bayou_corne_louisiana.geojson Dane/model3d_bayou_corne_louisiana/data \
-    --name "Bayou Corne Sinkhole" --cache cache_bayou
+    --name "Bayou Corne Sinkhole" --cache dane_zrodlowe/pobrane/bayou_corne
 ```
 
 Modele USA (PB, Bayou) biorą zdjęcia NAIP i lidar USGS 3DEP; PB jest duży (30 km), więc skrypt dobudowuje
@@ -106,12 +94,11 @@ kafle szczegółowe, drzewa z podczerwieni i obrysy budynków (`build_scene_deta
 ## Jak czytać wyniki
 
 - Wartości to przemieszczenie w linii widzenia satelity (LOS), nie ruch pionowy. Ujemne = od satelity.
-- Okresy: Tabasco czerwiec–październik 2026, Portuguese Bend listopad 2025 – maj 2026 (w obu pora deszczowa);
-  część zmian może być sezonowa, a w Tabasco, zwłaszcza na mokradłach, pochodzić od wody.
+- Okresy: Tabasco czerwiec–październik 2026 (orbita wznosząca), Portuguese Bend listopad 2025 – maj 2026 (w obu
+  pora deszczowa); część zmian może być sezonowa, a w Tabasco, zwłaszcza na mokradłach, pochodzić od wody.
 - Klasa obiektu opisuje ruch gruntu pod nim (sygnał do sprawdzenia), nie stan konstrukcji.
 
 ## Źródła i licencje
 
-Sentinel-2 cloudless 2024 (EOX, CC BY-NC-SA 4.0) i FABDEM V1-2 (CC BY-NC-SA 4.0) – tylko do użytku
-niekomercyjnego (Tabasco). USGS NAIP i USGS 3DEP (domena publiczna, USA), OpenStreetMap (ODbL), Overture Maps,
+Sentinel-2 cloudless 2024 (EOX, CC BY-NC-SA 4.0) – tylko do użytku niekomercyjnego (Tabasco); Copernicus DEM GLO-30. USGS NAIP i USGS 3DEP (domena publiczna, USA), OpenStreetMap (ODbL), Overture Maps,
 ESA WorldCover 2021 (CC BY 4.0), OGIM, NISAR L2 GUNW (NASA/ISRO).
