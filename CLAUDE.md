@@ -314,6 +314,24 @@ Projekt/
 - Ograniczenie: zdjęcie to Sentinel-2 10 m (brak otwartych ortofotomap jak NAIP poza USA), więc z bliska teren
   jest bardziej rozmyty niż w Bayou Corne.
 
+## Tabasco – skupienie na zagrożonych rurociągach (15.11.2026, prośba użytkownika; TYLKO Tabasco)
+- Zmiany dotyczą wyłącznie Tabasco: w `view3d.html` włączają je pola w `meta.json` Tabasco (`hide_empty_layers`,
+  `hazard_colors`, `place_label_m`, `home`, `timeline.points`, `timeline.anomaly_label`, klasy `risk` w rurociągach).
+  **Pozostałych lokalizacji nie zmieniać** (użytkownik: „nie zmieniaj nic w pozostałych, tylko Tabasco”).
+- Usunięte warstwy: budynki, drogi, tory, sieć energetyczna, drzewa, tereny przemysłowe, woda
+  (`build_tabasco_objects.py` robi je tylko z `--full`; domyślnie tylko nazwy miejscowości i wygładzenie terenu pod wodą).
+- Rurociągi: osobne przełączniki – wysokie (czerwony), średnie (pomarańczowy), niskie (zielony #37b24d) na szarej
+  „Sieci rurociągów (całej)”; ciemna obwódka, żeby było je widać na prążkach. Strefy osiadania fioletowe, bez etykiet
+  (`label:false` dla wszystkich; nazwa tylko w podpowiedzi).
+- Znaczniki na osi czasu = **10 największych osiadań pod rurociągami** (zagrożone odcinki wg ruchu pionowego,
+  co najmniej 1,5 km od siebie, z widocznym spadkiem na osi), nie największe anomalie; klik = karta rurociągu.
+  Ta sama lista jest w panelu warstw zamiast „Przejdź do” (ranking „Największe osiadania pod rurociągami”: numer,
+  nazwa, mm/rok; klik = przelot + karta rurociągu). Inne lokalizacje mają nadal „Przejdź do”.
+- Klik w dowolne miejsce mapy = **lokalny pomiar** z `points.bin` (siatka ~250 m: seria LOS, ruch pionowy ± niepewność,
+  pewność danych) z oceną dla laika wg tych samych progów co klasy rurociągów i najbliższym rurociągiem.
+- Analiza fazowa: maks. 8 etykiet konturów (najgłębsze poziomy, min. 150 px od siebie, tylko na obrazie prążków),
+  klucz klas rurociągów w pasku osi czasu.
+
 ## Pomysły na dalej
 - **Zakładki case study** zamiast listy rozwijanej + uogólnienie UI na różne typy obiektów (patrz „Koncepcja”).
 - Strona/panel „Dodaj lokalizację” (formularz: metadane + wgranie data.js) – żeby zespół nie używał `/docs`.

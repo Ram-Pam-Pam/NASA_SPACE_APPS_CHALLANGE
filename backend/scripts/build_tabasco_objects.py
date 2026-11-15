@@ -373,6 +373,9 @@ def main():
     ap.add_argument("scene", type=Path, help="Dane/model3d_tabasco_mexico/data")
     ap.add_argument("--cache", type=Path, default=Path("data/cache_tabasco"))
     ap.add_argument("--skip-buildings", action="store_true")
+    ap.add_argument("--full", action="store_true", help="also buildings, roads, rail, power, water, trees, industrial areas "
+                    "(15.11: switched off on request - the Tabasco model shows only the pipelines at risk; by default "
+                    "only the town names and the flat water surfaces of the terrain are made)")
     args = ap.parse_args()
     out, cache = args.scene, args.cache
     cache.mkdir(parents=True, exist_ok=True)
@@ -428,22 +431,30 @@ def main():
     meta["terrain"]["carved_water"] = [f"{carved} water bodies"]
     print(f"  terrain flattened under {carved} water bodies", flush=True)
 
+    if not args.full:
+        for name in ("roads", "rail", "power", "water", "areas"):
+            layers[name] = []
+        for stale in ("buildings.bin", "trees.bin"):
+            if (out / stale).exists():
+                (out / stale).unlink()
     # buildings
     bld_meta, rect_arr = None, np.zeros((0, 7))
     ov = cache / "overture_building.geojsonl"
-    if not args.skip_buildings and ov.exists():
+    if args.full and not args.skip_buildings and ov.exists():
         print("buildings...", flush=True)
         bld_meta, rect_arr = buildings_bin(ov, bbox, m_lon, out, focus)
         print(f"  {bld_meta['count']} buildings -> buildings.bin", flush=True)
-    elif not args.skip_buildings:
+    elif args.full and not args.skip_buildings:
         print("  no overture_building.geojsonl in the cache - run: overturemaps download --bbox=... -f geojsonseq -t building -o <cache>\\overture_building.geojsonl")
 
     # trees
-    print("trees...", flush=True)
-    pipelines = json.loads((out / "pipelines.geojson").read_text(encoding="utf-8"))["features"]
-    mask = keep_out(bbox, layers, pipelines, water_polys, rect_arr, min(6000, max(2500, round(max(size_m) / 5))))
-    count, spacing, tree_share, dry = plant_trees(out, bbox, size_m, cover, mask, rect_arr, focus)
-    print(f"  {count} trees (spacing {spacing:.0f} m, {100 * tree_share:.0f}% tree cover, {'dry' if dry else 'lush'} canopy)", flush=True)
+    count, spacing = 0, 0.0
+    if args.full:
+        print("trees...", flush=True)
+        pipelines = json.loads((out / "pipelines.geojson").read_text(encoding="utf-8"))["features"]
+        mask = keep_out(bbox, layers, pipelines, water_polys, rect_arr, min(6000, max(2500, round(max(size_m) / 5))))
+        count, spacing, tree_share, dry = plant_trees(out, bbox, size_m, cover, mask, rect_arr, focus)
+        print(f"  {count} trees (spacing {spacing:.0f} m, {100 * tree_share:.0f}% tree cover, {'dry' if dry else 'lush'} canopy)", flush=True)
 
     # places: keep the businesses from earlier builds, replace towns / villages / masts
     old = json.loads((out / "places.geojson").read_text(encoding="utf-8"))["features"] if (out / "places.geojson").exists() else []
@@ -455,7 +466,8 @@ def main():
                      "layout": "uint16 x[n], y[n] (0..65535 = west..east, north..south); uint8 height_dm[n], r[n], g[n], b[n], kind[n] (0 round crown, 1 conical)"}
     meta["buildings_bin"] = bld_meta
     src = [x for x in meta.get("sources", []) if not x.startswith(("OpenStreetMap", "Overture", "ESA WorldCover"))]
-    src += ["Overture Maps (drogi, koleje, woda, linie energetyczne, miejscowości: OpenStreetMap; budynki: OSM + Microsoft ML Buildings)", "ESA WorldCover 10 m 2021 (CC BY 4.0)"]
+    src += ["Overture Maps (drogi, koleje, woda, linie energetyczne, miejscowości: OpenStreetMap; budynki: OSM + Microsoft ML Buildings)" if args.full else "Overture Maps (nazwy miejscowości: OpenStreetMap)",
+            "ESA WorldCover 10 m 2021 (CC BY 4.0)"]
     meta["sources"] = [x for x in src if x]
     meta["built_objects"] = time.strftime("%Y-%m-%d")
     (out / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=1), encoding="utf-8")

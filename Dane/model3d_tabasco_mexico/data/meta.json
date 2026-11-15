@@ -40,15 +40,11 @@
  },
  "trees": {
   "file": "trees.bin",
-  "count": 223232,
-  "spacing_m": 34.0,
+  "count": 0,
+  "spacing_m": 0.0,
   "layout": "uint16 x[n], y[n] (0..65535 = west..east, north..south); uint8 height_dm[n], r[n], g[n], b[n], kind[n] (0 round crown, 1 conical)"
  },
- "buildings_bin": {
-  "file": "buildings.bin",
-  "count": 189207,
-  "layout": "uint16 x[n], y[n] (0..65535 = west..east, north..south), half_len_dm[n], half_wid_dm[n]; uint8 angle[n] (0..255 = 0..180 deg of the long side, from east, counter-clockwise), height_half_m[n], kind[n] (0 small with a pitched roof, 1 large with a flat roof)"
- },
+ "buildings_bin": null,
  "timeline": {
   "dir": "timeline",
   "files": [
@@ -83,487 +79,264 @@
   ],
   "threshold_mm": 35.0,
   "noise_mm": 17.3,
+  "points": {
+   "file": "points.bin",
+   "width": 441,
+   "height": 376,
+   "bbox": [
+    -93.8336711720004,
+    17.698965428477745,
+    -92.83076824435726,
+    18.51170369946348
+   ],
+   "layout": "int16 LE, -32768 = no data: los_mm[dates][h][w] (cumulative, ascending orbit), v_up[h][w] mm/yr, v_up_sigma[h][w] mm/yr, confidence[h][w] (0 none, 1 partial / one orbit, 2 full series, both orbits); rows north -> south in equal latitude steps",
+   "pixel_m": 253,
+   "v_noise": 54.8,
+   "v_mid": 164.3,
+   "v_high": 219.1
+  },
+  "anomaly_label": "największe osiadania pod rurociągami",
   "full_colour_mm": 100.0,
   "anomalies": [
    {
     "rank": 1,
     "direction": "down",
-    "lon": -93.053257,
-    "lat": 18.304916,
-    "area_ha": 54,
-    "peak_mm": 148,
-    "peak_saturated": false,
-    "median_mm": -111,
-    "first_date": "20260724",
+    "lon": -92.837526,
+    "lat": 18.372837,
+    "title": "Rurociąg: GDO TDE BAT PIJIJE-TDR SAM 36\"X55.141 KM",
+    "risk": "wysokie",
+    "v": -397,
+    "peak_mm": 108,
+    "first_date": "20260712",
     "series_mm": [
      0,
-     -11,
-     -10,
-     -29,
-     -35,
-     -63,
-     -89,
-     -107,
-     -118,
-     -111
+     -5,
+     -22,
+     -25,
+     -44,
+     -54,
+     -65,
+     -72,
+     -91,
+     -108
     ],
-    "note": "Ruch pionowy z dwóch orbit: -415 mm/rok"
+    "note": "Ruch pionowy gruntu pod rurą: -397 mm/rok (dwie orbity) · zagrożenie wysokie"
    },
    {
     "rank": 2,
     "direction": "down",
-    "lon": -93.545232,
-    "lat": 17.818447,
-    "area_ha": 28,
-    "peak_mm": 165,
-    "peak_saturated": false,
-    "median_mm": -115,
-    "first_date": "20260724",
+    "lon": -93.307622,
+    "lat": 18.275677,
+    "title": "Rurociąg: OLD TDE CHP-BAT TUP 1 10\"X22.009 KM",
+    "risk": "wysokie",
+    "v": -383,
+    "peak_mm": 94,
+    "first_date": "20260712",
     "series_mm": [
      0,
-     -13,
-     -20,
+     -11,
+     -21,
      -35,
-     -54,
-     -70,
+     -53,
+     -64,
+     -71,
      -82,
-     -97,
-     -112,
-     -115
+     -91,
+     -94
     ],
-    "note": "Ruch pionowy z dwóch orbit: -488 mm/rok"
+    "note": "Ruch pionowy gruntu pod rurą: -383 mm/rok (dwie orbity) · zagrożenie wysokie"
    },
    {
     "rank": 3,
     "direction": "down",
-    "lon": -93.552055,
-    "lat": 17.81556,
-    "area_ha": 25,
-    "peak_mm": 173,
-    "peak_saturated": false,
-    "median_mm": -125,
+    "lon": -93.188959,
+    "lat": 18.236161,
+    "title": "Rurociąg: RAMAL CASTAÑITO-DOS BOCAS",
+    "risk": "wysokie",
+    "v": -348,
+    "peak_mm": 113,
     "first_date": "20260712",
     "series_mm": [
      0,
-     -21,
-     -33,
-     -55,
-     -82,
-     -101,
-     -108,
-     -119,
-     -131,
-     -125
+     -14,
+     -29,
+     -37,
+     -64,
+     -74,
+     -88,
+     -98,
+     -103,
+     -113
     ],
-    "note": "Ruch pionowy z dwóch orbit: -519 mm/rok"
+    "note": "Ruch pionowy gruntu pod rurą: -348 mm/rok (dwie orbity) · zagrożenie wysokie"
    },
    {
     "rank": 4,
     "direction": "down",
-    "lon": -93.101014,
-    "lat": 17.934601,
-    "area_ha": 21,
-    "peak_mm": 185,
-    "peak_saturated": false,
-    "median_mm": -148,
-    "first_date": "20260630",
+    "lon": -93.429082,
+    "lat": 18.320997,
+    "title": "Rurociąg: LDD P GPE 95-BAT GPE 1 3\"X0.850 KM",
+    "risk": "wysokie",
+    "v": -339,
+    "peak_mm": 96,
+    "first_date": "20260724",
     "series_mm": [
      0,
-     -54,
-     -109,
+     -16,
+     -11,
+     -21,
+     -38,
+     -51,
      -63,
-     -92,
-     -122,
-     -139,
-     -145,
-     -148,
-     -148
+     -86,
+     -95,
+     -96
     ],
-    "note": "Ruch pionowy z dwóch orbit: -450 mm/rok"
+    "note": "Ruch pionowy gruntu pod rurą: -339 mm/rok (dwie orbity) · zagrożenie wysokie"
    },
    {
     "rank": 5,
     "direction": "down",
-    "lon": -93.562668,
-    "lat": 18.304916,
-    "area_ha": 31,
-    "peak_mm": 120,
-    "peak_saturated": false,
-    "median_mm": -89,
-    "first_date": "20260817",
+    "lon": -93.198604,
+    "lat": 18.158145,
+    "title": "Rurociąg: OLG BAT CUND-DOS BOCAS-16\"X54.391KM",
+    "risk": "wysokie",
+    "v": -337,
+    "peak_mm": 123,
+    "first_date": "20260712",
     "series_mm": [
      0,
-     -5,
-     -18,
-     -26,
-     -43,
-     -53,
-     -61,
-     -71,
-     -78,
-     -89
+     -6,
+     -22,
+     -33,
+     -54,
+     -67,
+     -80,
+     -90,
+     -110,
+     -123
     ],
-    "note": "Ruch pionowy z dwóch orbit: -288 mm/rok"
+    "note": "Ruch pionowy gruntu pod rurą: -337 mm/rok (dwie orbity) · zagrożenie wysokie"
    },
    {
     "rank": 6,
     "direction": "down",
-    "lon": -93.003225,
-    "lat": 18.356006,
-    "area_ha": 20,
-    "peak_mm": 125,
-    "peak_saturated": false,
-    "median_mm": -98,
-    "first_date": "20260630",
+    "lon": -93.415495,
+    "lat": 17.933346,
+    "title": "Rurociąg: GDO TD CARD SUR-TD PAREDON 36\"X12.142 KM",
+    "risk": "wysokie",
+    "v": -322,
+    "peak_mm": 109,
+    "first_date": "20260712",
     "series_mm": [
      0,
-     -30,
-     -28,
-     -37,
-     -62,
-     -82,
-     -96,
-     -113,
-     -100,
-     -98
+     -6,
+     -27,
+     -38,
+     -59,
+     -70,
+     -83,
+     -85,
+     -99,
+     -109
     ],
-    "note": "Ruch pionowy z dwóch orbit: -391 mm/rok"
+    "note": "Ruch pionowy gruntu pod rurą: -322 mm/rok (dwie orbity) · zagrożenie wysokie"
    },
    {
     "rank": 7,
     "direction": "down",
-    "lon": -92.852373,
-    "lat": 18.040588,
-    "area_ha": 23,
-    "peak_mm": 121,
-    "peak_saturated": false,
-    "median_mm": -81,
-    "first_date": "20260817",
+    "lon": -93.014237,
+    "lat": 18.100464,
+    "title": "Rurociąg: GDO TDE BAT PIJIJE-TDR SAM 36\"X55.141 KM",
+    "risk": "średnie",
+    "v": -303,
+    "peak_mm": 108,
+    "first_date": "20260712",
     "series_mm": [
      0,
-     -6,
-     -14,
-     -23,
-     -37,
-     -48,
-     -51,
-     -70,
-     -73,
-     -81
+     -5,
+     -22,
+     -25,
+     -44,
+     -54,
+     -65,
+     -72,
+     -91,
+     -108
     ],
-    "note": "Ruch pionowy z dwóch orbit: -300 mm/rok"
+    "note": "Ruch pionowy gruntu pod rurą: -303 mm/rok (dwie orbity) · zagrożenie średnie"
    },
    {
     "rank": 8,
     "direction": "down",
-    "lon": -93.524765,
-    "lat": 17.737599,
-    "area_ha": 15,
-    "peak_mm": 125,
-    "peak_saturated": false,
-    "median_mm": -79,
-    "first_date": "20260817",
+    "lon": -92.837046,
+    "lat": 18.010666,
+    "title": "Rurociąg: OLD TDE VERNET-TDR LADRI. 12\"X61.076 KM",
+    "risk": "wysokie",
+    "v": -297,
+    "peak_mm": 76,
+    "first_date": "20260724",
     "series_mm": [
      0,
-     0,
-     -7,
-     -19,
-     -34,
-     -40,
-     -49,
-     -55,
-     -71,
-     -79
+     -6,
+     -17,
+     -23,
+     -41,
+     -38,
+     -52,
+     -66,
+     -65,
+     -76
     ],
-    "note": "Ruch pionowy z dwóch orbit: -454 mm/rok"
+    "note": "Ruch pionowy gruntu pod rurą: -297 mm/rok (dwie orbity) · zagrożenie wysokie"
    },
    {
     "rank": 9,
     "direction": "down",
-    "lon": -93.274608,
-    "lat": 18.191167,
-    "area_ha": 22,
-    "peak_mm": 110,
-    "peak_saturated": false,
-    "median_mm": -69,
-    "first_date": "20260817",
+    "lon": -93.38676,
+    "lat": 17.920835,
+    "title": "Rurociąg: OLG CAB PAR 301-BAT PAR 10\"X7.814 KM",
+    "risk": "wysokie",
+    "v": -260,
+    "peak_mm": 77,
+    "first_date": "20260712",
     "series_mm": [
      0,
-     -9,
-     -12,
-     -20,
-     -33,
-     -42,
-     -51,
-     -55,
-     -61,
-     -69
+     -3,
+     -21,
+     -22,
+     -40,
+     -37,
+     -57,
+     -62,
+     -73,
+     -77
     ],
-    "note": "Ruch pionowy z dwóch orbit: -258 mm/rok"
+    "note": "Ruch pionowy gruntu pod rurą: -260 mm/rok (dwie orbity) · zagrożenie wysokie"
    },
    {
     "rank": 10,
     "direction": "down",
-    "lon": -93.416363,
-    "lat": 17.934601,
-    "area_ha": 20,
-    "peak_mm": 97,
-    "peak_saturated": false,
-    "median_mm": -76,
-    "first_date": "20260817",
-    "series_mm": [
-     0,
-     -9,
-     -23,
-     -26,
-     -34,
-     -42,
-     -53,
-     -55,
-     -70,
-     -76
-    ],
-    "note": "Ruch pionowy z dwóch orbit: -284 mm/rok"
-   },
-   {
-    "rank": 11,
-    "direction": "down",
-    "lon": -93.135126,
-    "lat": 17.896372,
-    "area_ha": 9,
-    "peak_mm": 264,
-    "peak_saturated": false,
-    "median_mm": -175,
+    "lon": -93.103866,
+    "lat": 18.060794,
+    "title": "Rurociąg: LBN INT. P CUN 30-P CUN 30 4\"X0.903 KM",
+    "risk": "wysokie",
+    "v": -253,
+    "peak_mm": 96,
     "first_date": "20260712",
     "series_mm": [
      0,
+     6,
+     -19,
      -23,
-     -70,
-     -89,
-     -123,
-     -143,
-     -162,
-     -182,
-     -178,
-     -175
-    ],
-    "note": "Ruch pionowy z dwóch orbit: -624 mm/rok"
-   },
-   {
-    "rank": 12,
-    "direction": "down",
-    "lon": -93.188948,
-    "lat": 18.234371,
-    "area_ha": 20,
-    "peak_mm": 83,
-    "peak_saturated": false,
-    "median_mm": -58,
-    "first_date": "20260817",
-    "series_mm": [
-     0,
-     -4,
-     -8,
-     -14,
-     -26,
-     -31,
-     -38,
-     -46,
-     -55,
-     -58
-    ],
-    "note": "Ruch pionowy z dwóch orbit: -265 mm/rok"
-   },
-   {
-    "rank": 13,
-    "direction": "down",
-    "lon": -93.62028,
-    "lat": 18.031938,
-    "area_ha": 19,
-    "peak_mm": 123,
-    "peak_saturated": false,
-    "median_mm": -80,
-    "first_date": "20260712",
-    "series_mm": [
-     0,
-     -10,
-     -27,
-     -34,
-     -48,
-     -56,
-     -75,
-     -78,
-     -81,
-     -80
-    ],
-    "note": "Ruch pionowy z dwóch orbit: -277 mm/rok"
-   },
-   {
-    "rank": 14,
-    "direction": "down",
-    "lon": -93.373155,
-    "lat": 17.718826,
-    "area_ha": 16,
-    "peak_mm": 109,
-    "peak_saturated": false,
-    "median_mm": -76,
-    "first_date": "20260817",
-    "series_mm": [
-     0,
-     -13,
-     -13,
-     -25,
-     -41,
-     -46,
-     -57,
-     -56,
-     -65,
-     -76
-    ],
-    "note": "Ruch pionowy z dwóch orbit: -323 mm/rok"
-   },
-   {
-    "rank": 15,
-    "direction": "down",
-    "lon": -93.125271,
-    "lat": 18.07302,
-    "area_ha": 17,
-    "peak_mm": 116,
-    "peak_saturated": false,
-    "median_mm": -83,
-    "first_date": "20260724",
-    "series_mm": [
-     0,
-     -4,
-     -22,
-     -27,
-     -44,
-     -53,
-     -70,
-     -78,
-     -85,
-     -83
-    ],
-    "note": "Ruch pionowy z dwóch orbit: -287 mm/rok"
-   },
-   {
-    "rank": 16,
-    "direction": "down",
-    "lon": -93.283704,
-    "lat": 18.193327,
-    "area_ha": 17,
-    "peak_mm": 114,
-    "peak_saturated": false,
-    "median_mm": -88,
-    "first_date": "20260817",
-    "series_mm": [
-     0,
-     -11,
-     -10,
-     -21,
      -39,
-     -51,
+     -48,
+     -63,
      -66,
-     -75,
-     -82,
-     -88
-    ],
-    "note": "Ruch pionowy z dwóch orbit: -275 mm/rok"
-   },
-   {
-    "rank": 17,
-    "direction": "down",
-    "lon": -93.189706,
-    "lat": 18.245891,
-    "area_ha": 15,
-    "peak_mm": 83,
-    "peak_saturated": false,
-    "median_mm": -67,
-    "first_date": "20260817",
-    "series_mm": [
-     0,
-     -7,
-     -16,
-     -21,
-     -35,
-     -41,
-     -51,
-     -56,
-     -64,
-     -67
-    ],
-    "note": "Ruch pionowy z dwóch orbit: -285 mm/rok"
-   },
-   {
-    "rank": 18,
-    "direction": "down",
-    "lon": -93.119207,
-    "lat": 17.901421,
-    "area_ha": 8,
-    "peak_mm": 246,
-    "peak_saturated": false,
-    "median_mm": -119,
-    "first_date": "20260712",
-    "series_mm": [
-     0,
-     -12,
-     -35,
-     -53,
-     -75,
-     -89,
-     -107,
-     -125,
-     -123,
-     -119
-    ],
-    "note": "Ruch pionowy z dwóch orbit: -473 mm/rok"
-   },
-   {
-    "rank": 19,
-    "direction": "down",
-    "lon": -93.243528,
-    "lat": 18.240851,
-    "area_ha": 8,
-    "peak_mm": 196,
-    "peak_saturated": false,
-    "median_mm": -107,
-    "first_date": "20260712",
-    "series_mm": [
-     0,
-     -10,
-     -27,
-     -46,
-     -70,
-     -76,
      -91,
-     -95,
-     -108,
-     -107
+     -96
     ],
-    "note": "Ruch pionowy z dwóch orbit: -396 mm/rok"
-   },
-   {
-    "rank": 20,
-    "direction": "down",
-    "lon": -92.834938,
-    "lat": 18.33514,
-    "area_ha": 13,
-    "peak_mm": 57,
-    "peak_saturated": false,
-    "median_mm": -53,
-    "first_date": "20260829",
-    "series_mm": [
-     0,
-     -3,
-     -5,
-     -32,
-     -18,
-     -27,
-     -38,
-     -62,
-     -67,
-     -53
-    ],
-    "note": "Ruch pionowy z dwóch orbit: -242 mm/rok"
+    "note": "Ruch pionowy gruntu pod rurą: -253 mm/rok (dwie orbity) · zagrożenie wysokie"
    }
   ],
   "source": "NISAR L2 GUNW, orbita wznosząca (tor 62, ramka 11)",
@@ -600,15 +373,15 @@
  "layers": {
   "roads": {
    "file": "roads.geojson",
-   "count": 24958
+   "count": 0
   },
   "rail": {
    "file": "rail.geojson",
-   "count": 3
+   "count": 0
   },
   "water": {
    "file": "water.geojson",
-   "count": 691
+   "count": 0
   },
   "pipelines": {
    "file": "pipelines.geojson",
@@ -616,7 +389,7 @@
   },
   "areas": {
    "file": "areas.geojson",
-   "count": 63
+   "count": 0
   },
   "places": {
    "file": "places.geojson",
@@ -628,7 +401,7 @@
   },
   "power": {
    "file": "power.geojson",
-   "count": 140
+   "count": 0
   },
   "hazards": {
    "file": "hazards.geojson",
@@ -642,7 +415,7 @@
  "sources": [
   "Sentinel-2 cloudless 2024 (EOX IT Services, CC BY-NC-SA 4.0; zawiera zmodyfikowane dane Copernicus Sentinel)",
   "Copernicus DEM GLO-30 (ESA, model powierzchni)",
-  "Overture Maps (drogi, koleje, woda, linie energetyczne, miejscowości: OpenStreetMap; budynki: OSM + Microsoft ML Buildings)",
+  "Overture Maps (nazwy miejscowości: OpenStreetMap)",
   "ESA WorldCover 10 m 2021 (CC BY 4.0)"
  ],
  "built_tabasco_results": "2026-11-15",
@@ -676,12 +449,12 @@
     "Rurociąg – średnie zagrożenie"
    ],
    [
-    "#c2a24a",
+    "#37b24d",
     "Rurociąg – niskie zagrożenie"
    ],
    [
     "#8a96a3",
-    "Rurociąg – brak danych (mokradła, woda)"
+    "Sieć rurociągów (w tym bez danych: mokradła, woda)"
    ]
   ],
   "notes": [
@@ -699,5 +472,11 @@
   "lat": 18.23478,
   "dist_m": 16000,
   "polar_deg": 52
- }
+ },
+ "hazard_colors": [
+  "#9b5de5",
+  "#d0b3ff"
+ ],
+ "hide_empty_layers": true,
+ "place_label_m": 14000
 }

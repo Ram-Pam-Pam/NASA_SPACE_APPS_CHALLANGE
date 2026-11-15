@@ -42,7 +42,11 @@ NOISE_MM = 17.3           # LOS noise over the whole period (team estimate: 52.6
 THRESHOLD_MM = 35.0       # ground-motion changes smaller than this are transparent (about 2 x the measurement noise)
 FULL_COLOUR_MM = 100.0    # a change this big (or bigger) gets the strongest colour
 COH_MIN = 0.35            # pixels with a lower mean coherence are hidden (unreliable phase)
-ANOMALY_COUNT = 20        # most serious subsidence zones marked on the timeline
+ANOMALY_COUNT = 20        # most serious subsidence zones get a name and a label
+PIPE_MARKERS = 10         # strongest subsidence under the pipelines: numbered markers on the timeline
+MARKER_GAP_M = 1500       # markers at least this far apart (neighbouring 100 m segments are one place)
+POINT_STEP = 3            # the click-on-map grid is 3 x coarser than the analysis grid (240 m)
+HAZARD_COLORS = ["#9b5de5", "#d0b3ff"]   # subsidence zones in violet: edge, centre (red / orange belong to the pipelines)
 DOWN_RGB, UP_RGB = (214, 39, 40), (31, 104, 196)
 CYCLE_MM = 120.98         # half the radar wavelength: one fringe
 
@@ -153,7 +157,7 @@ def build(src: Path, scene: Path) -> None:
             props["rank"] = rank
         else:
             props["name"] = "Strefa osiadania"
-            props["label"] = False                                # no label on the map for the small ones
+        props["label"] = False                                    # no zone labels on the map (15.11: the map is about the pipelines); name stays in the tooltip
         hazards.append({"type": "Feature", "properties": props, "geometry": mapping(z["geom"])})
     (scene / "hazards.geojson").write_text(json.dumps(fc([feature(z["geom"], h["properties"]) for z, h in zip(zones, hazards)]), ensure_ascii=False), encoding="utf-8")
     anomalies = []
@@ -165,8 +169,7 @@ def build(src: Path, scene: Path) -> None:
             "series_mm": [round(float(v)) for v in z["median"]],
             "note": f"Ruch pionowy z dwóch orbit: {z['v']:.0f} mm/rok" if z["v"] is not None else None,
         })
-    print(f"hazards: {len(zones)} zones, {len(anomalies)} markers; first dates "
-          + str({dates[i]: sum(1 for a in anomalies if a['first_date'] == dates[i]) for i in range(E)}))
+    print(f"hazards: {len(zones)} zones")
 
     # ------------------------------------------------------------------ pipelines
     segs = read_layer(gp_risk, "odcinki")
@@ -197,6 +200,54 @@ def build(src: Path, scene: Path) -> None:
                                  "dist_m": p["odl_m"], "windows": p["okna_ruch"], "confidence": p["pewnosc"], "series_mm": series}, 0.00005))
     (scene / "pipelines.geojson").write_text(json.dumps(fc(feats + risky), ensure_ascii=False), encoding="utf-8")
     print(f"pipelines: {n_net} network + {len(risky)} at risk")
+
+    # ------------------------------------------------------------------ timeline markers = strongest subsidence UNDER the pipelines
+    # (not the strongest anomalies anywhere): at-risk segments by vertical rate, one marker per place
+    anomalies, taken = [], []
+    for f, (g, p) in sorted(zip(risky, read_layer(gp_risk, "rurociagi_zagrozone")), key=lambda t: t[1][1]["v"] if t[1][1]["v"] is not None else 0):
+        series = f["properties"].get("series_mm")
+        if p["v"] is None or p["v"] >= 0 or len(anomalies) >= PIPE_MARKERS or not series or min(series) > -NOISE_MM:
+            continue                                              # only places where the timeline shows the drop too
+        mid = g.interpolate(0.5, normalized=True)
+        if any(math.hypot((mid.x - x) * 105_000, (mid.y - y) * 110_540) < MARKER_GAP_M for x, y in taken):
+            continue
+        taken.append((mid.x, mid.y))
+        stays = [e for e in range(E) if all(v is not None and v <= -NOISE_MM for v in series[e:])]
+        anomalies.append({
+            "rank": len(anomalies) + 1, "direction": "down", "lon": round(mid.x, 6), "lat": round(mid.y, 6),
+            "title": f"Rurociąg: {p['nazwa']}", "risk": p["klasa"], "v": round(p["v"]),
+            "peak_mm": round(-min(v for v in series if v is not None)) if any(v is not None for v in series) else None,
+            "first_date": dates[stays[0]] if stays else dates[-1], "series_mm": series,
+            "note": f"Ruch pionowy gruntu pod rurą: {p['v']:.0f} mm/rok (dwie orbity) · zagrożenie {p['klasa']}",
+        })
+    print(f"markers: {len(anomalies)} strongest subsidence points on pipelines; first dates "
+          + str({dates[i]: sum(1 for a in anomalies if a['first_date'] == dates[i]) for i in range(E) if any(a['first_date'] == dates[i] for a in anomalies)}))
+
+    # ------------------------------------------------------------------ click on the map: local values on a coarser grid
+    # LOS series of the ascending orbit (what the timeline shows) + vertical rate, its uncertainty and data confidence
+    vel, unc = grid.warp(vert / "predkosc_pionowa.tif")[0], grid.warp(vert / "niepewnosc_pionowa.tif")[0]
+    conf = grid.warp(vert / "pewnosc_danych.tif", categorical=True)[0]
+    F = POINT_STEP
+    hh, ww = (grid.h // F) * F, (grid.w // F) * F
+
+    def coarse(a):
+        a = to_lat_rows(a, grid)[..., :hh, :ww]
+        a = a.reshape(a.shape[:-2] + (hh // F, F, ww // F, F))
+        with np.errstate(all="ignore"):
+            import warnings
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                return np.nanmedian(a, axis=(-3, -1))
+
+    enc = lambda a: np.where(np.isfinite(a), np.clip(np.round(a), -32767, 32767), -32768).astype("<i2")  # noqa: E731
+    blocks = [enc(coarse(cum)), enc(coarse(vel)), enc(coarse(unc)), enc(coarse(np.where(np.isfinite(conf), conf, np.nan)))]
+    (scene / "points.bin").write_bytes(b"".join(b.tobytes() for b in blocks))
+    tb = json.loads((W / "infrastruktura/parametry.json").read_text(encoding="utf-8"))
+    points = {"file": "points.bin", "width": ww // F, "height": hh // F,
+              "bbox": [w_lon, n_lat - (n_lat - s_lat) * hh / grid.h, w_lon + (e_lon - w_lon) * ww / grid.w, n_lat],  # the crop keeps the north-west corner
+              "layout": "int16 LE, -32768 = no data: los_mm[dates][h][w] (cumulative, ascending orbit), v_up[h][w] mm/yr, v_up_sigma[h][w] mm/yr, confidence[h][w] (0 none, 1 partial / one orbit, 2 full series, both orbits); rows north -> south in equal latitude steps",
+              "pixel_m": round(grid.res * F), "v_noise": tb["szum_tla"]["v_mm_rok"], "v_mid": tb["progi_efektywne"]["v_med"], "v_high": tb["progi_efektywne"]["v_high"]}
+    print(f"points: {points['width']}x{points['height']} cells of {points['pixel_m']} m")
 
     # ------------------------------------------------------------------ facilities as labels
     places = []
@@ -266,7 +317,7 @@ def build(src: Path, scene: Path) -> None:
         "title": "Wyniki analizy: osiadanie nad złożem Tokal",
         "stats": [[f"{nf(kmc['wysokie'])} km", "rurociągów o wysokim zagrożeniu"], [f"{nf(kmc['średnie'])} km", "o średnim zagrożeniu"],
                   [str(summ.get("przeciecia_granicy_strefy", 0)), "przecięć granicy strefy osiadania"], [f"{nf(act['wysokie'])} km", "czynnych rurociągów w klasie wysokiej"]],
-        "legend": [["#e03131", "Rurociąg – wysokie zagrożenie"], ["#f08c00", "Rurociąg – średnie zagrożenie"], ["#c2a24a", "Rurociąg – niskie zagrożenie"], ["#8a96a3", "Rurociąg – brak danych (mokradła, woda)"]],
+        "legend": [["#e03131", "Rurociąg – wysokie zagrożenie"], ["#f08c00", "Rurociąg – średnie zagrożenie"], ["#37b24d", "Rurociąg – niskie zagrożenie"], ["#8a96a3", "Sieć rurociągów (w tym bez danych: mokradła, woda)"]],
         "notes": [f"Klasa wynika z ruchu pionowego gruntu pod rurociągiem (dwie orbity NISAR, ocena co 100 m); wysoka: osiadanie ≥ {thr['v_high']:.0f} mm/rok albo nierówne ≥ {thr['g_high']:.0f} mm/100 m/rok.",
                   f"Sieć OGIM: {summ['km']:,.0f} km".replace(",", " ") + f"; dane NISAR dla {cov['udzial'] * 100:.0f}% długości (reszta: mokradła, woda, utrata spójności).",
                   "Ruch na osi czasu i w analizie fazowej jest w linii widzenia orbity wznoszącej, nie pionowy."],
@@ -279,7 +330,8 @@ def build(src: Path, scene: Path) -> None:
     meta["layers"]["places"]["count"] = len(places)
     meta["timeline"] = {
         "dir": "timeline", "files": [f"frame_{e:02d}.png" for e in range(E)], "dates": dates, "bbox": [w_lon, s_lat, e_lon, n_lat],
-        "threshold_mm": THRESHOLD_MM, "noise_mm": NOISE_MM, "full_colour_mm": FULL_COLOUR_MM, "anomalies": anomalies, "source": "NISAR L2 GUNW, orbita wznosząca (tor 62, ramka 11)",
+        "threshold_mm": THRESHOLD_MM, "noise_mm": NOISE_MM, "points": points,
+        "anomaly_label": "największe osiadania pod rurociągami", "full_colour_mm": FULL_COLOUR_MM, "anomalies": anomalies, "source": "NISAR L2 GUNW, orbita wznosząca (tor 62, ramka 11)",
         "note": "Cumulative ground motion since the first date, in the satellite's line of sight. Red = down, blue = up, clear = less than threshold_mm.",
         "phase": {"title": "Analiza fazowa: złoże Tokal", "dir": "phase", "files": [f"frame_{e:02d}.png" for e in range(len(frames))], "bbox": [c_w, c_s, c_e, c_n],
                   "cycle_mm": CYCLE_MM, "contour_step_mm": qpar["kontury_co_mm"], "contours": "phase/contours.geojson", "ref_date": dates[0],
@@ -287,6 +339,9 @@ def build(src: Path, scene: Path) -> None:
     }
     meta["summary"] = summary
     meta["extras"] = {"file": "extras.json"}
+    meta["hazard_colors"] = HAZARD_COLORS
+    meta["place_label_m"] = 14000         # village names only from closer than 14 km (a 100 km box has hundreds)
+    meta["hide_empty_layers"] = True  # the panel lists only what this location has (no "brak" rows)
     # the 3D view opens on the analysed field, not on the whole 100 km box
     meta["home"] = {"lon": round((c_w + c_e) / 2, 5), "lat": round((c_s + c_n) / 2, 5), "dist_m": 16000, "polar_deg": 52}
     meta_path.write_text(json.dumps(meta, ensure_ascii=False, indent=1), encoding="utf-8")

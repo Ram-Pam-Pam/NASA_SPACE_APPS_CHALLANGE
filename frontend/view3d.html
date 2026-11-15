@@ -79,7 +79,7 @@ body.flat .bar h1::before { content: "Widok 2D"; }
 .lbl.place { font-size: 14px; letter-spacing: .01em; }
 .lbl.area { color: #ffc266; }
 .lbl.biz { font-weight: 500; font-size: 11.5px; color: #e6e8ea; }
-.lbl.hazard { padding: 3px 9px; border-radius: 999px; background: rgba(255,107,74,.92); color: #1a0b06; text-shadow: none; font-size: 12.5px; box-shadow: var(--shadow); }
+.lbl.hazard { padding: 3px 9px; border-radius: 999px; background: var(--haz-bg, rgba(255,107,74,.92)); color: var(--haz-ink, #1a0b06); text-shadow: none; font-size: 12.5px; box-shadow: var(--shadow); }
 /* Main anomalies of the timeline (2D view): a numbered dot with a pulsing ring, red = sinking, blue = rising */
 #marks { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 4; }
 .amark { position: absolute; left: 0; top: 0; width: 0; height: 0; pointer-events: auto; cursor: pointer; transition: opacity .4s; }
@@ -111,6 +111,12 @@ body.flat .bar h1::before { content: "Widok 2D"; }
 .seg button { flex: 1; padding: 4px 0; font-size: 12.5px; font-variant-numeric: tabular-nums; }
 .goto { display: flex; flex-wrap: wrap; gap: 6px; }
 .goto button { padding: 4px 10px; font-size: 12.5px; border-radius: 999px; }
+/* Tabasco: ranking of the strongest subsidence under the pipelines instead of "go to" buttons */
+.goto.rank { display: grid; gap: 4px; }
+.goto.rank button { display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; gap: 8px; align-items: center; width: 100%; padding: 6px 8px; border-radius: 8px; text-align: left; font-size: 12px; }
+.goto.rank b { font-weight: 700; color: var(--text-2); }
+.goto.rank span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.3; word-break: break-word; }
+.goto.rank em { font-style: normal; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
 #nav { right: 14px; bottom: 14px; padding: 8px; display: grid; grid-template-columns: repeat(3, 38px); gap: 6px; }
 #nav button { width: 38px; height: 38px; padding: 0; display: grid; place-items: center; }
@@ -167,6 +173,8 @@ body.flat #verify { top: 14px; max-height: calc(100% - 120px); }
 .amark.fresh .dot { background: var(--accent); color: #0B0C0E; border-color: #0B0C0E; }
 .amark.fresh .ring { border-color: var(--accent); }
 .amark.gnss .dot { font-size: 12px; }
+.tl-pipes { display: inline-flex; align-items: center; gap: 10px; }
+.tl-pipes i { display: inline-block; width: 16px; height: 4px; border-radius: 2px; margin-right: 5px; vertical-align: 2px; box-shadow: 0 0 0 1px rgba(0,0,0,.5); }
 
 @media (max-width: 720px) {
   #layers { width: 210px; }
@@ -762,7 +770,9 @@ const pipeKinds = new Map();
 // An analysis that rated the pipelines (risk class per segment): colour by class instead of by medium; the long
 // network of low / no-data segments is drawn as thin flat ribbons, the rated-at-risk ones as tubes with a glow.
 const RISK_MODE = pipes.some((f) => f.properties.risk);
-const RISK_COL = { wysokie: 0xe03131, 'średnie': 0xf08c00, niskie: 0xc2a24a, 'brak danych': 0x8a96a3 };
+const RISK_COL = { wysokie: 0xe03131, 'średnie': 0xf08c00, niskie: 0x37b24d, 'brak danych': 0x8a96a3 };
+const NET_COL = 0x8a96a3;  // the whole network underneath the classes
+const PIPE_GROUP = { wysokie: 'pipes_high', 'średnie': 'pipes_mid', niskie: 'pipes_low' };  // one layer switch per class
 const hex = (n) => '#' + n.toString(16).padStart(6, '0');
 // pipeline geometry in metres, for the click test (does not depend on the terrain exaggeration)
 const pipeLines = RISK_MODE ? pipes.flatMap((f) => lines(f.geometry).map((c) => ({ f, pts: c.map(toXZ) }))) : [];
@@ -783,7 +793,9 @@ function chaikin(pts, iterations = 3) {
   }
   return pts;
 }
-const HAZ_EDGE = new THREE.Color(0xff4a2a), HAZ_CORE = new THREE.Color(0xffb347);
+// zone colours can come from the data (Tabasco: violet, so the zones do not mix with the red / orange pipelines)
+const HAZ_EDGE = new THREE.Color(META.hazard_colors?.[0] ?? 0xff4a2a), HAZ_CORE = new THREE.Color(META.hazard_colors?.[1] ?? 0xffb347);
+if (META.hazard_colors) { document.documentElement.style.setProperty('--haz-bg', META.hazard_colors[0]); document.documentElement.style.setProperty('--haz-ink', '#fff'); }
 const hazardMat = () => new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false, side: THREE.DoubleSide,
   polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 });
 /**
@@ -1038,7 +1050,8 @@ const SUBSTANCE = {
   hydrogen: ['Wodór', 0x7fe0c0],
 };
 const pipeB = new Batch(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.45, metalness: 0.25 }), true);
-const riskNet = { pos: [], col: [] }, riskCore = { pos: [], col: [] }, riskHalo = { pos: [], col: [] }, tmpC = new THREE.Color();
+const riskNet = { pos: [], col: [] }, tmpC = new THREE.Color();
+const riskCls = Object.fromEntries(Object.values(PIPE_GROUP).map((g) => [g, { core: { pos: [], col: [] }, halo: { pos: [], col: [] }, tube: new Batch(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.45, metalness: 0.25 }), true) }]));
 const addSegs = (acc, xz, lift, colour) => {  // consecutive points -> pairs of vertices
   tmpC.set(colour);
   for (let i = 1; i < xz.length; i++) {
@@ -1056,10 +1069,14 @@ for (const f of pipes) {
     for (const coords of lines(f.geometry)) {
       const xz = dense(coords.map(toXZ), STEP * 2);
       if (xz.length < 2) continue;
-      if (!atRisk) { addSegs(riskNet, xz, 0.7, col); continue; }
-      addSegs(riskHalo, xz, 0.5, col); addSegs(riskCore, xz, 1.0, col);
+      addSegs(riskNet, xz, 0.6, NET_COL);  // every segment belongs to the grey network
+      const cls = riskCls[PIPE_GROUP[p.risk]];
+      if (!cls) continue;
+      addSegs(cls.core, xz, 1.0, col);
+      if (!atRisk) continue;
+      addSegs(cls.halo, xz, 0.5, col);
       const pts = xz.map(([x, z]) => new THREE.Vector3(x, H(x, z) + radius + 0.7, z));
-      if (!FLAT) pipeB.add(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts, false, 'catmullrom', 0.05), Math.min(900, pts.length * 3), radius, 7, false), col, tip);  // the flat map has the lines
+      if (!FLAT) cls.tube.add(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts, false, 'catmullrom', 0.05), Math.min(900, pts.length * 3), radius, 7, false), col, tip);  // the flat map has the lines
     }
     continue;
   }
@@ -1074,8 +1091,16 @@ for (const f of pipes) {
     pipeB.add(new THREE.TubeGeometry(curve, Math.min(900, pts.length * 3), radius, 7, false), color, tip);
   }
 }
-if (riskNet.pos.length) group('pipes').add(fatLines(riskNet.pos, riskNet.col, 1.6, { opacity: 0.85 }));
-if (riskHalo.pos.length) { group('pipes').add(fatLines(riskHalo.pos, riskHalo.col, 14, { opacity: 0.28, depthWrite: false })); group('pipes').add(fatLines(riskCore.pos, riskCore.col, 4, { opacity: 1 })); }
+if (riskNet.pos.length) group('pipes').add(fatLines(riskNet.pos, riskNet.col, 1.5, { opacity: 0.8 }));
+for (const [id, cls] of Object.entries(riskCls)) {
+  if (!cls.core.pos.length) continue;
+  const w = id === 'pipes_low' ? 2.4 : 4, casing = fatLines(cls.core.pos, new Array(cls.core.col.length).fill(0.02), w + 3, { opacity: 0.6 });
+  casing.renderOrder = 4; group(id).add(casing);
+  if (cls.halo.pos.length) { const halo = fatLines(cls.halo.pos, cls.halo.col, 14, { opacity: 0.28, depthWrite: false }); halo.renderOrder = 5; group(id).add(halo); }
+  const core = fatLines(cls.core.pos.map((v, i) => (i % 3 === 1 ? v + 0.3 : v)), cls.core.col, w, { opacity: 1 });
+  core.renderOrder = 6; group(id).add(core);
+  addBatch(id, cls.tube);
+}
 addBatch('pipes', pipeB);
 
 // ---- results of the analysis: section profiles (a thin white line with its end points)
@@ -1276,7 +1301,7 @@ for (const f of places) {
   const p = f.properties, [x, z] = toXZ(f.geometry.coordinates);
   const y = H(x, z);
   if (p.kind === 'place') {
-    addLabel(p.name, x, z, y + 40 * K, 'place', !BIG || MAIN_PLACES.includes(p.place) ? Infinity : Math.min(R * 0.8, 14000));  // villages: names only from a few km
+    addLabel(p.name, x, z, y + 40 * K, 'place', !BIG || MAIN_PLACES.includes(p.place) ? Infinity : (META.place_label_m || R * 0.8));  // META.place_label_m (Tabasco): village names only from closer up
     if (!BIG || MAIN_PLACES.includes(p.place)) spots.push({ name: p.name, x, z, dist: 700 * K });
   } else if (p.kind === 'business') addLabel(p.name, x, z, y + 14, 'biz', 1500);
   else if (p.kind === 'mast' && masts++ < 150) {
@@ -1308,15 +1333,19 @@ if (META.home) {  // the data set says where to open: { lon, lat, dist_m, [polar
 // ------------------------------------------------------------- layer panel
 const hasSinkhole = water.some((f) => f.properties.kind === 'sinkhole');
 const LAYERS = [  // id, name, count, colour, switched on at start, optional (hidden when the data set has none)
-  ['hazards', 'Strefa zagrożenia', hazards.length + water.filter((f) => f.properties.kind === 'sinkhole').length, '#ff6b4a', true, true],
+  ['hazards', RISK_MODE ? 'Strefy osiadania' : 'Strefa zagrożenia', hazards.length + water.filter((f) => f.properties.kind === 'sinkhole').length, META.hazard_colors?.[0] || '#ff6b4a', true, true],
   ['buildings', 'Budynki', buildings.length || META.buildings_fp?.count || META.buildings_bin?.count || 0, '#ece5d3', true], ['roads', 'Drogi', roads.length, '#3a3d42', true],
-  ['rail', 'Tory kolejowe', rail.length, '#d5dade', true], ['pipes', RISK_MODE ? 'Rurociągi (klasy zagrożenia)' : 'Rurociągi i gazociągi', pipes.length, RISK_MODE ? '#e03131' : '#f2c230', true],
+  ['rail', 'Tory kolejowe', rail.length, '#d5dade', true], ...(RISK_MODE ? [  // the classes as separate switches over the grey network
+    ['pipes_high', 'Rurociągi – wysokie zagrożenie', pipes.filter((f) => f.properties.risk === 'wysokie').length, '#e03131', true],
+    ['pipes_mid', 'Rurociągi – średnie zagrożenie', pipes.filter((f) => f.properties.risk === 'średnie').length, '#f08c00', true],
+    ['pipes_low', 'Rurociągi – niskie zagrożenie', pipes.filter((f) => f.properties.risk === 'niskie').length, '#37b24d', true],
+    ['pipes', 'Sieć rurociągów (cała)', pipes.length, '#8a96a3', true]] : [['pipes', 'Rurociągi i gazociągi', pipes.length, '#f2c230', true]]),
   ['power', 'Sieć energetyczna', power.length, '#a66bff', true, true],
   ['extras', 'Przekroje i stacja GNSS', (EXTRAS?.profiles?.length || 0) + (EXTRAS?.stations?.length || 0), '#ffffff', true, true],
-  ['water', hasSinkhole ? 'Woda i zapadlisko' : 'Woda', water.length + (T?.sea_level_m != null ? 1 : 0), '#3f86a3', true],
+  ['water', hasSinkhole ? 'Woda i zapadlisko' : 'Woda', water.length + (T?.sea_level_m != null && !META.hide_empty_layers ? 1 : 0), '#3f86a3', true],
   ['trees', BIG ? 'Drzewa' : 'Las (drzewa)', META.trees?.count || 0, '#3f7a35', true], ['areas', 'Tereny przemysłowe', areas.length, '#ffb347', true],
   ['labels', 'Etykiety', labels.length, '#f2f3f0', true],
-].filter(([, , n, , , optional]) => n || !optional);
+].filter(([, , n, , , optional]) => n || (!optional && !META.hide_empty_layers));  // hide_empty_layers: no "brak" rows
 $('toggles').innerHTML = LAYERS.map(([id, name, n, color, on]) => n
   ? `<label class="row"><input type="checkbox" data-layer="${id}" ${on ? 'checked' : ''}><span class="sw" style="background:${color}"></span>${name}<span class="n">${n.toLocaleString('pl-PL')}</span></label>`
   : `<span class="row off" title="Brak takich obiektów w źródłach dla tego obszaru"><input type="checkbox" disabled><span class="sw" style="background:${color};opacity:.4"></span>${name}<span class="n">brak</span></span>`).join('');
@@ -1354,17 +1383,32 @@ if (META.summary) {  // numbers and notes from the analysis, collapsed at the st
     + (S.stats?.length ? `<div class="sum-stats">${S.stats.map(([n, l]) => `<div><b>${esc(n)}</b><span>${esc(l)}</span></div>`).join('')}</div>` : '')
     + (S.notes?.length ? `<ul class="vnotes" style="margin-top:8px">${S.notes.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>` : '') + `</details>`;
 }
-if (RISK_MODE && META.summary?.legend) {  // classes of the analysis instead of "what flows"
+if (RISK_MODE && META.summary?.legend) {  // the class switches above are the legend; here only how to read them
   $('pipeLegend').hidden = false;
+  $('pipeKeys').hidden = true;
   $('pipeTitle').textContent = 'Zagrożenie rurociągów';
-  $('pipeNote').textContent = 'Odcinki o wysokim i średnim zagrożeniu są pogrubione i mają poświatę. Kliknij odcinek, żeby zobaczyć szczegóły.';
+  $('pipeNote').textContent = 'Klasy leżą na szarej sieci; wysokie i średnie są pogrubione i mają poświatę. Kliknij odcinek – szczegóły; kliknij w inne miejsce – lokalny pomiar osiadania.';
   $('pipeKeys').innerHTML = META.summary.legend.map(([c, t]) => `<span><span class="sw" style="background:${c}"></span>${esc(t)}</span>`).join('');
 } else if (pipeKinds.size) {  // only when the data says what the pipelines carry
   $('pipeLegend').hidden = false;
   $('pipeNote').textContent = 'Biegną pod ziemią. W modelu leżą na powierzchni i są pogrubione, żeby było je widać.';
   $('pipeKeys').innerHTML = [...pipeKinds].map(([k, v]) => `<span><span class="sw" style="background:#${v.color.toString(16).padStart(6, '0')}"></span>${esc(k)} (${v.n})</span>`).join('');
 }
-if (spots.length) {
+const PIPE_RANK = (META.timeline?.anomalies || []).filter((a) => a.title);  // markers that are pipeline places (Tabasco)
+if (PIPE_RANK.length) {  // the ranking of the strongest subsidence under the pipelines - the same numbers as on the map
+  $('gotoWrap').hidden = false;
+  $('gotoWrap').querySelector('.lg-h').textContent = 'Największe osiadania pod rurociągami';
+  $('goto').className = 'goto rank';
+  $('goto').innerHTML = PIPE_RANK.map((a, i) => `<button data-rank="${i}" title="${esc(a.title)}${a.note ? ' – ' + esc(a.note) : ''}"><b>${a.rank}</b>`
+    + `<span>${esc(a.title.replace('Rurociąg: ', ''))}</span><em style="color:${a.risk === 'wysokie' ? '#ff6b6b' : '#f5a623'}">${a.v < 0 ? '−' : ''}${Math.abs(a.v)} mm/rok</em></button>`).join('');
+  $('goto').addEventListener('click', (e) => {
+    const a = PIPE_RANK[e.target.closest('button')?.dataset.rank];
+    if (!a) return;
+    const [x, z] = toXZ([a.lon, a.lat]);
+    flyTo({ target: new THREE.Vector3(x, 0, z), dist: 2500, ...(FLAT ? { polar: TOP, az: 0 } : { polar: THREE.MathUtils.degToRad(58) }) }, 1400);
+    if (typeof extras !== 'undefined' && extras) extras.openPipeAt(a.lon, a.lat);  // and its card
+  });
+} else if (spots.length) {
   $('gotoWrap').hidden = false;
   $('goto').innerHTML = spots.map((s, i) => `<button data-spot="${i}">${esc(s.name)}</button>`).join('');
   $('goto').addEventListener('click', (e) => {
@@ -1433,19 +1477,27 @@ const timeline = TL && (() => {
     const mm = (v) => `${v > 0 ? '+' : v < 0 ? '−' : ''}${Math.abs(v)} mm`;
     const tipHtml = () => {
       const now = a.series_mm[idx];
-      return `<b>Anomalia ${a.rank}: ${down ? 'osiadanie / osuwanie' : 'wypiętrzanie'}</b>${idx > 0 && idx === first ? ' · <b style="color:var(--accent)">nowa w tym pomiarze</b>' : ''}<br>`
-        + `<span class="k">Obszar:</span> ok. ${a.area_ha} ha<br><span class="k">Widoczna od:</span> ${dLong(TL.dates[first])}<br>`
-        + `<span class="k">Zmiana na ${dLong(TL.dates[idx])}:</span> ${mm(now)} (typowo w obszarze)<br>`
+      return `<b>${a.title ? `${a.rank}. ${esc(a.title)}` : `Anomalia ${a.rank}: ${down ? 'osiadanie / osuwanie' : 'wypiętrzanie'}`}</b>${idx > 0 && idx === first ? ' · <b style="color:var(--accent)">nowa w tym pomiarze</b>' : ''}<br>`
+        + (a.area_ha ? `<span class="k">Obszar:</span> ok. ${a.area_ha} ha<br>` : '') + `<span class="k">${a.title ? 'Osiadanie ponad szum od' : 'Widoczna od'}:</span> ${dLong(TL.dates[first])}<br>`
+        + `<span class="k">Zmiana na ${dLong(TL.dates[idx])}:</span> ${mm(now)} (${a.title ? 'pod rurą, w linii widzenia satelity' : 'typowo w obszarze'})<br>`
         + `<span class="k">Największa zmiana do ${dLong(TL.dates[N - 1])}:</span> ${mm(down ? -a.peak_mm : a.peak_mm)}${a.peak_saturated ? ' lub więcej' : ''}`
         + (a.note ? `<br><span class="k">Z analizy:</span> ${esc(a.note)}` : '');
     };
     el.addEventListener('pointerenter', (ev) => { const t = $('tip'); t.innerHTML = tipHtml(); t.style.display = 'block'; t.style.left = (ev.clientX + 14) + 'px'; t.style.top = (ev.clientY + 14) + 'px'; });
     el.addEventListener('pointerleave', () => { $('tip').style.display = 'none'; });
-    el.addEventListener('click', () => flyTo({ target: new THREE.Vector3(x, 0, z), dist: Math.max(900, Math.sqrt(a.area_ha * 1e4) * 4) }, 900));
+    el.addEventListener('click', () => {
+      flyTo({ target: new THREE.Vector3(x, 0, z), dist: a.area_ha ? Math.max(900, Math.sqrt(a.area_ha * 1e4) * 4) : 2500 }, 900);
+      if (a.title && typeof extras !== 'undefined' && extras) extras.openPipeAt(a.lon, a.lat);  // a pipeline point: its card too
+    });
     $('marks').appendChild(el);
     return { el, first, pos: new THREE.Vector3(x, 0, z) };
   });
   if (ANOS.length) $('tlAno').hidden = false;
+  if (TL.anomaly_label) $('tlAno').lastChild.textContent = `${TL.anomaly_label} (nowe: limonkowe)`;
+  if (RISK_MODE) {  // pipeline classes in the timeline key too (both views; over the fringes they are easy to lose)
+    $('tlThr').insertAdjacentHTML('beforebegin', `<span class="tl-pipes">${[['#e03131', 'wysokie'], ['#f08c00', 'średnie'], ['#37b24d', 'niskie'], ['#8a96a3', 'sieć']]
+      .map(([c, t]) => `<span><i style="background:${c}"></i>${t}</span>`).join('')}</span>`);
+  }
 
   // contour lines of the phase analysis, drawn for the shown date only; labels are HTML like the other names
   const contours = PH && PH.contours && (() => {
@@ -1460,14 +1512,16 @@ const timeline = TL && (() => {
         if (!d || f.geometry.type !== 'LineString') continue;
         const pts = f.geometry.coordinates.map(toXZ);
         for (let j = 1; j < pts.length; j++) d.pos.push(pts[j - 1][0], y, pts[j - 1][1], pts[j][0], y, pts[j][1]);
-        if (pts.length >= 8 && f.properties.label) {
+        const [cx, cz] = pts[pts.length >> 1], [bx0, bx1, bz0, bz1] = sheets.phase.box;
+        if (pts.length >= 12 && f.properties.label && cx > bx0 && cx < bx1 && cz > bz0 && cz < bz1) {  // only over the fringe picture
           const m = pts[pts.length >> 1], el = document.createElement('div');
           el.className = 'lbl contour'; el.textContent = f.properties.label; el.style.display = 'none';
           $('marks').appendChild(el);
-          d.labels.push({ el, pos: new THREE.Vector3(m[0], y, m[1]) });
+          d.labels.push({ el, pos: new THREE.Vector3(m[0], y, m[1]), len: pts.length, mm: Math.abs(f.properties.mm || 0) });
         }
       }
       byDate.forEach((d) => {
+        d.labels.sort((a, b) => b.mm - a.mm || b.len - a.len);  // the deepest levels first, then the longest lines
         const geo = new THREE.BufferGeometry();
         geo.setAttribute('position', new THREE.Float32BufferAttribute(d.pos, 3));
         d.line = new THREE.LineSegments(geo, mat); d.line.visible = false; d.line.renderOrder = 3; scene.add(d.line);
@@ -1484,12 +1538,13 @@ const timeline = TL && (() => {
       place(w, h) {
         const d = byDate[shown];
         if (!d) return;
-        const near = camera.position.y < R * 0.35;  // names only when the area fills the picture
+        const near = camera.position.y < R * 0.35, placed = [], GAP = 150, MAX = 8;  // a few names, well apart
         for (const l of d.labels) {
           v3.copy(l.pos).project(camera);
-          const vis = near && v3.z < 1 && Math.abs(v3.x) < 1 && Math.abs(v3.y) < 1;
+          const sx = (v3.x + 1) / 2 * w, sy = (1 - v3.y) / 2 * h;
+          const vis = near && placed.length < MAX && v3.z < 1 && Math.abs(v3.x) < 0.95 && Math.abs(v3.y) < 0.95 && placed.every(([px, py]) => Math.hypot(px - sx, py - sy) > GAP);
           l.el.style.display = vis ? '' : 'none';
-          if (vis) l.el.style.transform = `translate(-50%, -50%) translate(${((v3.x + 1) / 2 * w).toFixed(1)}px, ${((1 - v3.y) / 2 * h).toFixed(1)}px)`;
+          if (vis) { placed.push([sx, sy]); l.el.style.transform = `translate(-50%, -50%) translate(${sx.toFixed(1)}px, ${sy.toFixed(1)}px)`; }
         }
       },
     };
@@ -1640,7 +1695,7 @@ function setMode(flat, animate = true) {
   controls.mouseButtons.LEFT = flat ? THREE.MOUSE.PAN : THREE.MOUSE.ROTATE;
   controls.touches.ONE = flat ? THREE.TOUCH.PAN : THREE.TOUCH.ROTATE;
   ['rotL', 'rotR', 'tiltBtn', 'spin', 'compass', 'exagWrap'].forEach((id) => { $(id).hidden = flat || (id === 'exagWrap' && !terrainGrid); });
-  $('hint').textContent = (flat ? 'Przeciągnij – przesuwanie · kółko – zoom' : 'Przeciągnij – obrót · prawy przycisk lub Shift – przesuwanie · kółko – zoom') + (typeof verify !== 'undefined' && verify ? ' · kliknij obiekt – sygnał z analizy' : typeof extras !== 'undefined' && extras ? ' · kliknij rurociąg, przekrój lub stację – szczegóły' : '');
+  $('hint').textContent = (flat ? 'Przeciągnij – przesuwanie · kółko – zoom' : 'Przeciągnij – obrót · prawy przycisk lub Shift – przesuwanie · kółko – zoom') + (typeof verify !== 'undefined' && verify ? ' · kliknij obiekt – sygnał z analizy' : typeof extras !== 'undefined' && extras ? ' · kliknij rurociąg lub dowolne miejsce – pomiar osiadania' : '');
   $('dim2').setAttribute('aria-pressed', String(flat));
   $('dim3').setAttribute('aria-pressed', String(!flat));
   if (timeline) timeline.show(flat);
@@ -2149,6 +2204,80 @@ const extras = (RISK_MODE || EXTRAS) && (() => {
       </dl></details>`, x, z);
   }
 
+
+  // ---- click on the map: the local measurement (the team's grid, ~250 m cells) with a plain-language verdict
+  const POINTS = TL?.points || null;
+  let pointData = null;
+  const loadPoints = () => (pointData = pointData || fetch(BASE + POINTS.file).then((r) => r.arrayBuffer()).then((b) => new Int16Array(b)));
+  const toLonLat = (x, z) => [W_LON + (x / SX + 0.5) * (E_LON - W_LON), S_LAT + (0.5 - z / SZ) * (N_LAT - S_LAT)];
+  async function showPoint(x, z) {
+    if (!POINTS) return;
+    open('<p class="vsub">Wczytywanie pomiaru…</p>', x, z);
+    const A = await loadPoints(), Wd = POINTS.width, Hd = POINTS.height, HW = Wd * Hd, E = dates.length, [bw, bs, be, bn] = POINTS.bbox;
+    const [lon, lat] = toLonLat(x, z);
+    const c0 = Math.floor((lon - bw) / (be - bw) * Wd), r0 = Math.floor((bn - lat) / (bn - bs) * Hd);
+    const val = (k, i) => (A[k * HW + i] === -32768 ? null : A[k * HW + i]);
+    // the cell itself, or the nearest one with a measurement (a cell = ~250 m; water and wetlands have none)
+    let cell = null;
+    for (let ring = 0; ring <= 2 && cell === null; ring++) {
+      for (let dr = -ring; dr <= ring; dr++) for (let dc = -ring; dc <= ring; dc++) {
+        const r = r0 + dr, c = c0 + dc;
+        if (cell !== null || r < 0 || c < 0 || r >= Hd || c >= Wd || (Math.abs(dr) !== ring && Math.abs(dc) !== ring)) continue;
+        const i = r * Wd + c;
+        if (val(E, i) !== null || val(E - 1, i) !== null) cell = i;
+      }
+    }
+    const inside = c0 >= 0 && r0 >= 0 && c0 < Wd && r0 < Hd;
+    const series = cell === null ? null : dates.map((_, e) => val(e, cell)), v = cell === null ? null : val(E, cell), sigma = cell === null ? null : val(E + 1, cell);
+    const conf = cell === null ? null : val(E + 2, cell);
+    const end = series ? series.filter((q) => q !== null).at(-1) : null;
+    // verdict: vertical rate from both orbits, with the same thresholds as the pipeline classes
+    const T_ = POINTS, V = [
+      [(q) => q <= -T_.v_high, '#e03131', 'Grunt wyraźnie osiada', 'Ruch wyraźnie ponad szum pomiaru – jak pod rurociągami wysokiego zagrożenia.'],
+      [(q) => q <= -T_.v_mid, '#f08c00', 'Grunt osiada umiarkowanie', 'Ruch ponad szum – jak pod rurociągami średniego zagrożenia.'],
+      [(q) => q <= -T_.v_noise, '#f2c94c', 'Słaby sygnał osiadania', 'Na granicy dokładności pomiaru – warto obserwować dalej.'],
+      [(q) => q >= T_.v_mid, '#4dabf7', 'Grunt się podnosi', 'Ruch w górę ponad szum pomiaru.'],
+      [() => true, '#37b24d', 'Grunt jest spokojny', 'Ruch w granicach szumu pomiaru.'],
+    ];
+    let verdict = v !== null ? V.find(([t]) => t(v)) : null;
+    if (!verdict && end !== null) verdict = end <= -2 * noise ? [null, '#f08c00', 'Grunt się obniżył', 'Wynik tylko z jednej orbity – bez rozbicia na ruch pionowy.']
+      : end <= -noise ? [null, '#f2c94c', 'Słaby sygnał obniżenia', 'Wynik tylko z jednej orbity, na granicy dokładności.'] : [null, '#37b24d', 'Grunt jest spokojny', 'Ruch w granicach szumu pomiaru (jedna orbita).'];
+    if (!verdict) verdict = [null, '#98a3ab', 'Satelita nie zmierzył tu ruchu', inside ? 'Woda, mokradła albo słaba koherencja radaru – nie wiadomo, czy grunt się rusza.' : 'To miejsce leży poza obszarem analizy.'];
+    const rate = (q) => (Math.abs(q) >= 100 ? `${num(Math.abs(q) / 10)} cm/rok` : `${num(Math.abs(q))} mm/rok`);
+    const plain = [
+      v !== null ? (Math.abs(v) < T_.v_noise ? 'Pionowo grunt prawie się nie rusza.' : `Pionowo grunt ${v < 0 ? 'osiada' : 'podnosi się'} w tempie ok. <b>${rate(v)}</b>${sigma ? ` (± ${num(sigma)} mm/rok)` : ''}.`) : '',
+      end !== null ? `Od ${dLong(dates[0]).slice(0, -5)} do ${dLong(dates.at(-1)).slice(0, -5)} przesunął się o <b>${num(Math.abs(end))} mm</b> ${end < 0 ? 'od satelity' : 'w stronę satelity'}.` : '',
+    ].filter(Boolean).join(' ');
+    // the nearest pipeline: is this place about the network at all?
+    const near = nearestLine(pipeLines, x, z, 3000, riskBias(3000));
+    const pipeTxt = near ? `Najbliższy rurociąg: <b>${esc(near.it.f.properties.name || 'bez nazwy')}</b>, ok. ${near.d >= 1000 ? num(near.d / 1000, 1) + ' km' : Math.round(near.d / 10) * 10 + ' m'} stąd (zagrożenie: ${esc(near.it.f.properties.risk || 'brak danych')}).` : 'W promieniu 3 km nie ma rurociągu z sieci.';
+    let svg = '';
+    if (series && series.some((q) => q !== null)) {
+      const [lo, hi] = rangeOf([series, [-noise * 1.3, noise * 1.3]]), c = end < -noise ? 'rgb(214,39,40)' : end > noise ? 'rgb(31,104,196)' : '#A2A6AC';
+      svg = chart({ label: 'Przemieszczenie gruntu w czasie', x0: 0, x1: series.length - 1, y0: lo, y1: hi, xs: series.map((_, i) => i), band: noise, yFmt: mmFmt,
+        xTicks: [[0, dLong(dates[0]).slice(0, -5)], [series.length - 1, dLong(dates.at(-1)).slice(0, -5)]],
+        lines: [{ ys: series, color: c, w: 2.2 }], dots: series.map((y, i) => (y === null ? null : [i, y, c])).filter(Boolean) })
+        + `<p class="vsub" style="margin:2px 0 0;font-size:11.5px">Ruch w linii widzenia satelity (orbita wznosząca). Szare pole: zmiana poniżej ${num(noise)} mm – za mała, by ją uznać.</p>`;
+    }
+    const CONF = ['brak danych', 'część par albo jedna orbita', 'pełny szereg, obie orbity'];
+    open(`<h3>Pomiar w tym miejscu</h3>
+      <div class="vsig" style="--sig:${verdict[1]};margin-top:8px"><div><b>${verdict[2]}</b><span>${verdict[3]}</span></div></div>
+      ${plain ? `<p class="vplain">${plain}</p>` : ''}${svg}
+      <p class="vsub" style="margin:8px 0 0">${pipeTxt}</p>
+      <details class="vmore"><summary>Szczegóły dla specjalistów</summary>
+      <dl class="vgrid">
+        ${v !== null ? `<dt>Ruch pionowy (2 orbity)</dt><dd>${signed(v, 'mm/rok')}${sigma ? ` ± ${num(sigma)}` : ''}</dd>` : ''}
+        ${end !== null ? `<dt>Zmiana LOS w okresie</dt><dd>${signed(end, 'mm')}</dd>` : ''}
+        ${conf !== null ? `<dt>Pewność danych</dt><dd>${CONF[Math.round(conf)] || '–'}</dd>` : ''}
+        <dt>Komórka pomiaru</dt><dd>ok. ${POINTS.pixel_m} m</dd>
+        <dt>Współrzędne</dt><dd>${lat.toFixed(4)}, ${lon.toFixed(4)}</dd>
+      </dl>
+      <ul class="vnotes" style="margin-top:8px">
+        <li>Ocena wg ruchu pionowego z dwóch orbit NISAR i tych samych progów co klasy rurociągów (szum tła ok. ${num(T_.v_noise)} mm/rok).</li>
+        <li>Wykres to ruch w linii widzenia satelity z ok. 4 miesięcy – tempo na rok jest przeliczone i może zawierać wpływ pory roku.</li>
+      </ul></details>`, x, z);
+  }
+
   // ---- the station as a marker on the map (both views)
   const st0 = EXTRAS?.stations?.[0];
   let stEl = null, stPos = null, visible = true;
@@ -2168,6 +2297,7 @@ const extras = (RISK_MODE || EXTRAS) && (() => {
   // ---- click: nearest section line or pipeline segment under the pointer
   const clickRay = new THREE.Raycaster();
   const profLines = (EXTRAS?.profiles || []).map((pr) => ({ pr, pts: pr.coords.map(toXZ) }));
+  const visiblePipes = () => pipeLines.filter((it) => groups.pipes?.visible || groups[PIPE_GROUP[it.f.properties.risk]]?.visible);
   const riskBias = (r) => (it) => (it.f && (it.f.properties.risk === 'wysokie' || it.f.properties.risk === 'średnie') ? r * 0.6 : 0);  // among parallel pipes prefer the rated-at-risk one
   function nearestLine(list, px, pz, r, bias = null) {
     let best = null;
@@ -2189,12 +2319,16 @@ const extras = (RISK_MODE || EXTRAS) && (() => {
     return { pt: ray.at(ground, new THREE.Vector3()), r: Math.max(8, 8 * ((2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * ground) / renderer.domElement.clientHeight)) };
   }
   return {
+    openPipeAt(lon, lat) {  // the card of the at-risk pipeline segment at this place (timeline markers)
+      const [x, z] = toXZ([lon, lat]), hit = nearestLine(pipeLines, x, z, 300, riskBias(300));
+      if (hit) showPipe(hit.it.f, hit.x, hit.z);
+    },
     /** Tooltip for a pipeline or section line under the pointer (these are not meshes the raycaster can hit). */
     tipAt(ray) {
       const aim = aimAt(ray);
       if (!aim) return '';
       const prof = visible ? nearestLine(profLines, aim.pt.x, aim.pt.z, aim.r) : null;
-      const pipe = RISK_MODE && groups.pipes?.visible ? nearestLine(pipeLines, aim.pt.x, aim.pt.z, aim.r, riskBias(aim.r)) : null;
+      const pipe = RISK_MODE ? nearestLine(visiblePipes(), aim.pt.x, aim.pt.z, aim.r, riskBias(aim.r)) : null;
       if (prof && (!pipe || prof.d <= pipe.d)) return `<b>${esc(prof.it.pr.title || prof.it.pr.name)}</b><br><span class="k">kliknij – wykres ruchu wzdłuż linii</span>`;
       return pipe ? riskTip(pipe.it.f.properties) : '';
     },
@@ -2207,9 +2341,10 @@ const extras = (RISK_MODE || EXTRAS) && (() => {
       if (!Number.isFinite(ground)) return false;
       const pt = clickRay.ray.at(ground, new THREE.Vector3()), r = Math.max(8, 10 * ((2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * ground) / box.height));
       const prof = visible ? nearestLine(profLines, pt.x, pt.z, r) : null;
-      const pipe = RISK_MODE && groups.pipes?.visible ? nearestLine(pipeLines, pt.x, pt.z, r, riskBias(r)) : null;
+      const pipe = RISK_MODE ? nearestLine(visiblePipes(), pt.x, pt.z, r, riskBias(r)) : null;
       if (prof && (!pipe || prof.d <= pipe.d)) { showProfile(prof.it.pr); return true; }
       if (pipe) { showPipe(pipe.it.f, pipe.x, pipe.z); return true; }
+      if (POINTS) { showPoint(pt.x, pt.z); return true; }
       return false;
     },
     place(w, h) {
@@ -2236,7 +2371,7 @@ renderer.domElement.addEventListener('pointerup', (e) => {
   downAt = null;
 });
 if (verify) { $('hint').textContent += ' · kliknij obiekt – sygnał z analizy'; setTimeout(() => verify.preload(), 1500); }
-else if (extras) $('hint').textContent += ' · kliknij rurociąg, przekrój lub stację – szczegóły';
+else if (extras) $('hint').textContent += ' · kliknij rurociąg lub dowolne miejsce – pomiar osiadania';
 
 // ------------------------------------------------------------------- frame
 function resize() {
