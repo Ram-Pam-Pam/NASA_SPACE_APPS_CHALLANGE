@@ -8,6 +8,11 @@ Projekt/
   frontend/   strona Corridor Watch (index.html), dane bierze z API
 ```
 
+## Wyniki
+
+Link do aplikacji: https://dance-floor.earth/
+Link do prezentacji: https://canva.link/lj04pa6hmqposq9
+
 ## Uruchomienie (Windows, PowerShell)
 
 ```powershell
