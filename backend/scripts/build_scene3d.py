@@ -409,9 +409,9 @@ def building_rectangles(buildings: list[tuple[bytes, dict]], bbox, m_per_deg_lon
 
 
 # -------------------------------------------------------------- ground photo
-def fetch_ground(bbox, size, out: Path, cache: Path | None) -> dict:
-    """Download the aerial photo in tiles (big single requests time out) and join them into one JPEG
-    that covers exactly the AOI box with `size` pixels.
+def fetch_mosaic(bbox, size, cache: Path | None, bands: str = "0,1,2", tag: str = "ground", workers: int = 4) -> np.ndarray:
+    """Aerial photo bands (NAIP: 0 red, 1 green, 2 blue, 3 near infrared) over exactly the box, as a
+    (bands, height, width) uint8 array. Fetched in tiles (big single requests time out).
 
     The image service only returns the requested box when the pixels are square in the request's
     coordinates (degrees here); otherwise it silently widens the box and every tile would be squeezed
@@ -419,17 +419,20 @@ def fetch_ground(bbox, size, out: Path, cache: Path | None) -> dict:
     resampled to the wanted grid."""
     w, s, e, n = bbox
     width, height = size
+    nb = len(bands.split(","))
     d = min((e - w) / width, (n - s) / height)  # pixel size in degrees, the finer of the two directions
     cols, rows = math.ceil((e - w) / d - 1e-6), math.ceil((n - s) / d - 1e-6)
-    mosaic = np.zeros((3, rows, cols), dtype=np.uint8)
+    mosaic = np.zeros((nb, rows, cols), dtype=np.uint8)
+    key = f"{w:.6f}_{n:.6f}_{d:.3e}".replace("-", "m")
 
     def tile(origin):
         x0, y0 = origin
         tw, th = min(GROUND_TILE_PX, cols - x0), min(GROUND_TILE_PX, rows - y0)
         west, north = w + x0 * d, n - y0 * d
         params = {"bbox": f"{west},{north - th * d},{west + tw * d},{north}", "bboxSR": 4326, "imageSR": 4326, "size": f"{tw},{th}",
-                  "format": "jpg", "compressionQuality": 95, "bandIds": "0,1,2", "interpolation": "RSP_BilinearInterpolation", "f": "image"}
-        tile_file = cache / f"ground_sq_{cols}x{rows}_{x0}_{y0}.jpg" if cache else None
+                  "format": "jpg", "compressionQuality": 95, "bandIds": bands, "interpolation": "RSP_BilinearInterpolation", "f": "image"}
+        legacy = cache / f"ground_sq_{cols}x{rows}_{x0}_{y0}.jpg" if cache and tag == "ground" and bands == "0,1,2" else None
+        tile_file = legacy if legacy and legacy.exists() else (cache / f"{tag}_{key}_{x0}_{y0}.jpg" if cache else None)
         for _ in range(12):
             if tile_file and tile_file.exists():
                 return x0, y0, tw, th, tile_file.read_bytes()
@@ -445,21 +448,36 @@ def fetch_ground(bbox, size, out: Path, cache: Path | None) -> dict:
         raise RuntimeError("NAIP image service did not return an image")
 
     origins = [(x0, y0) for y0 in range(0, rows, GROUND_TILE_PX) for x0 in range(0, cols, GROUND_TILE_PX)]
-    with ThreadPoolExecutor(max_workers=4) as pool:
+    with ThreadPoolExecutor(max_workers=workers) as pool:
         for i, (x0, y0, tw, th, data) in enumerate(pool.map(tile, origins)):
-            name = f"/vsimem/tile_{i}.jpg"
+            name = f"/vsimem/{tag}_{key}_{x0}_{y0}.jpg"  # unique: several mosaics may run in parallel
             gdal.FileFromMemBuffer(name, data)
-            mosaic[:, y0:y0 + th, x0:x0 + tw] = gdal.Open(name).ReadAsArray()
+            arr = gdal.Open(name).ReadAsArray()
+            arr = arr.reshape(1, th, tw) if arr.ndim == 2 else arr[:nb]  # a single band can come back as grey RGB
+            mosaic[:, y0:y0 + th, x0:x0 + tw] = arr
             gdal.Unlink(name)
-    mem = gdal.GetDriverByName("MEM").Create("", cols, rows, 3, gdal.GDT_Byte)
+    mem = gdal.GetDriverByName("MEM").Create("", cols, rows, nb, gdal.GDT_Byte)
     mem.SetGeoTransform((w, d, 0, n, 0, -d))
     mem.SetSpatialRef(WGS84)
     mem.WriteArray(mosaic)
     exact = gdal.Warp("", mem, format="MEM", outputBounds=(w, s, e, n), width=width, height=height, resampleAlg="cubic")
-    gdal.GetDriverByName("JPEG").CreateCopy(str(out), exact, options=["QUALITY=86"])
+    return exact.ReadAsArray().reshape(nb, height, width)
+
+
+def save_jpeg(arr: np.ndarray, out: Path, quality: int) -> None:
+    nb, h, w = arr.shape
+    mem = gdal.GetDriverByName("MEM").Create("", w, h, nb, gdal.GDT_Byte)
+    mem.WriteArray(arr)
+    gdal.GetDriverByName("JPEG").CreateCopy(str(out), mem, options=[f"QUALITY={quality}"])
     aux = Path(str(out) + ".aux.xml")
     if aux.exists():
         aux.unlink()
+
+
+def fetch_ground(bbox, size, out: Path, cache: Path | None) -> dict:
+    """The aerial photo over exactly the AOI box, saved as one JPEG (`size` pixels), plus its date."""
+    w, s, e, n = bbox
+    save_jpeg(fetch_mosaic(bbox, size, cache), out, 86)
     info = {"source": "USGS NAIP Plus (USDA aerial photo)", "date": None, "resolution_m": None}
     try:
         query = {"where": "Category=1", "geometry": f"{(w + e) / 2},{(s + n) / 2}", "geometryType": "esriGeometryPoint", "inSR": 4326,
@@ -829,6 +847,9 @@ def main() -> None:
     }
     (args.out / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=1), encoding="utf-8")
     print("written to", args.out)
+    if big and args.cache:  # city scale: close-up photo tiles, trees from the infrared, real footprints
+        import build_scene_detail
+        build_scene_detail.run(args.aoi, args.out, args.cache)
 
 
 if __name__ == "__main__":

@@ -201,6 +201,31 @@ Projekt/
   energetyczne ze słupami (`power_3d.geojson`). Pliki robi `backend/scripts/build_symbols.py 3d <data>`
   z warstw w folderze `3d/` (duże pliki źródłowe, nie commitować).
 
+## Szczegóły Portuguese Bend i sygnał do weryfikacji (15.11.2026)
+- **`backend/scripts/build_scene_detail.py`** (uruchamiany też z `build_scene3d.py` dla AOI > 10 km z `--cache`):
+  98 kafli zdjęcia NAIP ~1,2 m (`ground_tiles/<r>_<c>.jpg`, 45 MB, ładowane w widoku tylko w pobliżu kamery,
+  max 16 naraz), drzewa z podczerwieni NAIP (NDVI + ciemność/szorstkość korony; 178 tys.), prawdziwe obrysy
+  budynków z kolorem dachu ze zdjęcia (`buildings_fp.bin`, 9 MB; zastępuje `buildings.bin`). Pobieranie
+  idzie równolegle (5 kafli naraz) – serwis NAIP odpowiada ~30 s na zapytanie.
+- **Klik na obiekt → panel „Sygnał do weryfikacji”** (`verify` w `view3d.html`, tylko gdy lokalizacja ma też
+  pakiet InSAR o tym samym id). Dopasowanie do wyników zespołu: budynek → `buildings_risk` (wewnątrz/≤12 m),
+  rurociąg → `pipelines` (≤120 m, przebiegi schematyczne), linia energetyczna/kolej → `critical`, droga →
+  `roads_risk`; klik obok cienkiej linii dociąga do niej (~10 px). Budynek/droga spoza list i z serią pomiarów
+  → „brak sygnału ponad szum” (listy zawierają tylko narażone + kontekst przy strefie).
+  Klasy pokazane jako sygnał: wysokie = „silny sygnał – priorytet weryfikacji”, średnie = „umiarkowany”,
+  niskie = „brak sygnału ponad szum”, brak danych = „brak wiarygodnego pomiaru”. Zawsze trzy zastrzeżenia:
+  klasa = ruch gruntu pod obiektem (nie stan konstrukcji), pomiar w LOS, tempo z ~6 miesięcy (pora deszczowa).
+- **Panel jest napisany dla laika** (prośba 15.11): na wierzchu tylko werdykt („Grunt pod tym budynkiem
+  wyraźnie/lekko się przesuwa / jest spokojny”), jedno zdanie ile i w którą stronę (cm, „obniżył się lub
+  zsunął” – LOS, więc z „lub”), czy ruch był stały, co zrobić, mały wykres z datami. Liczby, klasy,
+  uzasadnienie i zastrzeżenia techniczne są w zwiniętym „Szczegóły dla specjalistów”.
+- **Sezonowość – rozwiązanie w UI:** „Czy to trwały ruch?” – seria z najsilniej poruszającego się piksela
+  (3×3 × 100 m) i test: tempo w 1. i 2. połowie okresu + odsetek 12-dniowych kroków w kierunku trendu →
+  „narasta w obu połowach” / „skupiony w części okresu (możliwa pora deszczowa)” / „zmienił kierunek”;
+  plus `okna_ruch` (≥2 = ruch powtarza się w kolejnych oknach). **Docelowo (zespół analizy):** seria ≥ 12
+  miesięcy i model trend + sinusoida roczna; porównanie tej samej pory roku rok do roku; historia z
+  Sentinel-1 (np. produkt OPERA DISP-S1) i orbity wznoszące+zstępujące do rozbicia LOS na pion/wschód.
+
 ## Pomysły na dalej
 - **Zakładki case study** zamiast listy rozwijanej + uogólnienie UI na różne typy obiektów (patrz „Koncepcja”).
 - Strona/panel „Dodaj lokalizację” (formularz: metadane + wgranie data.js) – żeby zespół nie używał `/docs`.

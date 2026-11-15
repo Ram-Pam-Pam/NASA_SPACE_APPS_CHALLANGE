@@ -120,6 +120,31 @@ body.flat .bar h1::before { content: "Widok 2D"; }
 #compass svg { width: 40px; height: 40px; }
 #hint { left: 50%; top: 14px; transform: translateX(-50%); padding: 7px 14px; font-size: 12.5px; color: var(--text-2); white-space: nowrap; pointer-events: none; transition: opacity .6s; }
 #src { position: absolute; left: 14px; bottom: 10px; z-index: 9; max-width: calc(100% - 200px); font-size: 11px; line-height: 1.4; color: rgba(162,166,172,.85); pointer-events: none; }
+/* Verification signal for a clicked object (results of the InSAR analysis) */
+#verify { right: 14px; top: 80px; width: 340px; max-height: calc(100% - 200px); overflow: auto; padding: 14px 16px 14px; z-index: 12; }
+body.flat #verify { top: 14px; max-height: calc(100% - 120px); }
+#verify .vx { position: absolute; top: 8px; right: 8px; width: 28px; height: 28px; padding: 0; border-radius: 50%; display: grid; place-items: center; font-size: 16px; line-height: 1; }
+#verify h3 { margin: 0 30px 2px 0; font-size: 15px; font-weight: 600; }
+#verify .vsub { margin: 0 0 10px; font-size: 12.5px; color: var(--text-2); }
+.vsig { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: 8px; background: var(--wash); border-left: 4px solid var(--sig); }
+.vsig b { display: block; font-size: 14px; }
+.vsig span { font-size: 12.5px; color: var(--text-2); }
+.vgrid { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; margin: 10px 0 0; font-size: 12.5px; }
+.vgrid dt { color: var(--text-2); }
+.vgrid dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.vh { margin: 14px 0 6px; font: var(--label); letter-spacing: .07em; text-transform: uppercase; color: var(--text-2); }
+.vtrend { font-size: 12.5px; line-height: 1.45; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); }
+.vtrend b { font-weight: 600; }
+.vnotes { margin: 0; padding-left: 16px; font-size: 12px; line-height: 1.45; color: var(--text-2); }
+.vnotes li + li { margin-top: 4px; }
+.vnext { font-size: 12.5px; line-height: 1.45; }
+.vplain { margin: 10px 0 8px; font-size: 14px; line-height: 1.5; }
+.vplain b { font-weight: 700; }
+.vmore { margin-top: 10px; border-top: 1px solid var(--border); padding-top: 8px; }
+.vmore summary { cursor: pointer; font-size: 12.5px; color: var(--text-2); }
+.vmore summary:hover { color: var(--text); }
+.amark.sel .dot { width: 14px; height: 14px; left: -7px; top: -7px; background: var(--accent); border-color: #0B0C0E; }
+.amark.sel .ring { width: 14px; height: 14px; left: -7px; top: -7px; border-color: var(--accent); }
 #tip { position: fixed; z-index: 50; pointer-events: none; max-width: 300px; padding: 8px 11px; background: #15171A; border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--shadow); font-size: 12.5px; line-height: 1.45; display: none; }
 #tip b { font-weight: 600; }
 #tip .k { color: var(--text-2); }
@@ -207,6 +232,10 @@ body.flat .bar h1::before { content: "Widok 2D"; }
     <button id="spin" class="wide" aria-pressed="false">Obracaj model</button>
   </div>
 
+  <aside class="panel" id="verify" hidden aria-live="polite">
+    <button class="vx" id="vClose" aria-label="Zamknij" title="Zamknij">×</button>
+    <div id="vBody"></div>
+  </aside>
   <div class="panel" id="hint" hidden>Przeciągnij – obrót · prawy przycisk lub Shift – przesuwanie · kółko – zoom</div>
   <div id="src"></div>
 </div>
@@ -468,6 +497,7 @@ if (terrainGrid) {
 }
 const ground = new THREE.Mesh(groundGeo, new THREE.MeshBasicMaterial({ ...(photo ? { map: photo } : { color: 0x4f6b3c }), vertexColors: !!terrainGrid }));
 terrain.add(ground);
+let detailTiles = null;  // close-up photo tiles, set up below once the terrain exists
 function shadeTerrain() {
   terrain.scale.y = Math.max(EXAG, 1e-4);
   if (!terrainGrid) return;
@@ -484,8 +514,85 @@ function shadeTerrain() {
     }
   }
   col.needsUpdate = true;
+  if (detailTiles) detailTiles.reshade();
 }
 shadeTerrain();
+
+// Close-up photo tiles (city-scale scenes): sharper aerial photo near the camera. Each tile is a patch of the
+// terrain lattice itself (same heights and relief shading) with its own texture, drawn over the base photo.
+detailTiles = (() => {
+  const TI = META.ground?.tiles;
+  if (!TI || !terrainGrid || T.width !== TI.grid * TI.cells + 1) return null;
+  const N = TI.grid, C = TI.cells, n = C + 1, have = new Set(TI.list.map(([r, c]) => `${r}_${c}`));
+  const loader = new THREE.TextureLoader(), live = new Map(), wanted = new Set();
+  const MAX_LIVE = 16, NEAR = Math.min(6000, R * 0.22), gpos = groundGeo.attributes.position;
+  const tw = SX / N, th = SZ / N, box = new THREE.Box3(), frustum = new THREE.Frustum(), pm = new THREE.Matrix4();
+  let loading = 0, last = 0;
+  // shared index for every tile patch (same layout as THREE.PlaneGeometry)
+  const index = [];
+  for (let i = 0; i < C; i++) for (let j = 0; j < C; j++) { const a = i * n + j, b = a + n; index.push(a, b, a + 1, b, b + 1, a + 1); }
+  const uv = new Float32Array(n * n * 2);
+  for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) uv.set([j / C, 1 - i / C], (i * n + j) * 2);
+  const gi = (r, c, i, j) => (r * C + i) * GW + (c * C + j);
+  function shadeOf(r, c, col) {
+    const g = groundGeo.attributes.color;
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) { const k = gi(r, c, i, j), q = (i * n + j) * 3; col[q] = g.getX(k); col[q + 1] = g.getY(k); col[q + 2] = g.getZ(k); }
+  }
+  function add(key, tex) {
+    const [r, c] = key.split('_').map(Number), pos = new Float32Array(n * n * 3), col = new Float32Array(n * n * 3);
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) { const k = gi(r, c, i, j); pos.set([gpos.getX(k), gpos.getY(k), gpos.getZ(k)], (i * n + j) * 3); }
+    shadeOf(r, c, col);
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+    geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    geo.setIndex(index);
+    const mesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ map: tex, vertexColors: true, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }));
+    terrain.add(mesh);
+    live.set(key, { mesh, r, c, used: performance.now() });
+    dirty = true;
+  }
+  function drop(key) {
+    const t = live.get(key);
+    terrain.remove(t.mesh); t.mesh.geometry.dispose(); t.mesh.material.map.dispose(); t.mesh.material.dispose();
+    live.delete(key);
+  }
+  return {
+    reshade() { for (const t of live.values()) { shadeOf(t.r, t.c, t.mesh.geometry.attributes.color.array); t.mesh.geometry.attributes.color.needsUpdate = true; } },
+    update(now) {
+      if (now - last < 250) return;
+      last = now;
+      frustum.setFromProjectionMatrix(pm.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse));
+      const cam = camera.position, list = [];
+      for (const key of have) {
+        const [r, c] = key.split('_').map(Number), x0 = -SX / 2 + c * tw, z0 = -SZ / 2 + r * th;
+        const dx = Math.max(x0 - cam.x, 0, cam.x - (x0 + tw)), dz = Math.max(z0 - cam.z, 0, cam.z - (z0 + th));
+        const d = Math.hypot(dx, dz, Math.max(0, cam.y - H(x0 + tw / 2, z0 + th / 2)));
+        if (d > NEAR) continue;
+        box.min.set(x0, -10, z0); box.max.set(x0 + tw, (T.max_m - T.min_m) * Math.max(EXAG, 0.01) + 50, z0 + th);
+        if (frustum.intersectsBox(box)) list.push([d, key]);
+      }
+      list.sort((a, b) => a[0] - b[0]);
+      wanted.clear();
+      list.slice(0, MAX_LIVE).forEach(([, key]) => wanted.add(key));
+      for (const key of wanted) {
+        if (live.has(key)) { live.get(key).used = now; continue; }
+        if (loading >= 3 || live.has(key + '…')) continue;
+        loading++; live.set(key + '…', null);
+        loader.load(BASE + TI.dir + '/' + key + '.jpg', (tex) => {
+          loading--; live.delete(key + '…');
+          tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+          add(key, tex);
+        }, undefined, () => { loading--; live.delete(key + '…'); have.delete(key); });
+      }
+      // free the tiles that are not wanted any more, the longest unused first
+      const extra = [...live.entries()].filter(([k, t]) => t && !wanted.has(k)).sort((a, b) => a[1].used - b[1].used);
+      while (live.size > MAX_LIVE && extra.length) drop(extra.shift()[0]);
+      for (const [k, t] of extra) if (now - t.used > 20000) drop(k);
+    },
+    count: () => [...live.values()].filter(Boolean).length,
+  };
+})();
 const slab = new THREE.Mesh(new THREE.BoxGeometry(SX, R * 0.012, SZ), new THREE.MeshLambertMaterial({ color: 0x4a3f33 }));
 slab.position.y = -R * 0.006 - 0.05;
 scene.add(slab);
@@ -539,9 +646,40 @@ function seaTexture() {
 const tipRow = (k, v) => (v || v === 0 ? `<br><span class="k">${k}:</span> ${esc(v)}` : '');
 const layerFile = (name) => (META.layers?.[name]?.count ? getJSON(BASE + META.layers[name].file).then((g) => g.features).catch(() => []) : Promise.resolve([]));
 const binFile = (info) => (info?.count ? fetch(BASE + info.file).then((r) => (r.ok ? r.arrayBuffer() : null)).catch(() => null) : null);
-const [roads, rail, water, pipes, areas, places, buildings, hazards, power, treeBuf, bldBuf] = await Promise.all([
-  ...['roads', 'rail', 'water', 'pipelines', 'areas', 'places', 'buildings', 'hazards', 'power'].map(layerFile), binFile(META.trees), binFile(META.buildings_bin),
+const [roads, rail, water, pipes, areas, places, buildings, hazards, power, treeBuf, bldBuf, fpBuf] = await Promise.all([
+  ...['roads', 'rail', 'water', 'pipelines', 'areas', 'places', 'buildings', 'hazards', 'power'].map(layerFile), binFile(META.trees), binFile(META.buildings_fp ? null : META.buildings_bin), binFile(META.buildings_fp),
 ]);
+
+// Building footprints (city-scale scenes): decoded and triangulated once, every build() only places them.
+const FP = fpBuf && (() => {
+  const dv = new DataView(fpBuf), n = META.buildings_fp.count, len = fpBuf.byteLength;
+  const start = new Uint32Array(n + 1), height = new Float32Array(n), pitched = new Uint8Array(n), roof = new Float32Array(n * 3);
+  let o = 0, total = 0;
+  for (let i = 0; i < n && o < len; i++) { const k = dv.getUint8(o); start[i] = total; total += k; o += 6 + 4 * k; }
+  start[n] = total;
+  const X = new Float32Array(total), Z = new Float32Array(total), triStart = new Uint32Array(n + 1), tris = [];
+  const c = new THREE.Color(), CH = 12, chunkOf = new Uint16Array(n);
+  o = 0;
+  for (let i = 0; i < n; i++) {
+    const k = dv.getUint8(o), s0 = start[i];
+    height[i] = dv.getUint8(o + 1) / 2; pitched[i] = dv.getUint8(o + 2) & 1;
+    c.setRGB(dv.getUint8(o + 3) / 255, dv.getUint8(o + 4) / 255, dv.getUint8(o + 5) / 255, THREE.SRGBColorSpace);
+    roof.set([c.r, c.g, c.b], i * 3);
+    o += 6;
+    let cx = 0, cz = 0;
+    const contour = [];
+    for (let j = 0; j < k; j++, o += 4) {
+      const x = (dv.getUint16(o, true) / 65535 - 0.5) * SX, z = (dv.getUint16(o + 2, true) / 65535 - 0.5) * SZ;
+      X[s0 + j] = x; Z[s0 + j] = z; cx += x; cz += z;
+      contour.push(new THREE.Vector2(x, -z));
+    }
+    triStart[i] = tris.length;
+    for (const t of THREE.ShapeUtils.triangulateShape(contour, [])) tris.push(t[0], t[1], t[2]);
+    chunkOf[i] = Math.min(CH - 1, Math.floor((cz / k / SZ + 0.5) * CH)) * CH + Math.min(CH - 1, Math.floor((cx / k / SX + 0.5) * CH));
+  }
+  triStart[n] = tris.length;
+  return { n, start, X, Z, height, pitched, roof, tris: Uint32Array.from(tris), triStart, chunkOf, CH };
+})();
 
 const labels = [];
 const addLabel = (text, x, z, y, cls, maxDist = Infinity) => {
@@ -729,7 +867,7 @@ for (const f of roads) {
     const yAt = p.bridge ? (t) => y0 + (y1 - y0) * t + 0.6 + Math.min(4, len * 0.06) * Math.sin(Math.PI * t) : (t, x, z) => H(x, z) + 0.6;
     roadB.add(ribbon(pts, p.width_m || 4, yAt), color, tip);
     if (p.bridge && !BIG) [-1, 1].forEach((s) => roadB.add(ribbon(pts, 0.3, (t, x, z) => yAt(t, x, z) + 0.55, s * (p.width_m || 4) / 2), ROAD.parapet));
-    if (main && !BIG) for (const [x, z, h, t] of walk(pts, 14, 4)) {  // 7 m dash, 7 m gap
+    if (main && (!BIG || p.kind !== 'secondary')) for (const [x, z, h, t] of walk(pts, 14, 4)) {  // 7 m dash, 7 m gap
       const y = yAt(t, x, z) + 0.15, c = Math.cos(h) * 3.5, s = Math.sin(h) * 3.5, nx = -Math.sin(h) * 0.22, nz = Math.cos(h) * 0.22;
       dashPos.push(x - c + nx, y, z - s + nz, x - c - nx, y, z - s - nz, x + c + nx, y, z + s + nz, x - c - nx, y, z - s - nz, x + c - nx, y, z + s - nz, x + c + nx, y, z + s + nz);
     }
@@ -745,27 +883,70 @@ if (dashPos.length) {
 addBatch('roads', roadB);
 Object.entries(refBest).sort((a, b) => b[1].total - a[1].total).slice(0, BIG ? 10 : 99).forEach(([ref, r]) => addLabel(ref, r.x, r.z, H(r.x, r.z) + 14 * K, 'road'));
 
-// ---- rail: ballast, sleepers, two rails
+// ---- rail: one textured strip per track (ballast, sleepers every 0.65 m, two steel rails)
+const railTexture = (() => {
+  const cv = document.createElement('canvas'); cv.width = 64; cv.height = 128;
+  const g = cv.getContext('2d');
+  g.fillStyle = '#857b70'; g.fillRect(0, 0, 64, 128);
+  for (let k = 0; k < 200; k++) { g.fillStyle = `rgba(${40 + Math.random() * 60},${38 + Math.random() * 50},${35 + Math.random() * 40},.35)`; g.fillRect(Math.random() * 64, Math.random() * 128, 2, 2); }
+  g.fillStyle = '#4f3b2b';
+  for (let y = 4; y < 128; y += 16) g.fillRect(6, y, 52, 8);  // 8 sleepers per 5.2 m
+  g.fillStyle = '#c9ced3'; g.fillRect(19, 0, 4, 128); g.fillRect(41, 0, 4, 128);
+  const t = new THREE.CanvasTexture(cv);
+  t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8;
+  return t;
+})();
+/** Like ribbon(), with texture coordinates: u across the strip, v along it (one unit per `repeat` metres). */
+function ribbonUV(pts, width, yAt, repeat) {
+  const geo = ribbon(pts, width, yAt), n = pts.length, uv = new Float32Array(n * 4);
+  let run = 0;
+  for (let i = 0; i < n; i++) {
+    if (i) run += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+    uv.set([0, run / repeat, 1, run / repeat], i * 4);
+  }
+  geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+  return geo;
+}
 if (rail.length) {
-  const railB = new Batch(flat(0xffffff, { vertexColors: true })), sleepers = [], tracks = [];
+  const parts = [], tips = [];
   for (const f of rail) {
     const p = f.properties, dead = ['disused', 'abandoned'].includes(p.kind);
-    if (p.tunnel) continue;
+    if (p.tunnel || dead) continue;
     for (const coords of lines(f.geometry)) {
       const pts = dense(coords.map(toXZ));
       if (pts.length < 2) continue;
-      railB.add(ribbon(pts, 3.4, (t, x, z) => H(x, z) + 0.5), dead ? 0x6d6a5f : 0x7a7068, p.name ? `<b>${esc(p.name)}</b>${dead ? '<br>nieczynne' : ''}${tipRow('Operator', p.operator)}` : null);
-      [-0.72, 0.72].forEach((s) => railB.add(ribbon(pts, 0.16, (t, x, z) => H(x, z) + 0.9, s), dead ? 0x8a6a55 : 0xd5dade));
-      tracks.push(pts);
+      parts.push(ribbonUV(pts, 3.2, (t, x, z) => H(x, z) + 0.55, 5.2));
+      tips.push(p.name ? `<b>${esc(p.name)}</b>${tipRow('Operator', p.operator)}` : null);
     }
   }
-  addBatch('rail', railB);
-  const total = tracks.reduce((s, pts) => s + pathLen(pts), 0);
-  if (total / 1.3 < 60000) {  // sleepers only where their number stays reasonable
-    tracks.forEach((pts) => sleepers.push(...walk(pts, 1.3, 0.6)));
-    const mesh = new THREE.InstancedMesh(new THREE.BoxGeometry(0.26, 0.18, 2.6), lit(0x5a4636), sleepers.length);
-    const m = new THREE.Matrix4(), q = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0), one = new THREE.Vector3(1, 1, 1);
-    sleepers.forEach(([x, z, h], i) => mesh.setMatrixAt(i, m.compose(new THREE.Vector3(x, H(x, z) + 0.68, z), q.setFromAxisAngle(up, -h), one)));
+  const deadB = new Batch(flat(0xffffff, { vertexColors: true }));  // disused track: just a faded bed
+  for (const f of rail) {
+    if (!['disused', 'abandoned'].includes(f.properties.kind) || f.properties.tunnel) continue;
+    for (const coords of lines(f.geometry)) { const pts = dense(coords.map(toXZ)); if (pts.length > 1) deadB.add(ribbon(pts, 2.6, (t, x, z) => H(x, z) + 0.5), 0x7d756b); }
+  }
+  addBatch('rail', deadB);
+  if (parts.length) {
+    // merge into one mesh; a face index finds its track for the tooltip
+    let nv = 0, ni = 0;
+    parts.forEach((g) => { nv += g.attributes.position.count; ni += g.index.count; });
+    const pos = new Float32Array(nv * 3), uv = new Float32Array(nv * 2), idx = new Uint32Array(ni), ends = [];
+    let v = 0, q = 0;
+    parts.forEach((g) => {
+      pos.set(g.attributes.position.array, v * 3); uv.set(g.attributes.uv.array, v * 2);
+      const ix = g.index.array;
+      for (let k = 0; k < ix.length; k++) idx[q + k] = ix[k] + v;
+      v += g.attributes.position.count; q += ix.length; ends.push(q / 3);
+      g.dispose();
+    });
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+    geo.setIndex(new THREE.BufferAttribute(idx, 1));
+    const mesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ map: railTexture, side: THREE.DoubleSide, ...OFFSET }));
+    if (tips.some(Boolean)) {
+      mesh.userData.tipAt = (face) => { let lo = 0, hi = ends.length - 1; while (lo < hi) { const mid = (lo + hi) >> 1; if (ends[mid] > face) hi = mid; else lo = mid + 1; } return tips[lo]; };
+      pickables.push(mesh);
+    }
     group('rail').add(mesh);
   }
 }
@@ -871,7 +1052,66 @@ buildings.forEach((f, i) => {
   }
 });
 
-// ---- buildings as oriented boxes (a whole city): one instanced mesh for walls, one per roof type
+// ---- buildings from footprints (a whole city): real outlines, roof colour from the aerial photo, pitched
+// roofs on small houses. Merged per area chunk (so the camera can skip chunks it does not see).
+if (FP) {
+  const { n, start, X, Z, height, pitched, roof, tris, triStart, chunkOf, CH } = FP;
+  const members = Array.from({ length: CH * CH }, () => []);
+  for (let i = 0; i < n; i++) members[chunkOf[i]].push(i);
+  const wallCols = WALLS.map((h) => new THREE.Color(h)), bigWall = [0xd5d7d6, 0xc9cccd, 0xdcd6cb, 0xbfc5c9].map((h) => new THREE.Color(h));
+  const mat = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true, side: THREE.DoubleSide });
+  const sunk = FLAT ? 0 : 4;
+  for (const ids of members) {
+    if (!ids.length) continue;
+    let nv = 0, ni = 0;
+    for (const i of ids) {
+      const k = start[i + 1] - start[i], gable = pitched[i] && !FLAT;
+      nv += 2 * k + (gable ? 6 : k); ni += 6 * k + (gable ? 18 : triStart[i + 1] - triStart[i]);
+    }
+    const pos = new Float32Array(nv * 3), col = new Float32Array(nv * 3), idx = new Uint32Array(ni);
+    let v = 0, q = 0;
+    const put = (x, y, z, cr) => { pos[v * 3] = x; pos[v * 3 + 1] = y; pos[v * 3 + 2] = z; col[v * 3] = cr.r; col[v * 3 + 1] = cr.g; col[v * 3 + 2] = cr.b; return v++; };
+    const wc = new THREE.Color(), rc = new THREE.Color();
+    for (const i of ids) {
+      const s0 = start[i], k = start[i + 1] - s0, rand = rng(i * 7919 + 13);
+      let base = 0;
+      for (let j = 0; j < k; j++) base += H(X[s0 + j], Z[s0 + j]);
+      base /= k;
+      const h = FLAT ? 0.6 : height[i], top = base + h, gable = pitched[i] && !FLAT;
+      rc.setRGB(roof[i * 3], roof[i * 3 + 1], roof[i * 3 + 2]).multiplyScalar(1.08);
+      wc.copy(pitched[i] ? wallCols[Math.floor(rand() * wallCols.length)] : bigWall[Math.floor(rand() * bigWall.length)]);
+      // walls: bottom ring + top ring, two triangles per edge
+      const b0 = v;
+      for (let j = 0; j < k; j++) put(X[s0 + j], base - sunk, Z[s0 + j], wc);
+      for (let j = 0; j < k; j++) put(X[s0 + j], top, Z[s0 + j], wc);
+      for (let j = 0; j < k; j++) {
+        const a = b0 + j, b = b0 + (j + 1) % k, ta = a + k, tb = b + k;
+        idx.set([a, b, tb, a, tb, ta], q); q += 6;
+      }
+      if (!gable) {  // flat roof in the photo's roof colour
+        const r0 = v;
+        for (let j = 0; j < k; j++) put(X[s0 + j], top + 0.05, Z[s0 + j], rc);
+        for (let t = triStart[i]; t < triStart[i + 1]; t++) idx[q++] = r0 + tris[t];
+        continue;
+      }
+      // pitched roof over the footprint's smallest rectangle, with a small overhang
+      const foot = [];
+      for (let j = 0; j < k; j++) foot.push([X[s0 + j], -Z[s0 + j]]);
+      const r = boundingRect(foot), ux = Math.cos(r.ang), uy = Math.sin(r.ang), over = 0.5, rise = Math.min(3.2, r.b * 0.75);
+      const at = (su, sv, y) => put(r.cx + ux * su * r.a - uy * sv * (r.b + over), y, -(r.cy + uy * su * r.a + ux * sv * (r.b + over)), rc);
+      const e11 = at(1, 1, top), e01 = at(-1, 1, top), e10 = at(1, -1, top), e00 = at(-1, -1, top), r1 = at(1, 0, top + rise), r0 = at(-1, 0, top + rise);
+      idx.set([e11, e01, r0, e11, r0, r1, e10, r1, r0, e10, r0, e00, e11, r1, e10, e01, e00, r0], q); q += 18;
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    geo.setIndex(new THREE.BufferAttribute(idx, 1));
+    geo.computeBoundingSphere();
+    group('buildings').add(new THREE.Mesh(geo, mat));
+  }
+}
+
+// ---- buildings as oriented boxes (older city packages): one instanced mesh for walls, one per roof type
 if (bldBuf) {
   const n = META.buildings_bin.count, u16 = new Uint16Array(bldBuf, 0, 4 * n), u8 = new Uint8Array(bldBuf, 8 * n, 3 * n);
   let small = 0;
@@ -949,7 +1189,7 @@ if (BIG && spots.length && hazards.length) {  // a big area with one hot spot: o
 const hasSinkhole = water.some((f) => f.properties.kind === 'sinkhole');
 const LAYERS = [  // id, name, count, colour, switched on at start, optional (hidden when the data set has none)
   ['hazards', 'Strefa zagrożenia', hazards.length + water.filter((f) => f.properties.kind === 'sinkhole').length, '#ff6b4a', true, true],
-  ['buildings', 'Budynki', buildings.length || META.buildings_bin?.count || 0, '#ece5d3', true], ['roads', 'Drogi', roads.length, '#3a3d42', true],
+  ['buildings', 'Budynki', buildings.length || META.buildings_fp?.count || META.buildings_bin?.count || 0, '#ece5d3', true], ['roads', 'Drogi', roads.length, '#3a3d42', true],
   ['rail', 'Tory kolejowe', rail.length, '#d5dade', true], ['pipes', 'Rurociągi i gazociągi', pipes.length, '#f2c230', true],
   ['power', 'Sieć energetyczna', power.length, '#a66bff', true, true],
   ['water', hasSinkhole ? 'Woda i zapadlisko' : 'Woda', water.length + (T?.sea_level_m != null ? 1 : 0), '#3f86a3', true],
@@ -1164,7 +1404,7 @@ function setMode(flat, animate = true) {
   controls.mouseButtons.LEFT = flat ? THREE.MOUSE.PAN : THREE.MOUSE.ROTATE;
   controls.touches.ONE = flat ? THREE.TOUCH.PAN : THREE.TOUCH.ROTATE;
   ['rotL', 'rotR', 'tiltBtn', 'spin', 'compass', 'exagWrap'].forEach((id) => { $(id).hidden = flat || (id === 'exagWrap' && !terrainGrid); });
-  $('hint').textContent = flat ? 'Przeciągnij – przesuwanie · kółko – zoom' : 'Przeciągnij – obrót · prawy przycisk lub Shift – przesuwanie · kółko – zoom';
+  $('hint').textContent = (flat ? 'Przeciągnij – przesuwanie · kółko – zoom' : 'Przeciągnij – obrót · prawy przycisk lub Shift – przesuwanie · kółko – zoom') + (typeof verify !== 'undefined' && verify ? ' · kliknij obiekt – sygnał z analizy' : '');
   $('dim2').setAttribute('aria-pressed', String(flat));
   $('dim3').setAttribute('aria-pressed', String(!flat));
   if (timeline) timeline.show(flat);
@@ -1259,6 +1499,299 @@ function pick() {
   tip.style.top = Math.min(e.clientY + 14, window.innerHeight - tip.offsetHeight - 8) + 'px';
 }
 
+// ------------------------------------------- verification signal for a clicked object
+// Click a building, road, rail line, pipeline or power line (or the ground) to see what the team's InSAR
+// results say about the ground under it. Shown as a signal to verify, not as a danger rating:
+//  - the class describes ground motion under the object, not the condition of the structure;
+//  - the radar measures along its line of sight (LOS), not the full direction or the vertical alone;
+//  - the rate comes from ~6 months (one rainy season), so a seasonal part can be in it. A trend check
+//    on the time series of the point (both halves of the period, steps in the same direction) and the
+//    number of monitoring windows with motion tell a steady trend from a seasonal or one-off change.
+const ANALYSIS = SETS.find((d) => d.kind !== 'scene3d' && d.id === LOC.id);
+const verify = ANALYSIS && (() => {
+  const MONTHS = ['sty', 'lut', 'mar', 'kwi', 'maj', 'cze', 'lip', 'sie', 'wrz', 'paź', 'lis', 'gru'];
+  const dLong = (d) => `${+d.slice(6, 8)} ${MONTHS[+d.slice(4, 6) - 1]} ${d.slice(0, 4)}`;
+  const toLonLat = (x, z) => [W_LON + (x / SX + 0.5) * (E_LON - W_LON), S_LAT + (0.5 - z / SZ) * (N_LAT - S_LAT)];
+  const fmt = (v, d = 0) => (v == null || Number.isNaN(+v) ? '–' : (+v).toLocaleString('pl-PL', { maximumFractionDigits: d, minimumFractionDigits: 0 }));
+  const signed = (v, unit) => (v == null ? '–' : `${v > 0 ? '+' : v < 0 ? '−' : ''}${fmt(Math.abs(v))} ${unit}`);
+  const CELL = 250;
+  let data = null, loading = null;
+
+  function indexOf(features, kind) {  // features -> items with shapes in scene metres, in a coarse grid
+    const grid = new Map(), items = [];
+    for (const f of features || []) {
+      const g = f.geometry, shapes = kind === 'poly' ? polygons(g).map((rings) => rings[0].map(toXZ)) : lines(g).map((l) => l.map(toXZ));
+      if (!shapes.length) continue;
+      const all = shapes.flat(), x0 = Math.min(...all.map((q) => q[0])), x1 = Math.max(...all.map((q) => q[0])), z0 = Math.min(...all.map((q) => q[1])), z1 = Math.max(...all.map((q) => q[1]));
+      const item = { p: f.properties, shapes, kind };
+      items.push(item);
+      for (let cx = Math.floor(x0 / CELL); cx <= Math.floor(x1 / CELL); cx++) for (let cz = Math.floor(z0 / CELL); cz <= Math.floor(z1 / CELL); cz++) {
+        const key = cx + ',' + cz; (grid.get(key) || grid.set(key, []).get(key)).push(item);
+      }
+    }
+    return { grid, items };
+  }
+  function segDist(x, z, a, b) {
+    const dx = b[0] - a[0], dz = b[1] - a[1], t = THREE.MathUtils.clamp(((x - a[0]) * dx + (z - a[1]) * dz) / (dx * dx + dz * dz || 1), 0, 1);
+    return Math.hypot(a[0] + t * dx - x, a[1] + t * dz - z);
+  }
+  function inside(x, z, ring) {
+    let c = false;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const [xi, zi] = ring[i], [xj, zj] = ring[j];
+      if ((zi > z) !== (zj > z) && x < ((xj - xi) * (z - zi)) / (zj - zi) + xi) c = !c;
+    }
+    return c;
+  }
+  function nearest(idx, x, z, radius, filter = () => true) {
+    let best = null, bestD = radius;
+    const seen = new Set();
+    for (let cx = Math.floor((x - radius) / CELL); cx <= Math.floor((x + radius) / CELL); cx++) for (let cz = Math.floor((z - radius) / CELL); cz <= Math.floor((z + radius) / CELL); cz++) {
+      for (const it of idx.grid.get(cx + ',' + cz) || []) {
+        if (seen.has(it) || !filter(it.p)) continue;
+        seen.add(it);
+        for (const sh of it.shapes) {
+          let d = Infinity;
+          if (it.kind === 'poly' && inside(x, z, sh)) d = 0;
+          else for (let i = 1; i < sh.length; i++) d = Math.min(d, segDist(x, z, sh[i - 1], sh[i]));
+          if (d <= bestD) { bestD = d; best = it; }
+        }
+      }
+    }
+    return best && { p: best.p, d: bestD };
+  }
+
+  async function load() {
+    if (data) return data;
+    if (loading) return loading;
+    const B = ANALYSIS.base_url, get = (f) => getJSON(B + f).catch(() => null);
+    loading = Promise.all(['meta.json', 'buildings_risk.geojson', 'critical.geojson', 'roads_risk.geojson', 'pipelines.geojson', 'timeseries.json'].map(get))
+      .then(([meta, bld, crit, roads, pipes, ts]) => {
+        let TS = null;
+        if (ts && meta?.focus) {
+          const bin = atob(ts.b64), u8 = new Uint8Array(bin.length);
+          for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+          TS = new Int16Array(u8.buffer);
+        }
+        data = { meta, ts, TS, bld: indexOf(bld?.features, 'poly'), crit: indexOf(crit?.features, 'line'), roads: indexOf(roads?.features, 'line'), pipes: indexOf(pipes?.features, 'line') };
+        return data;
+      });
+    return loading;
+  }
+
+  /** Displacement series [mm since the first date] near a point: of the 3 x 3 pixels (100 m each) around
+   *  it, the one that moved most - like the classes, which also use the strongest point of an object. */
+  function seriesAt(lon, lat) {
+    const { meta, ts, TS } = data;
+    if (!TS) return null;
+    const F = meta.focus, Rm = 6378137, x = (lon * Math.PI / 180) * Rm, y = Rm * Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI / 180) / 2));
+    const col0 = Math.floor((x - F.x0) / F.res), row0 = Math.floor((F.y1 - y) / F.res);
+    let best = null, bestAbs = -1;
+    for (let row = row0 - 1; row <= row0 + 1; row++) for (let col = col0 - 1; col <= col0 + 1; col++) {
+      if (col < 0 || row < 0 || col >= F.w || row >= F.h) continue;
+      const out = [];
+      for (let e = 0; e < F.epochs; e++) { const v = TS[(row * F.w + col) * F.epochs + e]; out.push(v === ts.nodata ? null : v); }
+      const valid = out.filter((v) => v !== null);
+      if (valid.length < F.epochs - 3) continue;
+      if (Math.abs(valid.at(-1)) > bestAbs) { bestAbs = Math.abs(valid.at(-1)); best = out; }
+    }
+    return best;
+  }
+
+  /** Is the motion a steady trend or concentrated in part of the period (season, one-off)? */
+  function trend(series) {
+    const dates = data.meta.dates, t = dates.map((d) => (Date.UTC(+d.slice(0, 4), +d.slice(4, 6) - 1, +d.slice(6, 8)) - Date.UTC(+dates[0].slice(0, 4), +dates[0].slice(4, 6) - 1, +dates[0].slice(6, 8))) / 864e5);
+    const pts = series.map((v, i) => [t[i], v]).filter(([, v]) => v !== null);
+    const last = pts.at(-1), total = last[1] - pts[0][1], LIM = 20;
+    if (Math.abs(total) < LIM) return { kind: 'none', html: `<b>Brak wyraźnego ruchu w tym punkcie</b> – przez cały okres zmiana mniejsza niż ${LIM} mm.` };
+    const midT = (pts[0][0] + last[0]) / 2, mid = pts.reduce((a, b) => (Math.abs(b[0] - midT) < Math.abs(a[0] - midT) ? b : a));
+    const r1 = ((mid[1] - pts[0][1]) / (mid[0] - pts[0][0])) * 365.25, r2 = ((last[1] - mid[1]) / (last[0] - mid[0])) * 365.25;
+    const sign = Math.sign(total);
+    let withTrend = 0, steps = 0;
+    for (let i = 1; i < pts.length; i++) { const d = pts[i][1] - pts[i - 1][1]; if (Math.abs(d) >= 2) { steps++; if (Math.sign(d) === sign) withTrend++; } }
+    const share = steps ? withTrend / steps : 0, halves = `1. połowa okresu: ${signed(Math.round(r1), 'mm/rok')}, 2. połowa: ${signed(Math.round(r2), 'mm/rok')}`;
+    if (Math.sign(r1) !== Math.sign(r2) && Math.min(Math.abs(r1), Math.abs(r2)) > 15)
+      return { kind: 'reversal', html: `<b>Ruch zmienił kierunek w trakcie okresu</b> (${halves}). Możliwy wpływ sezonowy albo szum – potrzebna dłuższa seria.` };
+    if (Math.sign(r1) === Math.sign(r2) && Math.min(Math.abs(r1), Math.abs(r2)) / Math.max(Math.abs(r1), Math.abs(r2)) >= 0.4 && share >= 0.6)
+      return { kind: 'steady', html: `<b>Ruch narasta w obu połowach okresu</b> (${halves}; ${Math.round(share * 100)}% kroków w tym samym kierunku). Wygląda na trwały trend – ale okres jest krótszy niż rok.` };
+    return { kind: 'uneven', html: `<b>Ruch skupiony w części okresu</b> (${halves}). Może to być wpływ pory deszczowej albo jednorazowe zdarzenie – do potwierdzenia na dłuższej serii.` };
+  }
+
+  /** Small chart of the series: value axis on the left, dates below, grey band = change too small to count.
+   *  Everything is inside one SVG that scales as a whole (width 100%, height from the aspect ratio). */
+  function sparkline(series) {
+    const W = 300, Hh = 118, L = 44, Rr = 8, T0 = 8, B = 22, LIM = 20;
+    const vals = series.filter((v) => v !== null);
+    // range fitted to the data (the grey band always fits), a few round ticks, one unit for all labels
+    const lo = Math.min(-LIM * 1.3, ...vals) * 1.1, hi = Math.max(LIM * 1.3, ...vals) * 1.1;
+    const nice = (v) => { const e = 10 ** Math.floor(Math.log10(v)), f = v / e; return (f >= 5 ? 5 : f >= 2 ? 2 : 1) * e; };
+    const step = nice((hi - lo) / 3), inCm = hi - lo >= 120;
+    const X = (i) => L + (i / (series.length - 1)) * (W - L - Rr), Y = (v) => T0 + ((hi - v) / (hi - lo)) * (Hh - T0 - B);
+    const end = vals.at(-1), colour = end < -LIM ? 'rgb(214,39,40)' : end > LIM ? 'rgb(31,104,196)' : '#A2A6AC';
+    const ticks = [];
+    for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) ticks.push(v);
+    const label = (v) => (Math.abs(v) < 1e-6 ? '0' : `${v > 0 ? '+' : '−'}${inCm ? +(Math.abs(v) / 10).toFixed(1) + ' cm' : Math.round(Math.abs(v)) + ' mm'}`);
+    const pts = series.map((v, i) => (v === null ? null : [X(i), Y(v)])).filter(Boolean);
+    return `<svg viewBox="0 0 ${W} ${Hh}" style="display:block;width:100%;height:auto;margin-top:4px" role="img" aria-label="Przemieszczenie gruntu w czasie" font-family="Inter, sans-serif">
+      <rect x="${L}" y="${Y(LIM)}" width="${W - L - Rr}" height="${Y(-LIM) - Y(LIM)}" fill="rgba(242,243,240,.07)"/>
+      ${ticks.map((v) => `<line x1="${L}" x2="${W - Rr}" y1="${Y(v)}" y2="${Y(v)}" stroke="${v === 0 ? '#4a4e55' : '#2B2E33'}" stroke-width="1"/>
+        <text x="${L - 6}" y="${Y(v) + 3.5}" text-anchor="end" font-size="10" fill="#A2A6AC">${label(v)}</text>`).join('')}
+      <polyline points="${pts.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' ')}" fill="none" stroke="${colour}" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+      ${pts.map(([x, y]) => `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.3" fill="${colour}"/>`).join('')}
+      <text x="${L}" y="${Hh - 6}" font-size="10" fill="#A2A6AC">${dLong(data.meta.dates[0])}</text>
+      <text x="${W - Rr}" y="${Hh - 6}" text-anchor="end" font-size="10" fill="#A2A6AC">${dLong(data.meta.dates.at(-1))}</text>
+    </svg>
+    <p class="vsub" style="margin:2px 0 0;font-size:11.5px">Szare pole: zmiana poniżej ${LIM} mm – za mała, by ją uznać.</p>`;
+  }
+
+  const SIGNAL = {
+    wysokie: ['#c62a22', 'Silny sygnał ruchu gruntu', 'Priorytet weryfikacji w terenie.'],
+    'średnie': ['#e3871f', 'Umiarkowany sygnał ruchu gruntu', 'Do weryfikacji i dalszej obserwacji.'],
+    niskie: ['#2f8f57', 'Brak sygnału ponad szum pomiaru', 'Ruch gruntu w granicach dokładności pomiaru.'],
+    'brak danych': ['#98a3ab', 'Brak wiarygodnego pomiaru', 'Za mało dobrych pikseli (np. woda, utrata spójności).'],
+  };
+  const KIND = { building: 'Budynek', road: 'Droga', rail: 'Tory kolejowe', pipe: 'Rurociąg / gazociąg', power: 'Linia energetyczna', ground: 'Teren' };
+
+  async function show(kind, x, z, label) {
+    $('verify').hidden = false;
+    $('vBody').innerHTML = '<p class="vsub">Wczytywanie wyników analizy…</p>';
+    await load();
+    const [lon, lat] = toLonLat(x, z), series = seriesAt(lon, lat), D = data;
+    const isRail = (p) => String(p.typ).startsWith('kolej'), isPower = (p) => p.typ === 'linia energetyczna';
+    const hit = kind === 'building' ? nearest(D.bld, x, z, 12)
+      : kind === 'pipe' ? nearest(D.pipes, x, z, 120) : kind === 'power' ? nearest(D.crit, x, z, 45, isPower)
+      : kind === 'rail' ? nearest(D.crit, x, z, 35, isRail) : kind === 'road' ? nearest(D.roads, x, z, 25)
+      : nearest(D.bld, x, z, 0);
+    const p = hit?.p;
+    // not listed: the building and road layers list only exposed objects (plus context near the active zone)
+    let cls = p?.klasa, note = '';
+    if (!p) {
+      if ((kind === 'building' || kind === 'road') && series) { cls = 'niskie'; note = `${kind === 'building' ? 'Budynku' : 'Drogi'} nie ma na liście narażonych w wynikach – grunt w granicach szumu.`; }
+      else if (kind === 'ground') cls = null;
+      else note = kind === 'building' || kind === 'road' ? 'Obiektu nie ma na liście narażonych, a szczegółowa seria pomiarów nie obejmuje tego miejsca.' : 'Tego miejsca nie udało się dopasować do obiektu w wynikach.';
+    }
+    const GENERIC = ['rurociąg', 'linia energetyczna', 'kabel energetyczny', 'stacja elektroenergetyczna', 'tory kolejowe', 'droga', 'budynek'];
+    const name = p?.nazwa || (label && !GENERIC.includes(label.toLowerCase()) ? label : '');
+    const sig = cls && SIGNAL[cls];
+    const tr = series ? trend(series) : null;
+    const rows = p ? [
+      ['Tempo ruchu gruntu (LOS)', p.v != null ? signed(Math.round(p.v), 'mm/rok') : null],
+      ['Przemieszczenie w okresie', p.przem_mm != null ? signed(Math.round(p.przem_mm), 'mm') : null],
+      ['Ruch zróżnicowany', p.gradient != null ? `${fmt(p.gradient)} mm/100 m/rok` : null],
+      ['Od strefy aktywnej', p.odl_m != null ? (p.odl_m === 0 ? 'w strefie' : `${fmt(p.odl_m >= 1000 ? p.odl_m / 1000 : p.odl_m, p.odl_m >= 1000 ? 1 : 0)} ${p.odl_m >= 1000 ? 'km' : 'm'}`) : null],
+      ['Okna monitoringu z ruchem', p.okna_ruch != null ? `${p.okna_ruch} z 10${p.okna_ruch >= 2 ? ' (ruch potwierdzony w czasie)' : ''}` : null],
+      ['Pewność danych', p.pewnosc || null],
+    ].filter(([, v]) => v) : [];
+    if (!p && series) rows.push(['Przemieszczenie w okolicy (LOS)', signed(series.filter((v) => v !== null).at(-1), 'mm')]);
+    if (p?.typ && kind !== 'building') rows.unshift(['Rodzaj w wynikach', `${p.typ}${p.podtyp && p.podtyp !== '?' ? ' (' + p.podtyp + ')' : ''}`]);
+    const period = `${dLong(D.meta.dates[0])} – ${dLong(D.meta.dates.at(-1))}`;
+    // ---- plain-language summary first; the technical details stay one click away
+    const total = series ? series.filter((v) => v !== null).at(-1) : p?.przem_mm != null ? p.przem_mm : p?.v != null ? Math.round(p.v * 180 / 365.25) : null;
+    let level = cls;
+    if (!level && series) level = Math.abs(total) >= 50 ? 'wysokie' : Math.abs(total) >= 20 ? 'średnie' : 'niskie';
+    const WHERE = { building: 'pod tym budynkiem', road: 'pod tą drogą', rail: 'pod tymi torami', pipe: 'nad tym rurociągiem', power: 'pod tą linią', ground: 'w tym miejscu' }[kind];
+    const OF = { building: 'budynku', road: 'drogi', rail: 'torów', pipe: 'rurociągu', power: 'linii' }[kind];
+    const PLAIN = {
+      wysokie: ['#c62a22', `Grunt ${WHERE} wyraźnie się przesuwa`, 'Warto to sprawdzić na miejscu.'],
+      'średnie': ['#e3871f', `Grunt ${WHERE} lekko się przesuwa`, 'Warto to sprawdzić i obserwować.'],
+      niskie: ['#2f8f57', `Grunt ${WHERE} jest spokojny`, 'Satelita nie widzi tu istotnego ruchu.'],
+      'brak danych': ['#98a3ab', 'Satelita nie zmierzył tu ruchu', 'Nie wiadomo, czy grunt się rusza.'],
+    }[level] || ['#5b6068', 'Brak dokładnego pomiaru w tym miejscu', 'Nie wiadomo, czy grunt się rusza.'];
+    const cm = (mm) => (Math.abs(mm) >= 10 ? `${(Math.abs(mm) / 10).toLocaleString('pl-PL', { maximumFractionDigits: 0 })} cm` : `${Math.abs(Math.round(mm))} mm`);
+    const moved = total != null && Math.abs(total) >= 20
+      ? `Od listopada do maja ${total < 0 ? 'obniżył się lub zsunął' : 'podniósł się lub przesunął'} o ok. <b>${cm(total)}</b>.`
+      : total != null ? 'Od listopada do maja prawie się nie ruszył.' : '';
+    const uneven = /gradient|zróżnicowany/.test(p?.powod || '') && (level === 'wysokie' || level === 'średnie') && kind !== 'ground'
+      ? 'Sąsiednie fragmenty gruntu przesuwają się różnie, a to może naprężać obiekt.' : '';
+    const steady = { steady: 'Ruch trwał przez całe pół roku – to raczej stały ruch, nie jednorazowy.', uneven: 'Ruch był głównie w części okresu – może to skutek pory deszczowej.',
+      reversal: 'Grunt raz szedł w jedną, raz w drugą stronę – może to pora roku albo niedokładność pomiaru.' }[tr?.kind] || '';
+    $('vBody').innerHTML = `
+      <h3>${esc(KIND[kind] || 'Obiekt')}${name ? ' · ' + esc(name) : ''}</h3>
+      <div class="vsig" style="--sig:${PLAIN[0]};margin-top:8px"><div><b>${PLAIN[1]}</b><span>${PLAIN[2]}</span></div></div>
+      ${moved || steady || uneven ? `<p class="vplain">${[moved, uneven, steady].filter(Boolean).join(' ')}</p>` : ''}
+      ${series ? sparkline(series) : ''}
+      <p class="vsub" style="margin:6px 0 0">Pomiar z satelity, ${esc(period)}. Pokazuje ruch gruntu${OF ? `, a nie stan ${OF}` : ''}.</p>
+      <details class="vmore"><summary>Szczegóły dla specjalistów</summary>
+      ${sig ? `<p class="vsub" style="margin:8px 0 0">Klasa w wynikach: <b>${esc(cls)}</b> – ${esc(sig[1].toLowerCase())}.</p>` : ''}
+      ${note ? `<p class="vsub" style="margin:6px 0 0">${esc(note)}</p>` : ''}
+      ${p?.powod ? `<p class="vsub" style="margin:6px 0 0">Uzasadnienie z analizy: ${esc(p.powod)}</p>` : ''}
+      ${rows.length ? `<dl class="vgrid">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('')}</dl>` : ''}
+      ${series ? `<p class="vh">Czy to trwały ruch?</p><p class="vsub" style="margin:0 0 6px">Wykres: piksel (100 m), który w promieniu ok. 150 m ruszył się najbardziej; szare pole = ±20 mm.</p><div class="vtrend">${tr.html}${p?.okna_ruch != null ? `<br>Okna monitoringu z ruchem: ${p.okna_ruch} z 10${p.okna_ruch >= 2 ? ' – ruch powtarza się w czasie.' : ' – ruch nie powtarza się w kolejnych oknach.'}` : ''}</div>` : ''}
+      <p class="vh">Jak czytać ten wynik</p>
+      <ul class="vnotes">
+        <li>Klasa opisuje <b>ruch gruntu pod obiektem</b>, nie stan jego konstrukcji.</li>
+        <li>Radar mierzy ruch <b>wzdłuż linii widzenia satelity</b> (LOS, z zachodu, ok. 40° od pionu). Nie podaje pełnego kierunku ani samego ruchu pionowego; ujemne = od satelity.</li>
+        <li>Tempo to zmiana z <b>ok. 6 miesięcy</b> przeliczona na rok. Okres obejmuje porę deszczową, więc może zawierać wpływ sezonowy.</li>
+      </ul>
+      ${level === 'wysokie' || level === 'średnie' ? `<p class="vh">Co sprawdzić</p><p class="vnext">Oględziny na miejscu (pęknięcia, przechyły, nieszczelności), porównanie z pomiarem naziemnym (GNSS, niwelacja) i z wynikiem z drugiej geometrii orbity (wznoszącej).</p>` : ''}
+      </details>`;
+    selected = new THREE.Vector3(x, H(x, z), z);
+    selEl.classList.remove('off');
+    dirty = true;
+  }
+
+  // the clicked spot gets a small pulsing marker
+  const selEl = document.createElement('div');
+  selEl.className = 'amark sel off';
+  selEl.innerHTML = '<span class="ring"></span><span class="dot"></span>';
+  selEl.style.pointerEvents = 'none';
+  $('marks').appendChild(selEl);
+  let selected = null;
+  $('vClose').addEventListener('click', () => { $('verify').hidden = true; selEl.classList.add('off'); selected = null; });
+
+  const GROUPS = [['buildings', 'building'], ['pipes', 'pipe'], ['power', 'power'], ['rail', 'rail'], ['roads', 'road']];
+  const clickRay = new THREE.Raycaster();
+  return {
+    preload: () => load(),
+    click(ev) {
+      const box = renderer.domElement.getBoundingClientRect();
+      mouse.set(((ev.clientX - box.left) / box.width) * 2 - 1, -((ev.clientY - box.top) / box.height) * 2 + 1);
+      clickRay.setFromCamera(mouse, camera);
+      const ground = groundDistance(clickRay.ray);
+      let best = null;
+      for (const [g, kind] of GROUPS) {
+        if (!groups[g] || !groups[g].visible) continue;
+        const h = clickRay.intersectObjects(groups[g].children, false)[0];
+        if (h && h.distance <= ground + 2 + h.distance * 0.004 && (!best || h.distance < best.h.distance)) best = { h, kind };
+      }
+      let point, kind = 'ground', label = '';
+      if (best) {
+        point = best.h.point; kind = best.kind;
+        const o = best.h.object, html = o.userData.tipAt ? o.userData.tipAt(best.h.faceIndex) : o.userData.tip;
+        label = html ? html.replace(/<br>.*$/s, '').replace(/<[^>]+>/g, '').split(' · ')[0] : '';
+      } else if (Number.isFinite(ground)) point = clickRay.ray.at(ground, new THREE.Vector3());
+      else return;
+      if (!best && data) {
+        // thin lines are hard to hit: take the nearest line object within ~10 screen pixels
+        const mPerPx = (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * ground) / box.height, r = Math.max(8, 10 * mPerPx);
+        const cand = [
+          ['pipe', nearest(data.pipes, point.x, point.z, r)],
+          ['power', nearest(data.crit, point.x, point.z, r, (q) => q.typ === 'linia energetyczna')],
+          ['rail', nearest(data.crit, point.x, point.z, r, (q) => String(q.typ).startsWith('kolej'))],
+          ['road', nearest(data.roads, point.x, point.z, r)],
+        ].filter(([, h]) => h).sort((a, b) => a[1].d - b[1].d)[0];
+        if (cand) kind = cand[0];
+      }
+      show(kind, point.x, point.z, label);
+    },
+    place(w, h) {
+      if (!selected) return;
+      selected.y = H(selected.x, selected.z);
+      v3.copy(selected).project(camera);
+      selEl.style.transform = `translate(${((v3.x + 1) / 2 * w).toFixed(1)}px, ${((1 - v3.y) / 2 * h).toFixed(1)}px)`;
+    },
+  };
+})();
+// a click (press and release without dragging) on the model asks for the verification signal
+let downAt = null;
+renderer.domElement.addEventListener('pointerdown', (e) => { downAt = { x: e.clientX, y: e.clientY, t: performance.now() }; });
+renderer.domElement.addEventListener('pointerup', (e) => {
+  if (!verify || !downAt || e.button !== 0) return;
+  if (Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y) < 5 && performance.now() - downAt.t < 600) verify.click(e);
+  downAt = null;
+});
+if (verify) { $('hint').textContent += ' · kliknij obiekt – sygnał z analizy'; setTimeout(() => verify.preload(), 1500); }
+
 // ------------------------------------------------------------------- frame
 function resize() {
   const w = stage.clientWidth, h = stage.clientHeight;
@@ -1288,6 +1821,7 @@ function frame(now) {
     dirty = true;
   } else controls.update();  // damping and auto-rotation; fires 'change' when the camera moved
   if (timeline && timeline.tick(now)) dirty = true;
+  if (detailTiles) detailTiles.update(now);
   if (hoverAt && now - hoverTime > (BIG ? 90 : 0)) pick();
   if (!dirty) return;
   dirty = false;
@@ -1295,12 +1829,13 @@ function frame(now) {
   renderer.render(scene, camera);
   placeLabels();
   if (timeline) timeline.place(stage.clientWidth, stage.clientHeight);
+  if (verify) verify.place(stage.clientWidth, stage.clientHeight);
 }
 $('status').hidden = true;
 ['layers', 'nav', 'compass', 'hint'].forEach((id) => { $(id).hidden = false; });
 $('dim3').setAttribute('aria-pressed', 'true');
 if (FLAT) setMode(true, false);
-window.__scene3d = { scene, camera, controls, flyTo, place, viewNow, groups, renderer, toXZ: (lon, lat) => toXZ([lon, lat]), H, groundDistance };  // handy in the browser console
+window.__scene3d = { detailTiles: () => detailTiles && detailTiles.count(), scene, camera, controls, flyTo, place, viewNow, groups, renderer, toXZ: (lon, lat) => toXZ([lon, lat]), H, groundDistance };  // handy in the browser console
 requestAnimationFrame(frame);
 </script>
 </body>

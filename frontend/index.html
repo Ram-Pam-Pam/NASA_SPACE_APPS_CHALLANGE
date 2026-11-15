@@ -157,6 +157,19 @@ input[type="range"], input[type="checkbox"] { accent-color: var(--accent); }
 .pp-hint { color: var(--text-2); font-size: 12.5px; margin-top: 3px; }
 .pp-zone { background: var(--alert-wash); border-top: 0; border-radius: 8px; padding: 9px 11px; }
 .pp-zone .badge, .pp-sec .badge { margin: 0 2px; }
+.obj-assessment { margin-top: 10px; padding: 11px 12px; border: 1px solid var(--border); border-radius: 9px; background: var(--wash); }
+.obj-assessment h4 { margin: 0 0 5px; font: var(--label); letter-spacing: .06em; text-transform: uppercase; color: var(--text-2); }
+.obj-assessment strong { display: block; font-size: 16px; }
+.obj-assessment p { margin: 5px 0 0; }
+.obj-assessment .pp-hint { margin-top: 7px; }
+.obj-assessment.high { border-color: #c62a22; }
+.obj-assessment.medium { border-color: #e3871f; }
+.obj-assessment.low { border-color: #2f8f57; }
+.obj-assessment.missing { border-color: #98a3ab; }
+.obj-details { margin-top: 10px; color: var(--text-2); font-size: 12.5px; }
+.obj-details summary { cursor: pointer; color: var(--text); }
+.obj-details .pp-sec { margin-top: 7px; }
+.obj-details p { margin: 8px 0 0; }
 /* The chart's "selected date" dot stays blue: the popup text calls it "niebieska kropka" */
 .pp-spark { display: block; width: 100%; height: auto; margin-top: 4px; overflow: visible; --accent: #2563eb; }
 .pp-spark text { font-size: 10.5px; fill: var(--text-2); font-variant-numeric: tabular-nums; }
@@ -603,6 +616,54 @@ details.adv .pop label.row input { width: 16px; height: 16px; margin: 0; }
     const what = p.typ || p.typ_budynku || 'obiekt', name = p.nazwa || p.operator || '';
     return `<b>${esc(what)}${name ? ' · ' + esc(name) : ''}</b><br>Zagrożenie: <b>${esc(p.klasa)}</b>${p.powod ? '<br>' + esc(p.powod) : ''}`;
   }
+  function objectAssessment(p, latlng) {
+    const level = p.klasa || 'brak danych';
+    const levelText = {
+      wysokie: ['Wysoki sygnał ruchu gruntu', 'Warto sprawdzić to miejsce w pierwszej kolejności.'],
+      'średnie': ['Wykryto ruch gruntu', 'Warto to miejsce sprawdzić i obserwować.'],
+      niskie: ['Brak wyraźnego sygnału ruchu', 'W tych pomiarach ruch nie przekroczył przyjętych progów.'],
+      'brak danych': ['Nie da się ocenić', 'Radar nie zebrał tu wiarygodnych danych.'],
+    }[level] || ['Brak wyniku oceny', 'Nie mamy klasyfikacji dla tego obiektu.'];
+    const kind = p.typ || ({
+      house: 'budynek mieszkalny', apartments: 'budynek wielorodzinny', residential: 'budynek mieszkalny',
+      industrial: 'budynek przemysłowy', retail: 'sklep lub lokal usługowy', commercial: 'budynek usługowy',
+      school: 'szkoła', warehouse: 'magazyn', garage: 'garaż', government: 'budynek publiczny',
+    }[p.typ_budynku] || (p.typ_budynku ? 'budynek' : 'obiekt'));
+    const name = p.nazwa || p.operator || kind;
+    const isBuilding = Boolean(p.typ_budynku);
+    const rows = [];
+    if (p.powod) rows.push(['Uzasadnienie klasy', esc(p.powod)]);
+    if (p.v != null) rows.push(['Tempo mierzone przez radar', `${sgn(p.v, 1)} mm/rok`]);
+    if (p.przem_mm != null) rows.push(['Zmiana w badanym okresie', `${sgn(p.przem_mm, 1)} mm`]);
+    if (p.gradient != null) rows.push(['Różnica ruchu na 100 m', `${fmt(p.gradient, 1)} mm/rok`]);
+    if (p.okna_ruch != null) rows.push(['Liczba okresów z ruchem', `${p.okna_ruch}${Array.isArray(MONITORING) ? ` / ${MONITORING.length}` : ''}`]);
+    if (p.pewnosc) rows.push(['Pewność danych', esc(p.pewnosc)]);
+    if (p.odl_m != null && isFinite(p.odl_m)) rows.push(['Odległość od aktywnej strefy', `${fmt(p.odl_m)} m`]);
+    if (p.km != null) rows.push(['Długość ocenianego odcinka', `${fmt(p.km, 2)} km`]);
+    if (p.dlugosc_m != null) rows.push(['Długość ocenianego odcinka', `${fmt(p.dlugosc_m)} m`]);
+    if (p.pow_m2 != null) rows.push(['Powierzchnia budynku', `${fmt(p.pow_m2)} m²`]);
+    const motion = p.v == null ? '' : `Radar wykrył ruch gruntu ${isBuilding ? 'pod tym budynkiem' : 'przy tym obiekcie'}: około ${fmt(Math.abs(p.v) / 10, 1)} cm/rok ${p.v < 0 ? 'od' : 'w stronę'} satelity.`;
+    const period = META.period?.start && META.period?.end
+      ? `${dPL(META.period.start)}–${dPL(META.period.end)}${META.period.days ? ` (${META.period.days} dni)` : ''}`
+      : META.period?.days ? `${META.period.days} dni` : '';
+    const detail = rows.length
+      ? `<div class="pp-sec">${rows.map(([label, value]) => `<div class="pp-row"><span>${label}</span><b>${value}</b></div>`).join('')}</div>`
+      : '';
+    const html = `<div class="pp-head">${esc(name)}</div><div class="pp-sub">${esc(kind)}</div>
+      <div class="obj-assessment ${({ wysokie: 'high', 'średnie': 'medium', niskie: 'low', 'brak danych': 'missing' })[level] || 'missing'}">
+        <h4>Wynik pomiaru · sygnał do sprawdzenia</h4><strong>${esc(levelText[0])}</strong>
+        <p>${esc(levelText[1])}</p>
+        ${motion ? `<p class="pp-hint">${esc(motion)}</p>` : ''}
+      </div>
+      <div class="pp-hint">${level === 'niskie' ? 'Brak sygnału nie gwarantuje, że grunt jest stabilny.' : level === 'brak danych' ? 'Brak pomiaru nie oznacza braku ruchu.' : 'To sygnał do weryfikacji, nie informacja o uszkodzeniu obiektu.'}</div>
+      <details class="obj-details"><summary>Szczegóły i ograniczenia pomiaru</summary>
+        ${period ? `<div class="pp-hint">Badany okres: ${esc(period)}. Tempo na rok jest przeliczeniem z tego okresu.</div>` : ''}
+        ${detail}
+        <p>Radar mierzy ruch ukośnie, w swoją stronę patrzenia. Nie pokazuje sam z siebie pełnego kierunku ani tego, czy obiekt jest uszkodzony. Krótki okres pomiarów może obejmować sezonowe zmiany gruntu.</p>
+      </details>`;
+    hideTip();
+    L.popup({ maxWidth: 360, className: 'cw-pop' }).setLatLng(latlng).setContent(html).openOn(map);
+  }
   function infraLayer(spec) {
     const group = L.layerGroup();
     getJSON(BASE + spec.file).then((gj) => {
@@ -611,7 +672,11 @@ details.adv .pop label.row input { width: 16px; height: 16px; margin: 0; }
       if (lines.length) L.geoJSON(lines, { pane: 'infra', interactive: false, style: { color: '#fff', weight: 6, opacity: 0.85 } }).addTo(group);
       L.geoJSON(features, { pane: 'infra', renderer,
         style: (f) => { const k = f.properties.klasa, hot = risky(f); return { color: RISK[k] || '#98a3ab', weight: hot ? 3.5 : 2, opacity: hot ? 1 : 0.75, dashArray: k === 'brak danych' ? '5 5' : null, fillColor: RISK[k] || '#98a3ab', fillOpacity: 0.55 }; },
-        onEachFeature: (f, l) => { l.on('mousemove', (e) => showTip(infraTip(f.properties), e.originalEvent)); l.on('mouseout', hideTip); },
+        onEachFeature: (f, l) => {
+          l.on('mousemove', (e) => showTip(infraTip(f.properties), e.originalEvent));
+          l.on('mouseout', hideTip);
+          l.on('click', (e) => { L.DomEvent.stopPropagation(e); objectAssessment(f.properties, e.latlng); });
+        },
       }).addTo(group);
     }).catch(() => { /* layer file missing in this data set: the toggle simply shows nothing */ });
     return group;

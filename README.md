@@ -33,6 +33,9 @@ bez importu i bez restartu serwera.
 Strona otwiera się domyślnie w modelu 3D (`frontend/view3d.html`): zdjęcie lotnicze jako podłoże, rzeźba
 terenu, bryły budynków, drogi, tory, woda, rurociągi i drzewa. Model można obracać, przesuwać i przybliżać.
 Lokalizacja, która ma model 3D, pokazuje się tylko w 3D; jej starsza strona 2D jest pod `index.html?2d#<id>`.
+W widoku 2D kliknięcie ocenionego budynku lub odcinka infrastruktury otwiera krótkie, zrozumiałe podsumowanie
+ruchu gruntu i sygnału do sprawdzenia. Szczegóły techniczne i ograniczenia (kierunek LOS, krótki okres,
+możliwy wpływ sezonowy) są w sekcji rozwijanej; wynik nie jest diagnozą stanu obiektu.
 
 Nowy model dla innego obszaru (potrzebne: GDAL, numpy, `pip install overturemaps`):
 
