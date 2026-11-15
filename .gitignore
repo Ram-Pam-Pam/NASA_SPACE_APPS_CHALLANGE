@@ -1,0 +1,9 @@
+# archives of the project (too big for GitHub, max 100 MB per file)
+*.zip
+
+# Office lock files and macOS folder files
+~$*
+.DS_Store
+
+# Overture download cache of Portuguese Bend (171 MB) - downloaded again by build_scene3d.py
+final/dane_zrodlowe/pobrane/portuguese_bend/overture_building.geojsonl
